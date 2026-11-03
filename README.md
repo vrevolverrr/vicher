@@ -13,15 +13,15 @@ Clew is a desktop-only Obsidian plugin for studying university-level material. O
 
 Currently runs on the [Claude Code](https://code.claude.com) or [Codex](https://github.com/openai/codex) you already have installed, on your own subscription.
 
-## Draw it, then turn it
+## 3D plots
 
 <p align="center">
   <img src="assets/rotate-3d.gif" alt="A gradient descent path on the surface f(x, y) = x² + 3y², turning as the view rotates through a full circle" width="720">
 </p>
 
-Ask about gradient descent, Clew answers with a surface you can interact with. Drag to rotate or move the learning-rate slider and the path redraws.
+Ask about gradient descent and the answer includes a 3D surface. Drag to rotate it. Move the learning-rate slider and the path redraws.
 
-> The model never sends an image, instead it writes a short component in JSX-like syntax, and Clew runs it in a sandboxed worker and renders the result, so every figure takes your theme and stays interactive. For a 3D plot the program gives Clew a function `f = (x, y) => z`. Clew samples it, shades it by height, draws the box and ticks, and handles the rotation. A sphere or a torus uses `f = (u, v) => [x, y, z]` with a range for `u` and `v`.
+> The model never sends an image. It writes a short program in JSX. Clew compiles it with [Sucrase](https://github.com/alangpierce/sucrase), runs it in a sandboxed worker, and draws the result with plain DOM, SVG and canvas, with no 3D or math library. Because Clew draws every figure itself, it takes your theme and stays interactive. For a 3D plot the program gives Clew a function `f = (x, y) => z`. Clew samples it, shades it by height, draws the box and ticks, and handles the rotation. A sphere or a torus uses `f = (u, v) => [x, y, z]` with a range for `u` and `v`.
 
 <p align="center">
   <img src="assets/surfaces.png" alt="Two shaded 3D surfaces: a torus and the damped wave sin(r)/r" width="800">
@@ -135,7 +135,8 @@ npm test
 - [x] Figures in the chat: plots, 3D surfaces, step-by-step boards, quizzes
 - [x] File and image attachments
 - [x] Tool approvals
-- [ ] Evals and figure coverage
+- [ ] Prompt and behaviour evals
+- [ ] Figure coverage: circuit schematics, chemical structures from SMILES
 - [ ] Figures inside notes
 - [ ] Publish to Obsidian Plugin Marketplace.
 - [ ] Highlights in PDFs
