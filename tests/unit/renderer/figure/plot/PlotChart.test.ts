@@ -35,7 +35,7 @@ describe('PlotChart', () => {
       ],
     });
     expect(written).toEqual(expect.arrayContaining(['$\\sigma$ (MPa)', '$\\tau$ (MPa)', '$\\sigma_1 = 88.3$', '$\\tau_{max}$']));
-    expect(plot.el.querySelectorAll('.clew-plot-rich-label')).toHaveLength(4);
+    expect(plot.el.querySelectorAll('.vicher-plot-rich-label')).toHaveLength(4);
     expect(texts(plot).some((text) => text.textContent!.includes('$'))).toBe(false);
     expect(texts(plot).map((text) => text.textContent)).toContain('C (30, 0)');
   });

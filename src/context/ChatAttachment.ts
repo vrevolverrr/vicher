@@ -10,7 +10,7 @@ export interface ChatImage {
   name: string;
 }
 
-/** A file a message names by path. Clew never copies it: the agent reads it with its own tools. */
+/** A file a message names by path. Vicher never copies it: the agent reads it with its own tools. */
 export interface ChatFile {
   kind: 'file';
   /** Absolute. */

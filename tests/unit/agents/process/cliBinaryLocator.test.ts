@@ -37,7 +37,7 @@ describe('cliBinaryLocator', () => {
 
   it('finds Windows npm .cmd shims on a PATH entry', () => {
     const binDir = path.join(tempDir, 'bin');
-    const shimPath = path.join(binDir, 'clew-probe.cmd');
+    const shimPath = path.join(binDir, 'vicher-probe.cmd');
     fs.mkdirSync(binDir, { recursive: true });
     fs.writeFileSync(shimPath, '');
     process.env.PATH = binDir;
@@ -46,7 +46,7 @@ describe('cliBinaryLocator', () => {
     // env.ts reads the platform when it loads
     let found: string | null = null;
     jest.isolateModules(() => {
-      found = jest.requireActual<typeof import('@/agents/process/cliBinaryLocator')>('@/agents/process/cliBinaryLocator').findCLIBinaryPath('clew-probe');
+      found = jest.requireActual<typeof import('@/agents/process/cliBinaryLocator')>('@/agents/process/cliBinaryLocator').findCLIBinaryPath('vicher-probe');
     });
 
     expect(found).toBe(shimPath);

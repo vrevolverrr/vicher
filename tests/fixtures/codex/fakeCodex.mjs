@@ -28,7 +28,7 @@ process.on('SIGTERM', () => {
 
 const THREAD_ID = 'thread-1';
 const DEFAULT_MODEL = process.env.FAKE_CODEX_DEFAULT_MODEL ?? 'gpt-6.1-sol';
-// From codex-cli 0.163.0's model/list, trimmed to the fields Clew reads; served as two pages.
+// From codex-cli 0.163.0's model/list, trimmed to the fields Vicher reads; served as two pages.
 const efforts = (levels) => levels.map((reasoningEffort) => ({ reasoningEffort, description: '' }));
 const MODEL_PAGES = [
   [
@@ -41,7 +41,7 @@ const MODEL_PAGES = [
     { id: 'gpt-5.6-luna', displayName: 'GPT-5.6-Luna', supportedReasoningEfforts: efforts(['low', 'medium', 'high', 'xhigh', 'max']), defaultReasoningEffort: 'medium', isDefault: false },
   ],
 ];
-// From codex-cli 0.163.0's skills/list, trimmed to the fields Clew reads.
+// From codex-cli 0.163.0's skills/list, trimmed to the fields Vicher reads.
 const SKILLS = [
   { name: 'zebra', description: 'Answer with a fixed word.', scope: 'repo', enabled: true },
   { name: 'outline', description: 'Outline a note in detail.', interface: { shortDescription: 'Outline a note' }, scope: 'user', enabled: true },

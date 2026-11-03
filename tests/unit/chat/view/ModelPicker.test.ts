@@ -25,8 +25,8 @@ describe('model and effort pickers', () => {
   let host: ModelPickerHost;
 
   const flush = () => new Promise((resolve) => setTimeout(resolve));
-  const menu = () => container.querySelector('.clew-picker-menu:not(.is-closing)');
-  const options = (scope = '') => [...menu()!.querySelectorAll(`${scope} .clew-picker-option`)];
+  const menu = () => container.querySelector('.vicher-picker-menu:not(.is-closing)');
+  const options = (scope = '') => [...menu()!.querySelectorAll(`${scope} .vicher-picker-option`)];
   const texts = (els: Element[]) => els.map((el) => el.textContent);
   const checked = (els: Element[]) => texts(els.filter((el) => el.getAttribute('aria-checked') === 'true'));
   const open = async (draw: ReturnType<typeof modelMenu>) => {
@@ -57,7 +57,7 @@ describe('model and effort pickers', () => {
     expect(texts(options('[aria-label="Claude"]'))).toEqual(['AutoSonnet', 'Opus', 'Sonnet']);
     expect(texts(options('[aria-label="GPT"]'))).toEqual(['AutoSol', 'Sol']);
     expect(checked(options())).toEqual(['AutoSonnet']);
-    expect(menu()!.querySelectorAll('.clew-picker-heading svg[data-agent]')).toHaveLength(2);
+    expect(menu()!.querySelectorAll('.vicher-picker-heading svg[data-agent]')).toHaveLength(2);
     expect(anchor.getAttribute('aria-expanded')).toBe('true');
   });
 

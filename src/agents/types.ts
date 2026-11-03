@@ -20,7 +20,7 @@ export interface ModelOption {
   name: string;
   /** The levels this model takes, lowest first; empty when it takes none. */
   efforts: Effort[];
-  /** The CLI's own default, used when Clew sends no model. */
+  /** The CLI's own default, used when Vicher sends no model. */
   isDefault: boolean;
 }
 
@@ -39,7 +39,7 @@ export interface SkillSyntax {
   atStart: boolean;
 }
 
-/** A tool Clew runs for the agent, taking one string chosen from a fixed list. */
+/** A tool Vicher runs for the agent, taking one string chosen from a fixed list. */
 export interface AgentTool {
   name: string;
   description: string;
@@ -49,7 +49,7 @@ export interface AgentTool {
 }
 
 export interface AgentSessionOptions {
-  /** Clew's instructions, added to the agent's own system prompt for the whole session. */
+  /** Vicher's instructions, added to the agent's own system prompt for the whole session. */
   systemPrompt: string;
   /** Omitted: the CLI's own default ("Auto" in the picker). */
   model?: string;

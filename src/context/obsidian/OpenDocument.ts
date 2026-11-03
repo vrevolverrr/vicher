@@ -90,7 +90,7 @@ export class OpenDocument {
   private refresh(animate = true): void {
     if (this.scope.hidden) return;
     const selection = this.scope.ownerDocument.getSelection();
-    const messages = this.scope.querySelector('.clew-messages');
+    const messages = this.scope.querySelector('.vicher-messages');
     const text = selection?.toString() ?? '';
     if (text.trim() && selection?.anchorNode && selection.focusNode
       && messages?.contains(selection.anchorNode) && messages.contains(selection.focusNode)) {
@@ -101,7 +101,7 @@ export class OpenDocument {
       const key = `${before.toString().length}:${text}`;
       if (key !== this.consumedChat) {
         this.consumedChat = null;
-        this.chatSelection = { path: this.scope.id.replace('clew-panel-', ''), source: 'chat', text, key };
+        this.chatSelection = { path: this.scope.id.replace('vicher-panel-', ''), source: 'chat', text, key };
         this.context.dismissSelection();
       }
     }

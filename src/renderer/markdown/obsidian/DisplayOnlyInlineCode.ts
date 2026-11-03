@@ -1,6 +1,6 @@
 import { parser } from '@lezer/markdown';
 
-const PLACEHOLDER_PREFIX = 'clew-inline-code-';
+const PLACEHOLDER_PREFIX = 'vicher-inline-code-';
 
 interface PreparedDisplayOnlyInlineCode {
   markdown: string;

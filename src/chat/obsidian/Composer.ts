@@ -63,7 +63,7 @@ export class Composer {
     private readonly host: ComposerHost,
     private readonly chat: ModelPickerHost & PermissionMenuHost & { readonly skillSyntax: SkillSyntax; skills(): Promise<SkillOption[]> },
   ) {
-    const composer = (this.el = parent.createDiv({ cls: 'clew-composer' }));
+    const composer = (this.el = parent.createDiv({ cls: 'vicher-composer' }));
     // The chips come first: the document reports its state as soon as it starts following the editor.
     const contextChips = new ContextChips(composer, {
       toggleNote: () => this.document.toggleNote(),
@@ -72,9 +72,9 @@ export class Composer {
     this.document = new OpenDocument(owner, (state, sent, animate) => contextChips.set(state, sent ? 'sent' : 'dropped', animate));
     this.chips = new AttachmentChips(contextChips.tray, (key) => this.removeChip(key));
     // The textarea's own text is transparent; the mirror behind it draws the same text with skill names and picked files colored.
-    const inputWrap = composer.createDiv({ cls: 'clew-input-wrap' });
-    this.mirrorEl = inputWrap.createDiv({ cls: 'clew-input-mirror', attr: { 'aria-hidden': 'true' } });
-    this.inputEl = inputWrap.createEl('textarea', { cls: 'clew-input', attr: { rows: '1', placeholder: 'Ask about this note' } });
+    const inputWrap = composer.createDiv({ cls: 'vicher-input-wrap' });
+    this.mirrorEl = inputWrap.createDiv({ cls: 'vicher-input-mirror', attr: { 'aria-hidden': 'true' } });
+    this.inputEl = inputWrap.createEl('textarea', { cls: 'vicher-input', attr: { rows: '1', placeholder: 'Ask about this note' } });
     owner.registerDomEvent(this.inputEl, 'scroll', () => (this.mirrorEl.scrollTop = this.inputEl.scrollTop));
     owner.registerDomEvent(this.inputEl, 'input', () => {
       this.refresh();
@@ -125,12 +125,12 @@ export class Composer {
       void readDrop(owner.app, event.dataTransfer).then((dropped) => this.attach(dropped));
     });
 
-    const bar = composer.createDiv({ cls: 'clew-composer-bar' });
+    const bar = composer.createDiv({ cls: 'vicher-composer-bar' });
     this.pickers = pickerBar(bar, composer, chat);
     this.meter = contextMeter(bar);
 
-    bar.createDiv({ cls: 'clew-composer-spacer' });
-    this.sendEl = bar.createEl('button', { cls: 'clew-send' });
+    bar.createDiv({ cls: 'vicher-composer-spacer' });
+    this.sendEl = bar.createEl('button', { cls: 'vicher-send' });
     owner.registerDomEvent(this.sendEl, 'click', () => (this.streaming ? host.stop() : host.send()));
     this.setStreaming(false);
   }

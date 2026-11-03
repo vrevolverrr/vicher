@@ -31,9 +31,9 @@ export class ChatTabs {
   private selected: string | undefined;
 
   constructor(parent: HTMLElement, private readonly host: ChatTabsHost) {
-    this.el = parent.createDiv({ cls: 'clew-chat-tabs' });
-    this.list = this.el.createDiv({ cls: 'clew-chat-tab-list', attr: { role: 'tablist', 'aria-label': 'Open chats' } });
-    const create = this.el.createEl('button', { cls: 'clew-chat-tab clew-chat-tab-add', text: '+', attr: { type: 'button', 'aria-label': 'New tab' } });
+    this.el = parent.createDiv({ cls: 'vicher-chat-tabs' });
+    this.list = this.el.createDiv({ cls: 'vicher-chat-tab-list', attr: { role: 'tablist', 'aria-label': 'Open chats' } });
+    const create = this.el.createEl('button', { cls: 'vicher-chat-tab vicher-chat-tab-add', text: '+', attr: { type: 'button', 'aria-label': 'New tab' } });
     create.addEventListener('click', () => this.host.create());
     this.resize = new ResizeObserver(() => this.fit());
     this.resize.observe(parent);
@@ -59,11 +59,11 @@ export class ChatTabs {
     tabs.forEach((tab, index) => {
       let button = this.buttons.get(tab.id);
       if (!button) {
-        button = this.list.createEl('button', { cls: 'clew-chat-tab', attr: { type: 'button', role: 'tab' } });
+        button = this.list.createEl('button', { cls: 'vicher-chat-tab', attr: { type: 'button', role: 'tab' } });
         const target = button;
-        target.createSpan({ cls: 'clew-chat-tab-number' });
-        target.createSpan({ cls: 'clew-chat-tab-status', attr: { 'aria-hidden': 'true' } });
-        target.createSpan({ cls: 'clew-chat-tab-title', attr: { 'aria-hidden': 'true' } });
+        target.createSpan({ cls: 'vicher-chat-tab-number' });
+        target.createSpan({ cls: 'vicher-chat-tab-status', attr: { 'aria-hidden': 'true' } });
+        target.createSpan({ cls: 'vicher-chat-tab-title', attr: { 'aria-hidden': 'true' } });
         target.addEventListener('pointerenter', () => this.positionTitle(target));
         target.addEventListener('focus', () => this.positionTitle(target));
         target.addEventListener('click', () => this.host.select(tab.id));
@@ -94,8 +94,8 @@ export class ChatTabs {
       else this.list.insertBefore(button, slot);
       const title = tab.title || 'New chat';
       const status = chatTabStatus(tab);
-      button.id = `clew-tab-${tab.id}`;
-      button.setAttribute('aria-controls', `clew-panel-${tab.id}`);
+      button.id = `vicher-tab-${tab.id}`;
+      button.setAttribute('aria-controls', `vicher-panel-${tab.id}`);
       button.setAttribute('aria-selected', String(tab.id === selected));
       button.setAttribute('aria-label', `${index + 1}: ${title}${status ? `, ${status}` : ''}`);
       button.tabIndex = tab.id === selected ? 0 : -1;
@@ -103,8 +103,8 @@ export class ChatTabs {
       button.toggleClass('is-unread', tab.unread);
       button.toggleClass('is-failed', tab.failed);
       button.toggleClass('needs-approval', !!tab.waitingForApproval);
-      button.querySelector('.clew-chat-tab-number')!.textContent = String(index + 1);
-      button.querySelector('.clew-chat-tab-title')!.textContent = title;
+      button.querySelector('.vicher-chat-tab-number')!.textContent = String(index + 1);
+      button.querySelector('.vicher-chat-tab-title')!.textContent = title;
     });
     this.buttons = new Map(tabs.map((tab) => [tab.id, this.buttons.get(tab.id)!]));
     this.fit();
@@ -151,7 +151,7 @@ export class ChatTabs {
   }
 
   private positionTitle(button: HTMLButtonElement): void {
-    const title = button.querySelector<HTMLElement>('.clew-chat-tab-title')!;
+    const title = button.querySelector<HTMLElement>('.vicher-chat-tab-title')!;
     const header = this.el.parentElement!.getBoundingClientRect();
     const anchor = button.getBoundingClientRect();
     title.style.maxWidth = `${Math.min(280, header.width)}px`;

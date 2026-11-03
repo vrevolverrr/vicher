@@ -5,7 +5,7 @@ import * as path from 'node:path';
 import { turnText } from '@/context/turnText';
 
 it('names mentioned files, carries the start of the rest, and leaves images out of the text', async () => {
-  const root = mkdtempSync(path.join(tmpdir(), 'clew-turn-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'vicher-turn-'));
   try {
     writeFileSync(path.join(root, 'paste.txt'), 'pasted line');
     const text = await turnText({

@@ -56,7 +56,7 @@ describe('replaceImageEmbedsWithHTML', () => {
       );
 
       expect(result).toBe(
-        'Visible <span class="clew-embedded-image"><img src="app://local/visible.png" alt="visible" loading="lazy"></span> and `literal ![[literal.png]]`'
+        'Visible <span class="vicher-embedded-image"><img src="app://local/visible.png" alt="visible" loading="lazy"></span> and `literal ![[literal.png]]`'
       );
     });
   });
@@ -122,9 +122,9 @@ describe('replaceImageEmbedsWithHTML', () => {
 
   describe('file names', () => {
     it.each([
-      ['an uppercase extension (case-insensitive)', 'photo.PNG', '<span class="clew-embedded-image"><img src="app://local/photo.PNG" alt="photo" loading="lazy"></span>'],
-      ['special characters', 'photo (2024-01-01).png', '<span class="clew-embedded-image"><img src="app://local/photo (2024-01-01).png" alt="photo (2024-01-01)" loading="lazy"></span>'],
-      ['spaces', 'my long image name.png', '<span class="clew-embedded-image"><img src="app://local/my long image name.png" alt="my long image name" loading="lazy"></span>'],
+      ['an uppercase extension (case-insensitive)', 'photo.PNG', '<span class="vicher-embedded-image"><img src="app://local/photo.PNG" alt="photo" loading="lazy"></span>'],
+      ['special characters', 'photo (2024-01-01).png', '<span class="vicher-embedded-image"><img src="app://local/photo (2024-01-01).png" alt="photo (2024-01-01)" loading="lazy"></span>'],
+      ['spaces', 'my long image name.png', '<span class="vicher-embedded-image"><img src="app://local/my long image name.png" alt="my long image name" loading="lazy"></span>'],
     ])('embeds an image whose name has %s', (_name, filename, expected) => {
       const app = createMockApp(new Map([[filename, `app://local/${filename}`]]));
       const result = replaceImageEmbedsWithHTML(`![[${filename}]]`, app);
@@ -145,7 +145,7 @@ describe('replaceImageEmbedsWithHTML', () => {
       const app = createMockApp(new Map([['image.png', 'app://local/image.png']]));
       const result = replaceImageEmbedsWithHTML('![[note.md]] and ![[image.png]]', app);
 
-      expect(result).toBe('![[note.md]] and <span class="clew-embedded-image"><img src="app://local/image.png" alt="image" loading="lazy"></span>');
+      expect(result).toBe('![[note.md]] and <span class="vicher-embedded-image"><img src="app://local/image.png" alt="image" loading="lazy"></span>');
     });
   });
 
@@ -154,7 +154,7 @@ describe('replaceImageEmbedsWithHTML', () => {
       const app = createMockApp(); // Empty vault
       const result = replaceImageEmbedsWithHTML('![[missing.png]]', app);
 
-      expect(result).toContain('class="clew-embedded-image-fallback"');
+      expect(result).toContain('class="vicher-embedded-image-fallback"');
       expect(result).toContain('![[missing.png]]');
     });
 
@@ -227,7 +227,7 @@ describe('replaceImageEmbedsWithHTML', () => {
       const result = replaceImageEmbedsWithHTML('![[image.png]]', app, '');
 
       expect(result).toContain('src="app://local/section/image.png"');
-      expect(result).not.toContain('clew-embedded-image-fallback');
+      expect(result).not.toContain('vicher-embedded-image-fallback');
     });
   });
 
@@ -303,7 +303,7 @@ describe('replaceImageEmbedsWithHTML', () => {
 
       const result = replaceImageEmbedsWithHTML('![[test.png]]', app);
 
-      expect(result).toContain('class="clew-embedded-image-fallback"');
+      expect(result).toContain('class="vicher-embedded-image-fallback"');
     });
   });
 

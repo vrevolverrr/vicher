@@ -7,7 +7,7 @@ it('uses a generic icon for a provider without custom artwork', () => {
   // Simulate a newly registered provider before custom UI artwork is added.
   appendAgentIcon(host, 'unbranded' as AgentId);
   const icon = host.querySelector('svg')!;
-  expect(icon.classList.contains('clew-agent-icon')).toBe(true);
+  expect(icon.classList.contains('vicher-agent-icon')).toBe(true);
   expect(icon.getAttribute('data-agent')).toBe('unbranded');
   expect(icon.getAttribute('aria-hidden')).toBe('true');
   expect(icon.getAttribute('viewBox')).toBe('0 0 24 24');

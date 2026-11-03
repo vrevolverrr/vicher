@@ -19,7 +19,7 @@ export interface MarkdownTarget {
 function reveal(frame: HTMLElement): void {
   if (!frame.hasClass('is-drawing')) return;
   const from = frame.offsetHeight;
-  const card = frame.querySelector<HTMLElement>('.clew-diagram-card');
+  const card = frame.querySelector<HTMLElement>('.vicher-diagram-card');
   // Keep the fading effect at its loading size while the frame grows to fit the figure.
   if (card) card.style.height = `${card.offsetHeight}px`;
   frame.removeClass('is-drawing');
@@ -34,11 +34,11 @@ function reveal(frame: HTMLElement): void {
 
 /** The card a figure shows while its fence streams; `reveal` fades it out. */
 function addDrawingCard(frame: HTMLElement, label: string): void {
-  const card = frame.createDiv({ cls: 'clew-diagram-card' });
-  card.createDiv({ cls: 'clew-diagram-rings' });
-  card.createDiv({ cls: 'clew-diagram-stencil' });
-  card.createSpan({ cls: 'clew-tools-orb', attr: { 'aria-hidden': 'true' } });
-  card.createSpan({ cls: 'clew-diagram-card-label', text: label });
+  const card = frame.createDiv({ cls: 'vicher-diagram-card' });
+  card.createDiv({ cls: 'vicher-diagram-rings' });
+  card.createDiv({ cls: 'vicher-diagram-stencil' });
+  card.createSpan({ cls: 'vicher-tools-orb', attr: { 'aria-hidden': 'true' } });
+  card.createSpan({ cls: 'vicher-diagram-card-label', text: label });
 }
 
 /**
@@ -187,16 +187,16 @@ export class TextBlock {
       if (!this.figures.live || !outcome.repairable || this.figures.settled) return showError(outcome.error);
       this.figures.held.set(part.ordinal, { error: outcome.error, showError: () => showError(outcome.error) });
     } catch (error) {
-      console.error('Clew: a figure failed to draw', error);
+      console.error('Vicher: a figure failed to draw', error);
       showError('The figure could not be drawn');
     }
   }
 
   private drawAsCode(part: Extract<Part, { kind: 'figure' }>, source: string): void {
-    const target = part.el.createDiv({ cls: 'clew-figure-code' });
+    const target = part.el.createDiv({ cls: 'vicher-figure-code' });
     const fence = fenceFor(source);
     const shown = this.markdown.render(target, `${fence}js\n${source}\n${fence}`);
-    target.createDiv({ cls: 'clew-figure-note', text: 'Only four figures are drawn per reply' });
+    target.createDiv({ cls: 'vicher-figure-note', text: 'Only four figures are drawn per reply' });
     void shown.finally(() => reveal(part.el));
   }
 
@@ -204,13 +204,13 @@ export class TextBlock {
   private drawDiagram(part: Extract<Part, { kind: 'mermaid' }>, source: string, closed: boolean): void {
     if (part.drawn || !closed) return;
     part.drawn = true;
-    const target = part.el.createDiv({ cls: 'clew-diagram' });
+    const target = part.el.createDiv({ cls: 'vicher-diagram' });
     const fence = fenceFor(source);
     void this.markdown.render(target, `${fence}mermaid\n${source}\n${fence}`, { diagrams: true }).finally(() => reveal(part.el));
   }
 
   private createPart(segment: ReplySegment, ordinal: number): Part {
-    const el = this.el.createDiv({ cls: `clew-reply-${segment.kind}` });
+    const el = this.el.createDiv({ cls: `vicher-reply-${segment.kind}` });
     if (segment.kind === 'prose') return { kind: 'prose', el, prose: new Prose(el, this.markdown) };
     el.addClass('is-drawing');
     if (segment.kind === 'mermaid') {

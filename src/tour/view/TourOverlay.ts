@@ -28,8 +28,8 @@ export class TourOverlay {
 
   /** `hold` runs when the pointer or focus enters the card (true) and leaves it (false): the step stays while it is there. */
   constructor(parent: HTMLElement, hold: (held: boolean) => void) {
-    this.layer = parent.createDiv({ cls: 'clew-tour' });
-    this.cursor = this.layer.createDiv({ cls: 'clew-tour-cursor' });
+    this.layer = parent.createDiv({ cls: 'vicher-tour' });
+    this.cursor = this.layer.createDiv({ cls: 'vicher-tour-cursor' });
     const arrow = document.createElementNS(SVG, 'svg');
     arrow.setAttribute('viewBox', '0 0 22 26');
     arrow.setAttribute('width', '26');
@@ -39,9 +39,9 @@ export class TourOverlay {
     arrow.append(shape);
     this.cursor.append(arrow);
     // A screen reader reads each comment as it appears.
-    this.card = this.layer.createDiv({ cls: 'clew-tour-card', attr: { role: 'status', 'aria-live': 'polite' } });
-    this.text = this.card.createDiv({ cls: 'clew-tour-text' });
-    this.bar = this.card.createDiv({ cls: 'clew-tour-bar' });
+    this.card = this.layer.createDiv({ cls: 'vicher-tour-card', attr: { role: 'status', 'aria-live': 'polite' } });
+    this.text = this.card.createDiv({ cls: 'vicher-tour-text' });
+    this.bar = this.card.createDiv({ cls: 'vicher-tour-bar' });
     this.card.addEventListener('mouseenter', () => hold(true));
     this.card.addEventListener('mouseleave', () => hold(false));
     this.card.addEventListener('focusin', () => hold(true));
@@ -66,7 +66,7 @@ export class TourOverlay {
 
   /** Drains the line on the card's bottom edge over `ms`; it freezes while the pointer is on the card. */
   setTiming(ms: number): void {
-    this.bar.style.setProperty('--clew-tour-ms', `${ms}ms`);
+    this.bar.style.setProperty('--vicher-tour-ms', `${ms}ms`);
     restart(this.bar, 'is-timing');
   }
 

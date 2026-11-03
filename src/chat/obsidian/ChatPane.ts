@@ -94,7 +94,7 @@ export class ChatPane extends Component {
     this.stopTour = this.host.tour.subscribe((event) => {
       if (this.host.active()) this.walkers.forEach((listener) => listener(event));
     });
-    this.messagesEl = root.createDiv({ cls: 'clew-messages' });
+    this.messagesEl = root.createDiv({ cls: 'vicher-messages' });
     const markdown = new MarkdownContentRenderer(this.app, this, () => this.sourcePath);
     const diagrams: AfterRender = (el, isCurrent, scope) => renderMermaidDiagrams(this.app, el, isCurrent, scope);
     this.markdown = markdown;
@@ -106,7 +106,7 @@ export class ChatPane extends Component {
     };
     this.registerDomEvent(this.messagesEl, 'click', (event) => this.openInternalLink(event));
     this.approvals = new ApprovalCard(root, () => this.refreshTab());
-    const composerArea = root.createDiv({ cls: 'clew-chat-composer-area' });
+    const composerArea = root.createDiv({ cls: 'vicher-chat-composer-area' });
     this.composer = new Composer(this, composerArea, {
       mentions: (query) => this.host.files.find(query, MENTION_LIMIT),
       send: () => this.send(),
@@ -168,7 +168,7 @@ export class ChatPane extends Component {
   }
 
   private addNotice(text: string): void {
-    this.messagesEl.createDiv({ cls: 'clew-reply-status clew-notice', text });
+    this.messagesEl.createDiv({ cls: 'vicher-reply-status vicher-notice', text });
   }
 
   close(): Promise<void> {
@@ -268,33 +268,33 @@ export class ChatPane extends Component {
 
   /** `live` is true for a turn being run, false for a saved one drawn again. */
   private addTurn(message: string, quote?: NoteQuote, attachments: readonly ChatAttachment[] = [], live = false): { turnEl: HTMLElement; replyEl: HTMLElement; reply: ReplyView } {
-    const turnEl = this.messagesEl.createDiv({ cls: 'clew-turn' });
+    const turnEl = this.messagesEl.createDiv({ cls: 'vicher-turn' });
     const chipped = attachments.filter((attachment) => !isMention(attachment));
     if (chipped.length) {
-      const attachedEl = turnEl.createDiv({ cls: 'clew-user-attachments' });
+      const attachedEl = turnEl.createDiv({ cls: 'vicher-user-attachments' });
       for (const attachment of chipped) {
         if (attachment.kind === 'image') {
           attachedEl.createEl('img', { attr: { src: this.host.images.url(attachment), alt: attachment.name } });
           continue;
         }
-        const fileEl = attachedEl.createDiv({ cls: 'clew-context-chip', ...(attachment.kind === 'file' ? { attr: { title: attachment.path } } : {}) });
-        setIcon(fileEl.createSpan({ cls: 'clew-context-icon' }), 'file-text');
-        fileEl.createSpan({ cls: 'clew-context-label', text: attachment.name });
+        const fileEl = attachedEl.createDiv({ cls: 'vicher-context-chip', ...(attachment.kind === 'file' ? { attr: { title: attachment.path } } : {}) });
+        setIcon(fileEl.createSpan({ cls: 'vicher-context-icon' }), 'file-text');
+        fileEl.createSpan({ cls: 'vicher-context-label', text: attachment.name });
       }
     }
     if (quote) {
-      const quoteEl = turnEl.createDiv({ cls: 'clew-user-quote', text: quote.text.slice(0, QUOTE_PREVIEW_LENGTH), attr: { 'aria-label': quote.source === 'chat' ? 'Quoted chat text' : `Open ${quote.path}` } });
+      const quoteEl = turnEl.createDiv({ cls: 'vicher-user-quote', text: quote.text.slice(0, QUOTE_PREVIEW_LENGTH), attr: { 'aria-label': quote.source === 'chat' ? 'Quoted chat text' : `Open ${quote.path}` } });
       if (quote.source !== 'chat') quoteEl.addEventListener('click', () => {
         openQuote(this.app, quote).catch((error: unknown) => new Notice(`Could not open ${quote.path}: ${messageOf(error)}`));
       });
     }
     if (message) {
-      const bubble = turnEl.createDiv({ cls: 'clew-user-message' });
+      const bubble = turnEl.createDiv({ cls: 'vicher-user-message' });
       appendMessageText(bubble, message, { skill: this.chat.skillSyntax, mentions: mentionPaths(attachments), math: (source) => renderMath(source, false) });
       // Lets Obsidian finish the maths styles.
       if (bubble.querySelector('.math, mjx-container')) finishRenderMath().catch(() => undefined);
     }
-    const replyEl = turnEl.createDiv({ cls: 'clew-reply markdown-rendered' });
+    const replyEl = turnEl.createDiv({ cls: 'vicher-reply markdown-rendered' });
     const reply = new ReplyView(replyEl, this.replyMarkdown, this.walkthrough, (message) => this.ask(message), live);
     this.replies.add(reply);
     return { turnEl, replyEl, reply };
@@ -318,8 +318,8 @@ export class ChatPane extends Component {
   }
 
   private showStatus(replyEl: HTMLElement, turn: ChatTurn): void {
-    if (turn.status === 'interrupted') replyEl.createDiv({ cls: 'clew-reply-status', text: 'Stopped.' });
-    if (turn.status === 'failed') replyEl.createDiv({ cls: 'clew-reply-error', text: turn.error ?? 'The agent failed.' });
+    if (turn.status === 'interrupted') replyEl.createDiv({ cls: 'vicher-reply-status', text: 'Stopped.' });
+    if (turn.status === 'failed') replyEl.createDiv({ cls: 'vicher-reply-error', text: turn.error ?? 'The agent failed.' });
   }
 
   private openInternalLink(event: MouseEvent): void {

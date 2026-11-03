@@ -12,7 +12,7 @@ import { TourOverlay } from '@/tour/view/TourOverlay';
 import { leafOfFile } from '@/shared/obsidian/leafOfFile';
 import { readViewport } from '@/shared/obsidian/viewport';
 
-const NAME = 'clew-highlight';
+const NAME = 'vicher-highlight';
 // Reading view draws a section when it scrolls near, so a quote far down may take a moment to exist.
 const DRAW_TRIES = 6;
 const DRAW_MS = 50;
@@ -84,7 +84,7 @@ export class NoteHighlights implements TourStage {
   }
 
   private drop(quote: string, why: string): false {
-    console.debug(`Clew: dropped a highlight of "${quote}": ${why}`);
+    console.debug(`Vicher: dropped a highlight of "${quote}": ${why}`);
     return false;
   }
 

@@ -33,7 +33,7 @@ describe('process probe subprocess integration', () => {
   });
 
   it('returns null when the executable cannot be spawned', async () => {
-    const directory = mkdtempSync(path.join(tmpdir(), 'clew-process-probe-'));
+    const directory = mkdtempSync(path.join(tmpdir(), 'vicher-process-probe-'));
     try {
       await expect(runProcessProbe({
         command: path.join(directory, 'missing-executable'),

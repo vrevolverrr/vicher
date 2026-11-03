@@ -122,7 +122,7 @@ export class HighlightTour {
       while (this.upNext < this.steps.length) {
         const step = this.steps[this.upNext++];
         const shown = await this.stage.show(step, signal).catch((error: unknown) => {
-          console.debug('Clew: a highlight failed', error);
+          console.debug('Vicher: a highlight failed', error);
           return false;
         });
         if (signal.aborted) return;

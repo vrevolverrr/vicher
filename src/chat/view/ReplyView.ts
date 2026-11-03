@@ -52,7 +52,7 @@ export class ReplyView {
         else this.discard(block);
       }
       const first = this.blocks.reduce((count, previous) => count + (previous instanceof TextBlock ? countFigures(previous.text) : 0), 0);
-      block = new TextBlock(this.el.createDiv({ cls: 'clew-reply-text' }), this.markdown, this.figures, first);
+      block = new TextBlock(this.el.createDiv({ cls: 'vicher-reply-text' }), this.markdown, this.figures, first);
       this.blocks.push(block);
     }
     block.append(delta);
@@ -64,7 +64,7 @@ export class ReplyView {
     this.steps.push(step);
     let run = this.blocks.at(-1);
     if (!(run instanceof Walkthrough)) {
-      run = new Walkthrough(this.el.createDiv({ cls: 'clew-walkthrough' }), this.steps, this.walkthrough);
+      run = new Walkthrough(this.el.createDiv({ cls: 'vicher-walkthrough' }), this.steps, this.walkthrough);
       this.blocks.push(run);
     }
     run.add();
@@ -99,9 +99,9 @@ export class ReplyView {
     this.figures.held.clear();
     if (this.copyable || !this.text()) return;
     this.copyable = true;
-    const footer = this.el.createDiv({ cls: 'clew-reply-footer' });
-    if (at !== undefined) footer.createSpan({ cls: 'clew-reply-time', text: formatWhen(at, Date.now()) });
-    createCopyButton(footer, 'Copy response', () => this.text(), 'clew-reply-copy');
+    const footer = this.el.createDiv({ cls: 'vicher-reply-footer' });
+    if (at !== undefined) footer.createSpan({ cls: 'vicher-reply-time', text: formatWhen(at, Date.now()) });
+    createCopyButton(footer, 'Copy response', () => this.text(), 'vicher-reply-copy');
     if (feedback) drawRatingButtons(footer, feedback.rating, feedback.rate);
   }
 
@@ -118,7 +118,7 @@ export class ReplyView {
   }
 
   private follow(): ToolGroup {
-    const group = new ToolGroup(this.el.createDiv({ cls: 'clew-tools' }));
+    const group = new ToolGroup(this.el.createDiv({ cls: 'vicher-tools' }));
     this.blocks.push(group);
     return group;
   }
@@ -132,8 +132,8 @@ export class ReplyView {
 /** A thumbs-up and a thumbs-down. Pressing the lit one takes the thumb back. `onRate` gets the new rating, or undefined when it is taken back. */
 function drawRatingButtons(parent: HTMLElement, rating: Rating | undefined, onRate: (rating: Rating | undefined) => void): void {
   const buttons = [
-    ['up', createIconButton(parent, 'thumbs-up', 'Good response', 'clew-reply-rate is-up')],
-    ['down', createIconButton(parent, 'thumbs-down', 'Poor response', 'clew-reply-rate is-down')],
+    ['up', createIconButton(parent, 'thumbs-up', 'Good response', 'vicher-reply-rate is-up')],
+    ['down', createIconButton(parent, 'thumbs-down', 'Poor response', 'vicher-reply-rate is-down')],
   ] as const;
   let current = rating;
   const show = (): void => {

@@ -25,9 +25,9 @@ interface Span {
 /** Appends the text to `parent`, with each skill name, picked file, and name being typed in its own span, and each `$...$` drawn as maths when `math` is given. */
 export function appendMessageText(parent: HTMLElement, text: string, { skill, mentions, typing, math }: MessageTokens): void {
   const spans: Span[] = [
-    ...skillTokens(text, skill).map((range) => ({ ...range, cls: 'clew-skill-token' })),
-    ...mentionTokens(text, [...mentions.keys()]).map(({ start, end, token }) => ({ start, end, cls: 'clew-mention-token', title: mentions.get(token) })),
-    ...(typing ? [{ ...typing, cls: 'clew-skill-token' }] : []),
+    ...skillTokens(text, skill).map((range) => ({ ...range, cls: 'vicher-skill-token' })),
+    ...mentionTokens(text, [...mentions.keys()]).map(({ start, end, token }) => ({ start, end, cls: 'vicher-mention-token', title: mentions.get(token) })),
+    ...(typing ? [{ ...typing, cls: 'vicher-skill-token' }] : []),
     ...(math ? inlineMathRanges(text).map(({ start, end, source }) => ({ start, end, source })) : []),
   ].sort((a, b) => a.start - b.start);
   let at = 0;

@@ -73,7 +73,7 @@ export function diagramExtent(diagram: Diagram, keep?: Extent): Extent {
  */
 export function drawDiagram(el: HTMLElement, diagram: Diagram, extent: Extent, available: number, markdown: Markdown, keep?: Room): Room {
   el.replaceChildren();
-  el.classList.add('clew-figure-diagram');
+  el.classList.add('vicher-figure-diagram');
   const [x0, y0, x1, y1] = extent;
   available = Math.max(160, available) - 2 * PAD;
   const scale = Math.min(available / (x1 - x0), (MAX_HEIGHT - 2 * PAD) / (y1 - y0));
@@ -87,7 +87,7 @@ export function drawDiagram(el: HTMLElement, diagram: Diagram, extent: Extent, a
   const lines: [number, number][][] = [];
   const labels: (LabelBox & { box: HTMLElement })[] = [];
   const mark = (tag: string, attrs: Record<string, string | number>, layerTag?: Tag): SVGElement => {
-    const shape = svg(tag, { ...attrs, class: `clew-figure-mark${attrs.class ? ` ${attrs.class}` : ''}` }, root);
+    const shape = svg(tag, { ...attrs, class: `vicher-figure-mark${attrs.class ? ` ${attrs.class}` : ''}` }, root);
     if (layerTag) shape.style.color = tagInk(layerTag);
     return shape;
   };
@@ -102,7 +102,7 @@ export function drawDiagram(el: HTMLElement, diagram: Diagram, extent: Extent, a
   for (const layer of diagram.children) {
     const text = layer.type === 'Label' ? layer.text : 'label' in layer ? layer.label : undefined;
     if (text === undefined) continue;
-    const box = el.appendChild(div('clew-figure-diagram-label'));
+    const box = el.appendChild(div('vicher-figure-diagram-label'));
     if (layer.tag) box.style.color = tagInk(layer.tag);
     if (layer.type === 'Shape' && layer.closed) box.classList.add('is-inside');
     markdown(box, text);
@@ -140,7 +140,7 @@ export function drawDiagram(el: HTMLElement, diagram: Diagram, extent: Extent, a
       }
       case 'Vector':
       case 'Segment':
-        polyline([layer.from, layer.to], layer.tag, layer.type === 'Vector' ? { 'marker-end': head(layer.tag ? tagInk(layer.tag) : 'var(--clew-figure-ink)'), class: 'is-vector' } : {});
+        polyline([layer.from, layer.to], layer.tag, layer.type === 'Vector' ? { 'marker-end': head(layer.tag ? tagInk(layer.tag) : 'var(--vicher-figure-ink)'), class: 'is-vector' } : {});
         label([(layer.from[0] + layer.to[0]) / 2, (layer.from[1] + layer.to[1]) / 2], layer);
         break;
       case 'Points':

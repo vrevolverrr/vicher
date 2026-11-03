@@ -35,20 +35,20 @@ describe('DisplayOnlyCodeFences', () => {
     const prepared = prepareDisplayOnlyCodeFences(markdown);
 
     expect(prepared.markdown).toBe([
-      '> ```clew-display-only-fence-0',
+      '> ```vicher-display-only-fence-0',
       '> TABLE file.name',
       '> ```',
-      '- ~~~clew-display-only-fence-1 title="sample"',
+      '- ~~~vicher-display-only-fence-1 title="sample"',
       '  const value = 1;',
       '  ~~~',
     ].join('\n'));
     expect(prepared.fences).toEqual([
       {
-        placeholderLanguage: 'clew-display-only-fence-0',
+        placeholderLanguage: 'vicher-display-only-fence-0',
         originalLanguage: 'dataview',
       },
       {
-        placeholderLanguage: 'clew-display-only-fence-1',
+        placeholderLanguage: 'vicher-display-only-fence-1',
         originalLanguage: 'typescript',
       },
     ]);
@@ -66,7 +66,7 @@ describe('DisplayOnlyCodeFences', () => {
     const prepared = prepareDisplayOnlyCodeFences(markdown);
 
     expect(prepared.markdown).toBe([
-      '````clew-display-only-fence-0',
+      '````vicher-display-only-fence-0',
       '```dataview',
       'TABLE file.name',
       '```',
@@ -93,7 +93,7 @@ describe('DisplayOnlyCodeFences', () => {
       '```',
       'plain code',
       '```',
-      '```clew-display-only-fence-0',
+      '```vicher-display-only-fence-0',
       'TABLE file.name',
     ].join('\n'));
     expect(prepared.fences).toHaveLength(1);
@@ -103,14 +103,14 @@ describe('DisplayOnlyCodeFences', () => {
     const highlightElement = jest.fn();
     (loadPrism as jest.Mock).mockResolvedValueOnce({ highlightElement });
     const container = document.createElement('div');
-    const code = createEl(container, 'code', 'language-clew-display-only-fence-0 extra-class', 'const value = 1;');
+    const code = createEl(container, 'code', 'language-vicher-display-only-fence-0 extra-class', 'const value = 1;');
 
     await restoreDisplayOnlyCodeFences(container, [{
-      placeholderLanguage: 'clew-display-only-fence-0',
+      placeholderLanguage: 'vicher-display-only-fence-0',
       originalLanguage: 'typescript',
     }]);
 
-    expect(code.classList.contains('language-clew-display-only-fence-0')).toBe(false);
+    expect(code.classList.contains('language-vicher-display-only-fence-0')).toBe(false);
     expect(code.classList.contains('language-typescript')).toBe(true);
     expect(code.classList.contains('extra-class')).toBe(true);
     expect(highlightElement).toHaveBeenCalledWith(code);
@@ -124,13 +124,13 @@ describe('DisplayOnlyCodeFences', () => {
     });
     (loadPrism as jest.Mock).mockResolvedValueOnce({ highlightElement });
     const container = document.createElement('div');
-    const placeholderClass = 'language-clew-display-only-fence-0';
+    const placeholderClass = 'language-vicher-display-only-fence-0';
     const pre = createEl(container, 'pre', placeholderClass);
     const code = createEl(pre, 'code', placeholderClass, 'const value = 1;');
     const copyButton = createEl(pre, 'button', 'copy-code-button');
 
     await restoreDisplayOnlyCodeFences(container, [{
-      placeholderLanguage: 'clew-display-only-fence-0',
+      placeholderLanguage: 'vicher-display-only-fence-0',
       originalLanguage: 'typescript',
     }]);
 
@@ -143,10 +143,10 @@ describe('DisplayOnlyCodeFences', () => {
   it('restores language classes even when Prism loading fails', async () => {
     (loadPrism as jest.Mock).mockRejectedValueOnce(new Error('Prism unavailable'));
     const container = document.createElement('div');
-    const code = createEl(container, 'code', 'language-clew-display-only-fence-0', 'TABLE file.name');
+    const code = createEl(container, 'code', 'language-vicher-display-only-fence-0', 'TABLE file.name');
 
     await expect(restoreDisplayOnlyCodeFences(container, [{
-      placeholderLanguage: 'clew-display-only-fence-0',
+      placeholderLanguage: 'vicher-display-only-fence-0',
       originalLanguage: 'dataview',
     }])).resolves.toBeUndefined();
 

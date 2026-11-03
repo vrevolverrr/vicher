@@ -17,7 +17,7 @@ describe('TourOverlay', () => {
     const pane = parent.appendChild(document.createElement('div'));
     jest.spyOn(pane, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, right: 400, bottom: 300, width: 400, height: 300, x: 0, y: 0, toJSON: () => ({}) });
     const hold = jest.fn();
-    return { overlay: new TourOverlay(parent, hold), hold, layer: parent.querySelector<HTMLElement>('.clew-tour')!, pane };
+    return { overlay: new TourOverlay(parent, hold), hold, layer: parent.querySelector<HTMLElement>('.vicher-tour')!, pane };
   }
 
   it('shows the comment and follows the point each frame', () => {
@@ -26,12 +26,12 @@ describe('TourOverlay', () => {
 
     overlay.show(() => point, pane, 'Missing factor');
     frames.shift()!(0);
-    expect(layer.querySelector('.clew-tour-text')!.textContent).toBe('Missing factor');
-    expect((layer.querySelector('.clew-tour-cursor') as HTMLElement).style.transform).toBe('translate(10px, 20px)');
+    expect(layer.querySelector('.vicher-tour-text')!.textContent).toBe('Missing factor');
+    expect((layer.querySelector('.vicher-tour-cursor') as HTMLElement).style.transform).toBe('translate(10px, 20px)');
 
     point = { x: 30, y: 60, top: 42 };
     frames.shift()!(16);
-    expect((layer.querySelector('.clew-tour-cursor') as HTMLElement).style.transform).toBe('translate(30px, 60px)');
+    expect((layer.querySelector('.vicher-tour-cursor') as HTMLElement).style.transform).toBe('translate(30px, 60px)');
   });
 
   it('hides while the point is outside the pane or unknown, and shows again when it returns', () => {
@@ -61,7 +61,7 @@ describe('TourOverlay', () => {
 
   it('holds the step while the pointer or focus is on the card', () => {
     const { layer, hold } = setup();
-    const card = layer.querySelector('.clew-tour-card')!;
+    const card = layer.querySelector('.vicher-tour-card')!;
 
     card.dispatchEvent(new Event('mouseenter'));
     card.dispatchEvent(new Event('mouseleave'));
@@ -73,18 +73,18 @@ describe('TourOverlay', () => {
 
   it('restarts the draining line for each time it is told', () => {
     const { overlay, layer } = setup();
-    const bar = layer.querySelector<HTMLElement>('.clew-tour-bar')!;
+    const bar = layer.querySelector<HTMLElement>('.vicher-tour-bar')!;
 
     overlay.setTiming(2705);
-    expect(bar.style.getPropertyValue('--clew-tour-ms')).toBe('2705ms');
+    expect(bar.style.getPropertyValue('--vicher-tour-ms')).toBe('2705ms');
     expect(bar.classList.contains('is-timing')).toBe(true);
     overlay.setTiming(1500);
-    expect(bar.style.getPropertyValue('--clew-tour-ms')).toBe('1500ms');
+    expect(bar.style.getPropertyValue('--vicher-tour-ms')).toBe('1500ms');
   });
 
   it('is read out as each comment appears', () => {
     const { layer } = setup();
 
-    expect(layer.querySelector('.clew-tour-card')!.getAttribute('role')).toBe('status');
+    expect(layer.querySelector('.vicher-tour-card')!.getAttribute('role')).toBe('status');
   });
 });

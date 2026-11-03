@@ -14,22 +14,22 @@ export class StepList {
   private readonly live = createDiv();
 
   constructor(steps: readonly StepText[], write: Write, pick: (index: number) => void) {
-    this.el.className = 'clew-steps';
+    this.el.className = 'vicher-steps';
     // Divs, not an <ol>: Obsidian's list rules indent and space a list in rendered Markdown.
-    const list = this.el.createDiv({ cls: 'clew-steps-list', attr: { role: 'list' } });
+    const list = this.el.createDiv({ cls: 'vicher-steps-list', attr: { role: 'list' } });
     this.items = steps.map((step, index) => {
-      const item = list.createDiv({ cls: 'clew-step', attr: { role: 'listitem' } });
-      const button = item.createEl('button', { cls: 'clew-step-button' });
+      const item = list.createDiv({ cls: 'vicher-step', attr: { role: 'listitem' } });
+      const button = item.createEl('button', { cls: 'vicher-step-button' });
       button.type = 'button';
-      button.createSpan({ cls: 'clew-step-dot', text: String(index + 1) });
-      const text = button.createDiv({ cls: 'clew-step-text' });
-      if (step.heading) write(text.createDiv({ cls: 'clew-step-heading' }), step.heading);
-      write(text.createDiv({ cls: 'clew-step-caption' }), step.caption);
+      button.createSpan({ cls: 'vicher-step-dot', text: String(index + 1) });
+      const text = button.createDiv({ cls: 'vicher-step-text' });
+      if (step.heading) write(text.createDiv({ cls: 'vicher-step-heading' }), step.heading);
+      write(text.createDiv({ cls: 'vicher-step-caption' }), step.caption);
       button.addEventListener('click', () => pick(index));
       this.buttons.push(button);
       return item;
     });
-    this.live.className = 'clew-visually-hidden';
+    this.live.className = 'vicher-visually-hidden';
     this.live.setAttribute('aria-live', 'polite');
     this.el.append(this.live);
   }
@@ -47,7 +47,7 @@ export class StepList {
       if (k === index) item.setAttribute('aria-current', 'step');
       else item.removeAttribute('aria-current');
     });
-    const parts = this.items[index]?.querySelector('.clew-step-text')?.children ?? [];
+    const parts = this.items[index]?.querySelector('.vicher-step-text')?.children ?? [];
     this.live.textContent = Array.from(parts, (part) => part.textContent).join(': ');
   }
 }

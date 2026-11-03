@@ -28,7 +28,7 @@ import type {
 import { CODEX_APPROVAL_METHODS, CODEX_QUESTION_METHOD, CodexPermissionAdapter, type CodexApprovalRequest, type CodexPermissionSetup, type CodexQuestionRequest } from './CodexPermissionAdapter';
 
 const APP_SERVER_ARGS = ['app-server', '--listen', 'stdio://'];
-const CLIENT_INFO = { name: 'clew', version: '0.0.1' };
+const CLIENT_INFO = { name: 'vicher', version: '0.0.1' };
 const REQUEST_TIMEOUT_MS = 30_000;
 /** How long a closed stdout waits for the process to close, so its last stderr reaches the error. */
 const PROCESS_CLOSE_GRACE_MS = 3_000;

@@ -23,7 +23,7 @@ describe('contextMeter', () => {
 
     expect(ring.hasClass('is-empty')).toBe(false);
     expect(ring.getAttribute('aria-label')).toBe('Context 42%: 84k / 200k tokens');
-    expect(ring.style.getPropertyValue('--clew-context-share')).toBe('42%');
+    expect(ring.style.getPropertyValue('--vicher-context-share')).toBe('42%');
     expect(ring.dataset.high).toBe('false');
   });
 
@@ -33,7 +33,7 @@ describe('contextMeter', () => {
     meter.set(210_000, 200_000);
 
     expect(ring.dataset.high).toBe('true');
-    expect(ring.style.getPropertyValue('--clew-context-share')).toBe('100%');
+    expect(ring.style.getPropertyValue('--vicher-context-share')).toBe('100%');
   });
 
   it('hides again on clear', () => {

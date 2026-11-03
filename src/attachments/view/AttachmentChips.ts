@@ -32,8 +32,8 @@ export class AttachmentChips {
       let chip = this.chips.get(key);
       if (!chip) {
         chip = new Chip(this.tray, { label: `Remove ${name}`, onClick: () => this.onRemove(key) });
-        chip.el.addClass('clew-attachment-chip');
-        if (src) chip.el.addClass('clew-image-chip');
+        chip.el.addClass('vicher-attachment-chip');
+        if (src) chip.el.addClass('vicher-image-chip');
         this.chips.set(key, chip);
       }
       chip.set('file-text', name, title ?? name, src);

@@ -74,7 +74,7 @@ export class HistoryMenu {
     if (this.menu) return;
     const doc = this.anchor.ownerDocument;
     const rect = this.anchor.getBoundingClientRect();
-    const menu = doc.body.createDiv({ cls: 'clew-history-menu', attr: { role: 'menu', 'aria-labelledby': menuLabelId(this.anchor) } });
+    const menu = doc.body.createDiv({ cls: 'vicher-history-menu', attr: { role: 'menu', 'aria-labelledby': menuLabelId(this.anchor) } });
     menu.style.top = `${rect.bottom + GAP}px`;
     menu.style.right = `${doc.documentElement.clientWidth - rect.right}px`;
     menu.addEventListener('pointerenter', this.onEnter);
@@ -113,32 +113,32 @@ export class HistoryMenu {
     const row = (chat: Pick<ChatSummary, 'id' | 'title' | 'agent'>, number?: number, tab?: ChatTab): HTMLElement => {
       const title = chat.title || 'New chat';
       const button = menu.createEl('button', {
-        cls: 'clew-history-row',
+        cls: 'vicher-history-row',
         attr: { type: 'button', role: 'menuitem', title, 'data-chat-id': chat.id, ...(chat.id === current ? { 'aria-current': 'true' } : {}) },
       });
-      if (number !== undefined) button.createSpan({ cls: 'clew-history-number', text: String(number) });
+      if (number !== undefined) button.createSpan({ cls: 'vicher-history-number', text: String(number) });
       appendAgentIcon(button, chat.agent);
-      button.createSpan({ cls: 'clew-history-title', text: title });
+      button.createSpan({ cls: 'vicher-history-title', text: title });
       if (tab) {
         const status = chatTabStatus(tab);
-        if (status) button.createSpan({ cls: 'clew-history-status', text: status });
+        if (status) button.createSpan({ cls: 'vicher-history-status', text: status });
       }
       button.addEventListener('click', () => { this.close(); this.host.open(chat.id); });
       return button;
     };
     if (tabs.length) {
-      menu.createDiv({ cls: 'clew-history-group', text: 'Open chats' });
+      menu.createDiv({ cls: 'vicher-history-group', text: 'Open chats' });
       tabs.forEach((tab, index) => row(tab, index + 1, tab));
     }
     const recent = chats.filter((chat) => !tabs.some((tab) => tab.id === chat.id)).slice(0, RECENT);
     if (!tabs.length && !recent.length) {
-      menu.createDiv({ cls: 'clew-history-empty', text: error || 'No saved chats yet.' });
+      menu.createDiv({ cls: 'vicher-history-empty', text: error || 'No saved chats yet.' });
       return;
     }
-    if (tabs.length && recent.length) menu.createDiv({ cls: 'clew-history-group', text: 'Recent chats' });
-    for (const chat of recent) row(chat).createSpan({ cls: 'clew-history-when', text: formatWhen(chat.updatedAt, Date.now()) });
-    if (error) menu.createDiv({ cls: 'clew-history-empty', text: error });
-    const all = menu.createEl('button', { cls: 'clew-history-all', text: 'Show all chats', attr: { type: 'button', role: 'menuitem', 'data-chat-id': 'all' } });
+    if (tabs.length && recent.length) menu.createDiv({ cls: 'vicher-history-group', text: 'Recent chats' });
+    for (const chat of recent) row(chat).createSpan({ cls: 'vicher-history-when', text: formatWhen(chat.updatedAt, Date.now()) });
+    if (error) menu.createDiv({ cls: 'vicher-history-empty', text: error });
+    const all = menu.createEl('button', { cls: 'vicher-history-all', text: 'Show all chats', attr: { type: 'button', role: 'menuitem', 'data-chat-id': 'all' } });
     all.addEventListener('click', () => {
       this.close();
       this.host.showAll();

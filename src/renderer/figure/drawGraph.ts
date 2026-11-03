@@ -46,11 +46,11 @@ export function layoutGraph(uses: readonly Graph[]): NetworkLayout {
 
 /** Draws one step of a Graph at the places `layout` gives; nodes and edges absent from this step are hidden. */
 export function drawGraph(parent: HTMLElement, graph: Graph, layout: NetworkLayout, tagOf: (id: string) => Tag | undefined, markdown: Markdown): void {
-  const surface = parent.appendChild(div('clew-figure-graph'));
+  const surface = parent.appendChild(div('vicher-figure-graph'));
   if (graph.id) surface.dataset.figureId = graph.id;
   surface.style.width = `${layout.width}px`;
   surface.style.height = `${layout.height}px`;
-  const drawing = svg('svg', { width: layout.width, height: layout.height, 'aria-hidden': 'true', class: 'clew-network-edges' }, surface);
+  const drawing = svg('svg', { width: layout.width, height: layout.height, 'aria-hidden': 'true', class: 'vicher-network-edges' }, surface);
   const head = arrowHeads(drawing, { markerUnits: 'userSpaceOnUse', markerWidth: 12, markerHeight: 12 });
 
   const present = new Map(edgeKeys(graph.edges).map((key, i) => [key, graph.edges[i]]));
@@ -58,12 +58,12 @@ export function drawGraph(parent: HTMLElement, graph: Graph, layout: NetworkLayo
     const edge = present.get(geometry.id);
     if (!edge) continue;
     const tag = edge.id ? tagOf(edge.id) : undefined;
-    const path = svg('path', { d: geometry.path, fill: 'none', class: 'clew-network-edge' }, drawing);
+    const path = svg('path', { d: geometry.path, fill: 'none', class: 'vicher-network-edge' }, drawing);
     if (edge.id) path.dataset.figureId = edge.id;
     if (tag) path.dataset.tag = tag;
     if (edge.directed) path.setAttribute('marker-end', head(lineInk(tag)));
     if (edge.label === undefined) continue;
-    const label = surface.appendChild(div('clew-network-edge-label'));
+    const label = surface.appendChild(div('vicher-network-edge-label'));
     if (tag) label.dataset.tag = tag;
     position(label, geometry.label);
     label.style.width = `${geometry.label.width}px`;
@@ -76,13 +76,13 @@ export function drawGraph(parent: HTMLElement, graph: Graph, layout: NetworkLayo
     const node = nodes.get(id);
     if (!node) continue;
     const tag = tagOf(id);
-    const el = surface.appendChild(div('clew-network-node'));
+    const el = surface.appendChild(div('vicher-network-node'));
     el.dataset.figureId = id;
     if (tag) el.dataset.tag = tag;
     position(el, box);
     el.style.width = `${box.width}px`;
     el.style.height = `${box.height}px`;
-    markdown(el.appendChild(div('clew-network-node-label')), `${status(tag ?? '')}${formatFigure(node.label)}`);
-    if (node.sub !== undefined) markdown(el.appendChild(div('clew-network-node-sub')), node.sub);
+    markdown(el.appendChild(div('vicher-network-node-label')), `${status(tag ?? '')}${formatFigure(node.label)}`);
+    if (node.sub !== undefined) markdown(el.appendChild(div('vicher-network-node-sub')), node.sub);
   }
 }

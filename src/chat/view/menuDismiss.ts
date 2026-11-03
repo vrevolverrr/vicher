@@ -6,7 +6,7 @@ let anchors = 0;
  * would make Obsidian pop up a tooltip over the menu's options.
  */
 export function menuLabelId(anchor: HTMLElement): string {
-  anchor.id ||= `clew-menu-anchor-${anchors++}`;
+  anchor.id ||= `vicher-menu-anchor-${anchors++}`;
   return anchor.id;
 }
 

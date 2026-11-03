@@ -83,11 +83,11 @@ function createImageHTML(
   const alt = escapeHTML(altText || file.basename);
   const style = buildStyleAttribute(altText);
 
-  return `<span class="clew-embedded-image"><img src="${escapeHTML(src)}" alt="${alt}" loading="lazy"${style}></span>`;
+  return `<span class="vicher-embedded-image"><img src="${escapeHTML(src)}" alt="${alt}" loading="lazy"${style}></span>`;
 }
 
 function createFallbackHTML(wikilink: string): string {
-  return `<span class="clew-embedded-image-fallback">${escapeHTML(wikilink)}</span>`;
+  return `<span class="vicher-embedded-image-fallback">${escapeHTML(wikilink)}</span>`;
 }
 
 /**

@@ -4,7 +4,7 @@ import { z } from 'zod/v4';
 import { type AgentToolAdapter, type AgentToolCall, type AgentToolResult, displayCommand, displayPath, runTool, titleOf } from '@/agents/adapters';
 import type { AgentEvent, AgentTool } from '@/agents/types';
 
-const TOOL_SERVER = 'clew';
+const TOOL_SERVER = 'vicher';
 /** The MCP server and the tool names that may run without asking. */
 export type ClaudeTools = Pick<Options, 'mcpServers' | 'allowedTools'>;
 export type ClaudeToolFactory = (tools: AgentTool[], adapter: AgentToolAdapter<SDKMessage>) => Promise<ClaudeTools>;

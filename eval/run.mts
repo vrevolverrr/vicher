@@ -1,4 +1,4 @@
-// Tutoring alignment eval: each case runs as a real Clew chat turn on the developer's own CLIs and subscriptions.
+// Tutoring alignment eval: each case runs as a real Vicher chat turn on the developer's own CLIs and subscriptions.
 // npm run eval -- [--repeat=3] [--agent=claude|codex] [--claude-model=haiku] [--codex-model=...] [--judge=opus]
 // Results go to promptfoo's local store: `npx promptfoo view` opens them.
 import '../tests/setupWindow';
@@ -13,7 +13,7 @@ import { messageOf } from '@/shared/messageOf';
 import { findQuote } from '@/tour/locateQuote';
 import { buildFigureWorker } from '../scripts/buildFigureWorker.js';
 import { runFigureWorker } from '../tests/runFigureWorker';
-import { clewProvider, type TurnVars } from './ClewProvider';
+import { vicherProvider, type TurnVars } from './VicherProvider';
 
 // Obsidian is never launched from a Claude Code session; drop that session's markers, as test:live does.
 for (const key of Object.keys(process.env)) {
@@ -204,7 +204,7 @@ const print = (line: string): void => { process.stdout.write(`${line}\n`); };
 
 const providers = (['claude', 'codex'] as const)
   .filter((agent) => !args.agent || agent === args.agent)
-  .map((agent) => clewProvider(agent, args[`${agent}-model`]));
+  .map((agent) => vicherProvider(agent, args[`${agent}-model`]));
 
 try {
   const result = await evaluate({

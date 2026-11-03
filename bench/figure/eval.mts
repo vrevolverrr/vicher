@@ -1,4 +1,4 @@
-// Bench B: asks each model for every case in cases.ts as a real Clew chat turn, checks which visual it chose and that
+// Bench B: asks each model for every case in cases.ts as a real Vicher chat turn, checks which visual it chose and that
 // each figure runs, and saves every reply to fixtures/generated/<model>/<case>.md for Bench A to draw.
 // npm run eval:figures -- [--only=text] [--repeat=1] [--models=haiku,luna]
 import '../../tests/setupWindow';
@@ -8,7 +8,7 @@ import { parseArgs } from 'node:util';
 import { type Assertion, evaluate, type TestCase } from 'promptfoo';
 
 import { splitReply } from '@/chat/splitReply';
-import { clewProvider, type TurnVars } from '../../eval/ClewProvider';
+import { vicherProvider, type TurnVars } from '../../eval/VicherProvider';
 import { CASES, type FigureCase } from './cases';
 import type { FigureNode } from '@/renderer/figure/FigureData';
 import { figureError, runFigure } from './runProgram';
@@ -97,7 +97,7 @@ const tests: TestCase[] = CASES.filter(({ id }) => !args.only || id.includes(arg
   assert: [chose(testCase.expect), runs, dimensions(testCase)],
 }));
 
-const providers = models.map((name) => clewProvider(MODELS[name][0], MODELS[name][1]));
+const providers = models.map((name) => vicherProvider(MODELS[name][0], MODELS[name][1]));
 const label = (id: string) => models.find((name) => id.endsWith(`:${MODELS[name][1]}`)) ?? id.replace(/[^a-z0-9-]/gi, '_');
 const print = (line: string): void => { process.stdout.write(`${line}\n`); };
 

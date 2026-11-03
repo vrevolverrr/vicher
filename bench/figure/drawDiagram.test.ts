@@ -67,7 +67,7 @@ test('drawDiagram on the visuals demo incline, at every slider angle', async () 
       }
       rows.push({
         width, angle, 'median ms': +median(total).toFixed(3), 'p95 ms': +[...total].sort((a, b) => a - b)[189].toFixed(3),
-        'placeLabels ms': +median(place).toFixed(3), 'svg nodes': el.querySelectorAll('svg *').length, labels: el.querySelectorAll('.clew-figure-diagram-label').length,
+        'placeLabels ms': +median(place).toFixed(3), 'svg nodes': el.querySelectorAll('svg *').length, labels: el.querySelectorAll('.vicher-figure-diagram-label').length,
       });
     }
   }

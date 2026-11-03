@@ -12,7 +12,7 @@ const DRAG = 0.5;
 const KEY_STEP = 5;
 /** How far outside the view a figure keeps its canvas bitmap, so it is drawn before it scrolls in. */
 const KEEP_PX = 300;
-/** Point and layer labels are 12 px text (`.clew-plot-label`), slightly wider when bold. */
+/** Point and layer labels are 12 px text (`.vicher-plot-label`), slightly wider when bold. */
 const LABEL_PX = 13;
 
 /**
@@ -20,7 +20,7 @@ const LABEL_PX = 13;
  * window. The figure's own wrapper scrolls sideways, and so computes as scrolling down too, but always holds the chart.
  */
 function scroller(el: HTMLElement): HTMLElement | null {
-  for (let node = (el.closest('.clew-figure') ?? el).parentElement; node; node = node.parentElement) {
+  for (let node = (el.closest('.vicher-figure') ?? el).parentElement; node; node = node.parentElement) {
     if (/(auto|scroll)/.test(getComputedStyle(node).overflowY)) return node;
   }
   return null;
@@ -31,10 +31,10 @@ function scroller(el: HTMLElement): HTMLElement | null {
  * dragging or with the arrow keys. The canvas holds its bitmap only while the chart is the shown step's and near the view.
  */
 export class Plot3Chart {
-  private readonly frame = div('clew-plot-frame clew-plot3-frame');
+  private readonly frame = div('vicher-plot-frame vicher-plot3-frame');
   private readonly canvas = createEl('canvas');
-  private readonly drawing = svg('svg', { class: 'clew-plot-svg clew-plot3-svg', 'aria-hidden': 'true' });
-  private readonly rich = div('clew-plot-rich');
+  private readonly drawing = svg('svg', { class: 'vicher-plot-svg vicher-plot3-svg', 'aria-hidden': 'true' });
+  private readonly rich = div('vicher-plot-rich');
   private readonly typeset = new Map<string, HTMLElement>();
   /** The typeset labels this frame uses; the others leave the drawing at its end. */
   private readonly shown = new Set<HTMLElement>();
@@ -56,10 +56,10 @@ export class Plot3Chart {
   };
   /** `angle` is where the angle is kept, so the owner can share it between the charts of one Plot across steps and reruns. */
   constructor(readonly el: HTMLElement, private readonly angle: { get(): View | undefined; set(view: View): void }) {
-    el.classList.add('clew-plot', 'clew-plot3');
+    el.classList.add('vicher-plot', 'vicher-plot3');
     this.frame.tabIndex = 0;
     this.frame.setAttribute('role', 'img');
-    this.canvas.className = 'clew-plot3-canvas';
+    this.canvas.className = 'vicher-plot3-canvas';
     this.frame.append(this.canvas, this.drawing, this.rich);
     el.append(this.frame);
     this.frame.addEventListener('pointerdown', (event) => {
@@ -152,8 +152,8 @@ export class Plot3Chart {
   }
 
   private readColours(): Colours & { edge: string; box: string; halo: string } {
-    const ramp = Array.from({ length: RAMP }, (_, i) => parseColour(computedColour(this.el, `var(--clew-surface-${i + 1})`)));
-    return { ramp, edge: computedColour(this.el, 'var(--clew-surface-edge)'), box: computedColour(this.el, 'var(--clew-surface-box)'), halo: computedColour(this.el, 'var(--background-primary)') };
+    const ramp = Array.from({ length: RAMP }, (_, i) => parseColour(computedColour(this.el, `var(--vicher-surface-${i + 1})`)));
+    return { ramp, edge: computedColour(this.el, 'var(--vicher-surface-edge)'), box: computedColour(this.el, 'var(--vicher-surface-box)'), halo: computedColour(this.el, 'var(--background-primary)') };
   }
 
   private ink(overlay: Overlay): string {
@@ -298,16 +298,16 @@ export class Plot3Chart {
     const keep = (box: { x: number; y: number; w: number; h: number }): void => {
       fixed.push({ x0: box.x, y0: box.y, x1: box.x + box.w, y1: box.y + box.h });
     };
-    for (const axis of scene.axes) svg('line', { x1: axis.from[0], y1: axis.from[1], x2: axis.to[0], y2: axis.to[1], class: 'clew-plot-axis' }, root);
+    for (const axis of scene.axes) svg('line', { x1: axis.from[0], y1: axis.from[1], x2: axis.to[0], y2: axis.to[1], class: 'vicher-plot-axis' }, root);
     for (const tick of scene.ticks) {
-      svg('line', { x1: tick.at[0], y1: tick.at[1], x2: tick.to[0], y2: tick.to[1], class: 'clew-plot-axis' }, root);
+      svg('line', { x1: tick.at[0], y1: tick.at[1], x2: tick.to[0], y2: tick.to[1], class: 'vicher-plot-axis' }, root);
       if (!tick.text) continue;
-      svg('text', { x: tick.textAt[0], y: tick.textAt[1], 'text-anchor': tick.anchor, class: 'clew-plot-tick' }, root, tick.text);
+      svg('text', { x: tick.textAt[0], y: tick.textAt[1], 'text-anchor': tick.anchor, class: 'vicher-plot-tick' }, root, tick.text);
       keep(tick.box);
     }
     for (const title of scene.titles) {
       keep(title.box);
-      if (isPlain(title.text)) svg('text', { x: title.at[0], y: title.at[1], 'text-anchor': title.anchor, class: 'clew-plot-tick clew-plot-title' }, root, title.text);
+      if (isPlain(title.text)) svg('text', { x: title.at[0], y: title.at[1], 'text-anchor': title.anchor, class: 'vicher-plot-tick vicher-plot-title' }, root, title.text);
       else this.place(this.label(title.text, 'is-title'), title.box.x + title.box.w / 2, title.box.y + title.box.h / 2);
     }
 
@@ -323,7 +323,7 @@ export class Plot3Chart {
     }
     placeLabels(pending, { x0: 0, y0: 0, x1: width, y1: height }, avoid, fixed).forEach((at, i) => {
       const { text, strong, height: tall } = pending[i];
-      if (isPlain(text)) svg('text', { x: at.x, y: at.y + tall - 3, class: `clew-plot-label${strong ? ' is-strong' : ''}` }, root, text);
+      if (isPlain(text)) svg('text', { x: at.x, y: at.y + tall - 3, class: `vicher-plot-label${strong ? ' is-strong' : ''}` }, root, text);
       else this.place(this.label(text, strong ? 'is-strong' : ''), at.x, at.y);
     });
   }
@@ -341,7 +341,7 @@ export class Plot3Chart {
     const key = `${modifier}\n${text}`;
     let el = this.typeset.get(key);
     if (!el) {
-      el = div(`clew-plot-rich-label ${modifier}`.trim());
+      el = div(`vicher-plot-rich-label ${modifier}`.trim());
       this.writeLabel(el, text);
       this.typeset.set(key, el);
     }

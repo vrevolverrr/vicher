@@ -16,7 +16,7 @@
  {
   "type": "system",
   "subtype": "init",
-  "cwd": "/tmp/clew-capture",
+  "cwd": "/tmp/vicher-capture",
   "session_id": "cc9fa777-a4e7-4cbf-b801-ccbad01cfaba",
   "tools": [],
   "mcp_servers": [],
@@ -148,7 +148,7 @@
   "analytics_disabled": false,
   "product_feedback_disabled": false,
   "uuid": "b7468452-591d-4745-9b7a-c397142dafe7",
-  "original_cwd": "/tmp/clew-capture",
+  "original_cwd": "/tmp/vicher-capture",
   "additional_directories": [],
   "messaging_socket_path": "/tmp/cc-socks/35098.sock",
   "fast_mode_state": "off",

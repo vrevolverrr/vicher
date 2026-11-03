@@ -99,7 +99,7 @@ export class MarkdownContentRenderer {
       if (!isCurrent()) return;
       this.#releaseOne(el);
       el.createDiv({
-        cls: 'clew-render-error',
+        cls: 'vicher-render-error',
         text: 'Could not render this message.',
       });
     }

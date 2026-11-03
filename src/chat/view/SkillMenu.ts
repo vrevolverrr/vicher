@@ -25,7 +25,7 @@ export class SkillMenu<T extends SkillOption = SkillOption> {
     private readonly onPick: (item: T) => void,
     label = 'Skills',
   ) {
-    this.el = container.createDiv({ cls: 'clew-skill-menu', attr: { role: 'listbox', 'aria-label': label } });
+    this.el = container.createDiv({ cls: 'vicher-skill-menu', attr: { role: 'listbox', 'aria-label': label } });
     this.el.hide();
   }
 
@@ -41,18 +41,18 @@ export class SkillMenu<T extends SkillOption = SkillOption> {
       return;
     }
     items.forEach((skill, index) => {
-      const row = this.el.createDiv({ cls: 'clew-skill-option', attr: { role: 'option' } });
-      const name = row.createSpan({ cls: 'clew-skill-name', text: prefix });
+      const row = this.el.createDiv({ cls: 'vicher-skill-option', attr: { role: 'option' } });
+      const name = row.createSpan({ cls: 'vicher-skill-name', text: prefix });
       const at = query ? skill.name.toLowerCase().indexOf(query.toLowerCase()) : -1;
       if (at < 0) {
         name.appendText(skill.name);
       } else {
         name.appendText(skill.name.slice(0, at));
-        name.createSpan({ cls: 'clew-skill-match', text: skill.name.slice(at, at + query.length) });
+        name.createSpan({ cls: 'vicher-skill-match', text: skill.name.slice(at, at + query.length) });
         name.appendText(skill.name.slice(at + query.length));
       }
-      if (skill.argumentHint) name.createSpan({ cls: 'clew-skill-hint', text: ` ${skill.argumentHint}` });
-      row.createDiv({ cls: 'clew-skill-description', text: skill.description });
+      if (skill.argumentHint) name.createSpan({ cls: 'vicher-skill-hint', text: ` ${skill.argumentHint}` });
+      row.createDiv({ cls: 'vicher-skill-description', text: skill.description });
       // Keep focus in the input; a click picks without blurring it.
       row.addEventListener('mousedown', (event) => {
         event.preventDefault();

@@ -78,8 +78,8 @@ async function generatedFixtures(): Promise<Fixture[]> {
 }
 
 async function pageScript(): Promise<string> {
-  const out = await build({ entryPoints: [path.join(HERE, 'page.ts')], bundle: true, write: false, format: 'iife', globalName: '__clewBench', target: 'chrome120' });
-  return `${out.outputFiles[0].text}; window.__clewBench = __clewBench; "ok"`;
+  const out = await build({ entryPoints: [path.join(HERE, 'page.ts')], bundle: true, write: false, format: 'iife', globalName: '__vicherBench', target: 'chrome120' });
+  return `${out.outputFiles[0].text}; window.__vicherBench = __vicherBench; "ok"`;
 }
 
 /** Which states to measure: the steps (first, last and a few between), then each slider at both ends and back. */
@@ -135,10 +135,10 @@ async function main(): Promise<void> {
       let goldensChanged = false;
       try {
         await cdp(vault, 'Page.bringToFront', {}).catch(() => undefined);
-        const visuals = await evalJson<VisualInfo[]>(vault, `__clewBench.play(${JSON.stringify(fixture.reply)})`);
+        const visuals = await evalJson<VisualInfo[]>(vault, `__vicherBench.play(${JSON.stringify(fixture.reply)})`);
         if (!visuals.length) rows.push({ fixture: fixture.id, source: fixture.source, visual: -1, kind: '-', theme: '-', width: 0, state: '-', findings: [{ check: 'no-visual', detail: 'the reply drew no figure or diagram' }] });
         for (const theme of themes) {
-          await evalJson(vault, `__clewBench.theme(${theme === 'dark'})`);
+          await evalJson(vault, `__vicherBench.theme(${theme === 'dark'})`);
           for (const [v, visual] of visuals.entries()) {
             for (const width of widths) {
               const states = statesOf(visual);
@@ -146,7 +146,7 @@ async function main(): Promise<void> {
               for (const [s, state] of states.entries()) {
                 let geometry: StateGeometry;
                 try {
-                  geometry = await evalJson<StateGeometry>(vault, `__clewBench.measure(${v}, ${width}, ${JSON.stringify(state)})`);
+                  geometry = await evalJson<StateGeometry>(vault, `__vicherBench.measure(${v}, ${width}, ${JSON.stringify(state)})`);
                 } catch (error) {
                   rows.push({ fixture: fixture.id, source: fixture.source, visual: v, kind: visual.kind, theme, width, state, findings: [{ check: 'harness', detail: error instanceof Error ? error.message.slice(0, 300) : String(error) }] });
                   continue;
@@ -154,7 +154,7 @@ async function main(): Promise<void> {
                 measured.push(geometry);
                 const findings = check(geometry);
                 if (faces3.has(fixture.id)) {
-                  const seen = await evalJson<{ painted: number[]; outside: string[]; live: number; shown: number } | null>(vault, `__clewBench.inspect3(${v})`);
+                  const seen = await evalJson<{ painted: number[]; outside: string[]; live: number; shown: number } | null>(vault, `__vicherBench.inspect3(${v})`);
                   if (seen) {
                     seen.painted.forEach((share, i) => { if (share < 0.002 && faces3.get(fixture.id)! > 0) findings.push({ check: 'blank-canvas', detail: `3D Plot ${i + 1} painted ${(share * 100).toFixed(2)}% of its canvas` }); });
                     for (const what of seen.outside.slice(0, 3)) findings.push({ check: 'cut-off', detail: what });
@@ -188,15 +188,15 @@ async function main(): Promise<void> {
             // A 3D Plot keeps its angle through steps, slider churn and a resize; it turns within a frame, and at 30 fps on a
             // CPU slowed 4× even at 1200 px. Once per visual, in the first theme.
             if (theme === themes[0] && faces3.has(fixture.id)) {
-              await evalJson(vault, `__clewBench.measure(${v}, ${Math.max(...widths)}, "step:0")`);
-              const lost = await evalJson<string[]>(vault, `__clewBench.angleKept(${v})`);
+              await evalJson(vault, `__vicherBench.measure(${v}, ${Math.max(...widths)}, "step:0")`);
+              const lost = await evalJson<string[]>(vault, `__vicherBench.angleKept(${v})`);
               if (lost.length) rows.push({ fixture: fixture.id, source: fixture.source, visual: v, kind: visual.kind, theme, width: Math.max(...widths), state: 'angle', findings: lost.map((detail) => ({ check: 'angle-lost', detail })) });
               await evalIn(vault, `require('@electron/remote').getCurrentWindow().show(), require('@electron/remote').getCurrentWindow().focus(), 'ok'`);
               for (const [width, rate, limit] of [[720, 1, 20], [720, 4, 34], [1200, 4, 34]] as const) {
-                await evalJson(vault, `__clewBench.measure(${v}, ${width}, "step:0")`);
+                await evalJson(vault, `__vicherBench.measure(${v}, ${width}, "step:0")`);
                 await cdp(vault, 'Emulation.setCPUThrottlingRate', { rate });
                 try {
-                  const turn = await evalJson<{ frames: number; dropped: number; p95: number; median: number } | null>(vault, `__clewBench.turnTimes(${v})`);
+                  const turn = await evalJson<{ frames: number; dropped: number; p95: number; median: number } | null>(vault, `__vicherBench.turnTimes(${v})`);
                   if (!turn) continue;
                   // A frame this slow at full speed would block the window for many seconds once the CPU is slowed.
                   if (rate === 1 && turn.median > 100) {
@@ -225,7 +225,7 @@ async function main(): Promise<void> {
       process.stdout.write(`  ${mine.reduce((sum, row) => sum + row.findings.length, 0)} findings\n`);
     }
   } finally {
-    await evalJson(vault, '__clewBench.close()').catch(() => undefined);
+    await evalJson(vault, '__vicherBench.close()').catch(() => undefined);
     if (!args.keep) await teardown();
   }
 

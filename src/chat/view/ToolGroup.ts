@@ -16,18 +16,18 @@ export class ToolGroup {
   private finished = false;
 
   constructor(private readonly el: HTMLElement) {
-    const header = el.createEl('button', { cls: 'clew-tools-header', attr: { 'aria-expanded': 'false' } });
-    header.createSpan({ cls: 'clew-tools-orb', attr: { 'aria-hidden': 'true' } });
-    this.summaryEl = header.createSpan({ cls: 'clew-tools-summary' });
-    this.timeEl = header.createSpan({ cls: 'clew-tools-time' });
-    setIcon(header.createSpan({ cls: 'clew-tools-chevron' }), 'chevron-right');
+    const header = el.createEl('button', { cls: 'vicher-tools-header', attr: { 'aria-expanded': 'false' } });
+    header.createSpan({ cls: 'vicher-tools-orb', attr: { 'aria-hidden': 'true' } });
+    this.summaryEl = header.createSpan({ cls: 'vicher-tools-summary' });
+    this.timeEl = header.createSpan({ cls: 'vicher-tools-time' });
+    setIcon(header.createSpan({ cls: 'vicher-tools-chevron' }), 'chevron-right');
     header.addEventListener('click', () => {
       if (this.isEmpty()) return;
       const open = !el.hasClass('is-open');
       el.toggleClass('is-open', open);
       header.setAttr('aria-expanded', String(open));
     });
-    this.listEl = el.createDiv({ cls: 'clew-tools-list' });
+    this.listEl = el.createDiv({ cls: 'vicher-tools-list' });
     this.renderSummary();
   }
 
@@ -54,7 +54,7 @@ export class ToolGroup {
   }
 
   set({ id, name, title, status }: ToolPart): void {
-    const el = this.rows.get(id)?.el ?? this.listEl.createDiv({ cls: 'clew-tool' });
+    const el = this.rows.get(id)?.el ?? this.listEl.createDiv({ cls: 'vicher-tool' });
     this.rows.set(id, { el, name, status });
     el.setText(title);
     el.setAttr('data-status', status);

@@ -2,7 +2,7 @@
  {
   "type": "system",
   "subtype": "init",
-  "cwd": "/private/tmp/clew-capture",
+  "cwd": "/private/tmp/vicher-capture",
   "session_id": "24190c23-4472-48dc-ac46-6e67861a5f2d",
   "tools": [],
   "mcp_servers": [],
@@ -20,7 +20,7 @@
   "analytics_disabled": false,
   "product_feedback_disabled": false,
   "uuid": "5dba61c3-61f6-478d-a86d-1b2cee158fbb",
-  "original_cwd": "/private/tmp/clew-capture",
+  "original_cwd": "/private/tmp/vicher-capture",
   "additional_directories": [],
   "fast_mode_state": "off",
   "fast_mode_disabled_reason": "sdk_opt_in_required",
@@ -130,7 +130,7 @@
    "index": 0,
    "delta": {
     "type": "input_json_delta",
-    "partial_json": "mp/clew-capture"
+    "partial_json": "mp/vicher-capture"
    }
   },
   "session_id": "24190c23-4472-48dc-ac46-6e67861a5f2d",
@@ -181,7 +181,7 @@
      "id": "toolu_01RHHNWxmCuxJs3J3jH9Lm2X",
      "name": "Read",
      "input": {
-      "file_path": "/private/tmp/clew-capture/notes.md"
+      "file_path": "/private/tmp/vicher-capture/notes.md"
      },
      "caller": {
       "type": "direct"
@@ -216,7 +216,7 @@
   "request_id": "req_011CgJziTqy22ViuTWuQB47B",
   "wire_tool_inputs": {
    "toolu_01RHHNWxmCuxJs3J3jH9Lm2X": {
-    "file_path": "/private/tmp/clew-capture/notes.md"
+    "file_path": "/private/tmp/vicher-capture/notes.md"
    }
   }
  },
@@ -301,7 +301,7 @@
   "tool_use_result": {
    "type": "text",
    "file": {
-    "filePath": "/private/tmp/clew-capture/notes.md",
+    "filePath": "/private/tmp/vicher-capture/notes.md",
     "content": "The pin count tracks active users of a page.\n",
     "numLines": 2,
     "startLine": 1,

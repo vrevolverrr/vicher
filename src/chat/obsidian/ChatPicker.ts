@@ -40,7 +40,7 @@ export class ChatPicker extends Modal {
 
   onOpen(): void {
     this.modalEl.removeClass('modal');
-    this.modalEl.addClass('prompt', 'clew-chat-modal');
+    this.modalEl.addClass('prompt', 'vicher-chat-modal');
     this.modalEl.empty();
     this.modalEl.setAttribute('aria-label', 'All chats');
     const header = this.modalEl.createDiv({ cls: 'prompt-input-container mod-raised' });
@@ -63,7 +63,7 @@ export class ChatPicker extends Modal {
       event.preventDefault();
       clearOrClose();
     });
-    this.contentEl = this.listEl = this.modalEl.createDiv({ cls: 'prompt-results clew-chat-list', attr: { role: 'listbox' } });
+    this.contentEl = this.listEl = this.modalEl.createDiv({ cls: 'prompt-results vicher-chat-list', attr: { role: 'listbox' } });
     search.onChange(() => {
       clear.setAttribute('aria-label', this.inputEl.value ? 'Clear search' : 'Close');
       this.active = 0;
@@ -122,7 +122,7 @@ export class ChatPicker extends Modal {
     const matches = searchChats(this.chats, query);
     if (!matches.length) {
       this.entries = [];
-      this.listEl.createDiv({ cls: 'clew-chat-empty', text: query ? 'No chats match.' : 'No saved chats.' });
+      this.listEl.createDiv({ cls: 'vicher-chat-empty', text: query ? 'No chats match.' : 'No saved chats.' });
       return;
     }
     // Groups by day suit browsing; a search lists its matches as one run.
@@ -140,7 +140,7 @@ export class ChatPicker extends Modal {
     for (; this.drawn < end; this.drawn++) {
       const { chat, label } = this.entries[this.drawn];
       if (label !== this.lastLabel) {
-        this.listEl.createDiv({ cls: 'clew-chat-group', text: label });
+        this.listEl.createDiv({ cls: 'vicher-chat-group', text: label });
         this.lastLabel = label;
       }
       this.rows.push({ chat, el: this.drawRow(chat, now) });
@@ -149,27 +149,27 @@ export class ChatPicker extends Modal {
 
   private drawRow(chat: ChatMatch, now: number): HTMLElement {
     const title = chat.title || 'Untitled chat';
-    const row = this.listEl.createDiv({ cls: 'clew-chat-row', attr: { role: 'option' } });
+    const row = this.listEl.createDiv({ cls: 'vicher-chat-row', attr: { role: 'option' } });
     if (this.confirming === chat.id) {
       // The row becomes the question, so the buttons do not squeeze the title or move the date.
       row.addClass('is-confirming');
-      row.createDiv({ cls: 'clew-chat-confirm-text', text: `Delete “${title}”?` });
-      const confirm = row.createDiv({ cls: 'clew-chat-confirm' });
+      row.createDiv({ cls: 'vicher-chat-confirm-text', text: `Delete “${title}”?` });
+      const confirm = row.createDiv({ cls: 'vicher-chat-confirm' });
       confirm.createEl('button', { cls: 'mod-warning', text: 'Delete', attr: { type: 'button' } }).addEventListener('click', () => void this.remove(chat, row));
       confirm.createEl('button', { text: 'Cancel', attr: { type: 'button' } }).addEventListener('click', () => this.cancelDelete());
       return row;
     }
 
-    const open = row.createEl('button', { cls: 'clew-chat-open', attr: { type: 'button' } });
+    const open = row.createEl('button', { cls: 'vicher-chat-open', attr: { type: 'button' } });
     appendAgentIcon(open, chat.agent);
-    const text = open.createDiv({ cls: 'clew-chat-text' });
-    text.createDiv({ cls: 'clew-chat-title', text: title });
-    if (chat.snippet) text.createDiv({ cls: 'clew-chat-snippet', text: chat.snippet });
-    open.createSpan({ cls: 'clew-chat-when', text: formatWhen(chat.updatedAt, now) });
+    const text = open.createDiv({ cls: 'vicher-chat-text' });
+    text.createDiv({ cls: 'vicher-chat-title', text: title });
+    if (chat.snippet) text.createDiv({ cls: 'vicher-chat-snippet', text: chat.snippet });
+    open.createSpan({ cls: 'vicher-chat-when', text: formatWhen(chat.updatedAt, now) });
     open.addEventListener('click', () => this.choose(chat));
 
     // The trash sits over the date, which it replaces while the pointer is on the row.
-    const trash = row.createEl('button', { cls: 'clickable-icon clew-chat-delete', attr: { type: 'button', 'aria-label': 'Delete chat' } });
+    const trash = row.createEl('button', { cls: 'clickable-icon vicher-chat-delete', attr: { type: 'button', 'aria-label': 'Delete chat' } });
     setIcon(trash, 'trash-2');
     trash.addEventListener('click', () => {
       this.confirming = chat.id;
@@ -207,14 +207,14 @@ export class ChatPicker extends Modal {
     if (!canAnimate(row)) return;
     const label = this.entries.find((entry) => entry.chat.id === chat.id)?.label;
     const alone = label && !this.entries.some((entry) => entry.label === label && entry.chat.id !== chat.id);
-    const heading = alone && row.previousElementSibling?.hasClass('clew-chat-group') ? row.previousElementSibling as HTMLElement : null;
+    const heading = alone && row.previousElementSibling?.hasClass('vicher-chat-group') ? row.previousElementSibling as HTMLElement : null;
     await Promise.all([row, ...(heading ? [heading] : [])].map(fold));
   }
 }
 
 function fold(el: HTMLElement): Promise<unknown> {
   const { paddingTop, paddingBottom } = getComputedStyle(el);
-  el.addClass('clew-folding');
+  el.addClass('vicher-folding');
   return el.animate(
     [
       { height: `${el.offsetHeight}px`, paddingTop, paddingBottom, opacity: 1 },

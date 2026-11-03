@@ -17,9 +17,9 @@ describe('reply Markdown styles', () => {
     const lists = '<ul><li>Bullet<ul><li>Nested bullet</li></ul></li></ul><ol start="10"><li>Number<ol><li>Nested number</li></ol></li></ol>';
     const reply = document.body.appendChild(document.createElement('div'));
     // ChatView gives the reply both classes on the same element.
-    reply.className = 'clew-reply markdown-rendered';
+    reply.className = 'vicher-reply markdown-rendered';
     reply.dir = direction;
-    reply.innerHTML = `<div class="clew-reply-text"><div class="clew-reply-prose"><div>${lists}</div></div></div>`;
+    reply.innerHTML = `<div class="vicher-reply-text"><div class="vicher-reply-prose"><div>${lists}</div></div></div>`;
     const note = document.body.appendChild(document.createElement('div'));
     note.className = 'markdown-rendered';
     note.innerHTML = lists;
@@ -39,8 +39,8 @@ describe('reply Markdown styles', () => {
         .replaceAll('var(--background-primary)', '#ffffff');
     const table = '<div class="table-wrapper"><table><thead><tr><th>Join</th><th>Disk I/Os</th></tr></thead><tbody><tr><td>Nested loop</td><td>5,500</td></tr></tbody></table></div>';
     const reply = document.body.appendChild(document.createElement('div'));
-    reply.className = 'clew-reply markdown-rendered';
-    reply.innerHTML = `<div class="clew-reply-prose"><p>Before</p>${table}<p>Between</p>${table}<p>After</p></div>`;
+    reply.className = 'vicher-reply markdown-rendered';
+    reply.innerHTML = `<div class="vicher-reply-prose"><p>Before</p>${table}<p>Between</p>${table}<p>After</p></div>`;
     const note = document.body.appendChild(document.createElement('div'));
     note.className = 'markdown-rendered';
     note.innerHTML = table;

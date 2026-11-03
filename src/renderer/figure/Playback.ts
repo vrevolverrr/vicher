@@ -21,12 +21,12 @@ export class Playback {
 
   /** `forward` is true when Next or the timer advanced one step, the only moves a figure animates. */
   constructor(private readonly change: (value: number, forward: boolean) => void) {
-    this.el.className = 'clew-player';
+    this.el.className = 'vicher-player';
     const button = (label: string, shape: string, fill = 'currentColor') => {
       const role = label.toLowerCase();
       const b = this.el.appendChild(createEl('button'));
       b.type = 'button';
-      b.className = `clew-player-button is-${role}`;
+      b.className = `vicher-player-button is-${role}`;
       b.title = label;
       b.setAttribute('aria-label', label);
       const icon = svg('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, b);
@@ -40,7 +40,7 @@ export class Playback {
     this.range.min = '0';
     this.range.setAttribute('aria-label', 'Position');
     this.count = this.el.appendChild(createEl('output'));
-    this.count.className = 'clew-player-count';
+    this.count.className = 'vicher-player-count';
     this.back.addEventListener('click', () => { this.stop(); this.move(this.current - this.step, false); });
     this.next.addEventListener('click', () => { this.stop(); this.move(this.current + this.step, true); });
     this.range.addEventListener('input', () => { this.stop(); this.move(Number(this.range.value), false); });
@@ -66,7 +66,7 @@ export class Playback {
     this.count.textContent = `${formatFigure(current + offset)} / ${total}`;
     // Reserve the widest count so the track keeps its length while stepping.
     this.count.style.minWidth = `${2 * total.length + 3}ch`;
-    this.range.style.setProperty('--clew-progress', `${this.max ? (current / this.max) * 100 : 0}%`);
+    this.range.style.setProperty('--vicher-progress', `${this.max ? (current / this.max) * 100 : 0}%`);
     this.play.disabled = this.range.disabled = this.max === 0;
     this.back.disabled = current <= 0;
     this.next.disabled = current >= this.max;

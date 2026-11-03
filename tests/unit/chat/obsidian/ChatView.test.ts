@@ -102,7 +102,7 @@ function setup() {
   views.push(view);
   view.load();
   const start = async () => { await view.onOpen(); await view.setState({}, { history: false }); await settle(); };
-  const panel = () => view.contentEl.querySelector<HTMLElement>('.clew-chat-panel:not([hidden])')!;
+  const panel = () => view.contentEl.querySelector<HTMLElement>('.vicher-chat-panel:not([hidden])')!;
   const input = () => panel().querySelector<HTMLTextAreaElement>('textarea')!;
   const type = (text: string) => { input().value = text; input().dispatchEvent(new Event('input')); };
   const send = (text: string) => { type(text); input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); };
@@ -132,20 +132,20 @@ describe('permission relay', () => {
     };
     await start();
     const running = playApprovalDemo(async () => view); await settle(); await frame();
-    expect(panel().querySelector('.clew-approval-value')?.textContent).toContain('curl --max-time');
+    expect(panel().querySelector('.vicher-approval-value')?.textContent).toContain('curl --max-time');
     expect(panel().textContent).toContain('Sample actions do not run commands or change files.');
-    panel().querySelectorAll<HTMLButtonElement>('.clew-approval-card button')[0]!.click(); await settle(); await frame();
+    panel().querySelectorAll<HTMLButtonElement>('.vicher-approval-card button')[0]!.click(); await settle(); await frame();
     expect(panel().textContent).toContain('Denied (demo only).');
-    expect(panel().querySelector('.clew-approval-diff-path')?.textContent).toContain('Sorting algorithms.md');
-    panel().querySelectorAll<HTMLButtonElement>('.clew-approval-card button')[1]!.click(); await settle(); await frame();
+    expect(panel().querySelector('.vicher-approval-diff-path')?.textContent).toContain('Sorting algorithms.md');
+    panel().querySelectorAll<HTMLButtonElement>('.vicher-approval-card button')[1]!.click(); await settle(); await frame();
     expect(panel().textContent).toContain('Allowed once (demo only).');
-    expect(panel().querySelector('.clew-approval-value')?.textContent).toContain('network');
-    panel().querySelectorAll<HTMLButtonElement>('.clew-approval-card button')[0]!.click(); await settle(); await frame();
-    expect(panel().querySelector('.clew-question .clew-approval-title')?.textContent).toContain('irrationality of √2');
-    panel().querySelector<HTMLButtonElement>('.clew-approval-card .clew-approval-deny')!.click();
+    expect(panel().querySelector('.vicher-approval-value')?.textContent).toContain('network');
+    panel().querySelectorAll<HTMLButtonElement>('.vicher-approval-card button')[0]!.click(); await settle(); await frame();
+    expect(panel().querySelector('.vicher-question .vicher-approval-title')?.textContent).toContain('irrationality of √2');
+    panel().querySelector<HTMLButtonElement>('.vicher-approval-card .vicher-approval-deny')!.click();
     await running;
     expect(panel().textContent).toContain('Skipped (demo only).');
-    expect(panel().querySelector<HTMLElement>('.clew-approval-card')!.hidden).toBe(true);
+    expect(panel().querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
     expect(panel().textContent).toContain('Demo complete.');
     expect(sessions.every((session) => session.input.length === 0)).toBe(true);
     expect((await store.load(view.chatId!))?.turns[0]?.status).toBe('completed');
@@ -157,12 +157,12 @@ describe('permission relay', () => {
     const id = view.chatId!;
     const running = playApprovalDemo(async () => view); await settle();
     const originalPanel = panel();
-    const stale = originalPanel.querySelectorAll<HTMLButtonElement>('.clew-approval-card button')[1]!;
+    const stale = originalPanel.querySelectorAll<HTMLButtonElement>('.vicher-approval-card button')[1]!;
     if (action === 'stop') originalPanel.querySelector<HTMLButtonElement>('[aria-label="Stop"]')!.click();
     else await view.closeChat(id);
     await running;
     stale.click(); await settle();
-    expect(originalPanel.querySelector<HTMLElement>('.clew-approval-card')!.hidden).toBe(true);
+    expect(originalPanel.querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
     expect(originalPanel.textContent).not.toContain('Sample 2');
     expect((await store.load(id))?.turns[0]?.status).toBe('interrupted');
   });
@@ -172,40 +172,40 @@ describe('permission relay', () => {
     await start(); send('Edit the note'); await settle();
     const firstPanel = panel();
     const pending = ask(sessions[0]!); await settle();
-    const area = firstPanel.querySelector('.clew-chat-composer-area')!;
-    const card = firstPanel.querySelector('.clew-approval-card')!;
+    const area = firstPanel.querySelector('.vicher-chat-composer-area')!;
+    const card = firstPanel.querySelector('.vicher-approval-card')!;
     expect(card.parentElement).toBe(firstPanel);
     expect(card.nextElementSibling).toBe(area);
     expect(area.contains(card)).toBe(false);
-    expect(area.lastElementChild?.className).toBe('clew-composer');
+    expect(area.lastElementChild?.className).toBe('vicher-composer');
     expect(view.contentEl.querySelector('[role="tab"]')?.getAttribute('aria-label')).toContain('Needs approval');
     await view.openChat({ fresh: true }); await settle();
     expect(panel()).not.toBe(firstPanel);
-    expect(panel().querySelector<HTMLElement>('.clew-approval-card')!.hidden).toBe(true);
+    expect(panel().querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
     select(0);
     expect(panel()).toBe(firstPanel);
-    panel().querySelectorAll<HTMLButtonElement>('.clew-approval-card button')[1]!.click();
+    panel().querySelectorAll<HTMLButtonElement>('.vicher-approval-card button')[1]!.click();
     expect(await pending).toBe(true);
-    expect(panel().querySelector<HTMLElement>('.clew-approval-card')!.hidden).toBe(true);
+    expect(panel().querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
   });
 
   it('declines a pending request on Stop and ignores its stale button', async () => {
     const { start, panel, send, sessions } = setup();
     await start(); send('Edit'); await settle();
     const pending = ask(sessions[0]!); await settle();
-    const stale = panel().querySelectorAll<HTMLButtonElement>('.clew-approval-card button')[1]!;
-    panel().querySelector<HTMLButtonElement>('.clew-send')!.click(); await settle();
-    expect(panel().querySelector<HTMLElement>('.clew-approval-card')!.hidden).toBe(true);
+    const stale = panel().querySelectorAll<HTMLButtonElement>('.vicher-approval-card button')[1]!;
+    panel().querySelector<HTMLButtonElement>('.vicher-send')!.click(); await settle();
+    expect(panel().querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
     expect(await pending).toBe(false);
     stale.click(); await settle();
-    expect(panel().querySelector<HTMLElement>('.clew-approval-card')!.hidden).toBe(true);
+    expect(panel().querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
   });
 
   it('saves policy changes and applies them after the current turn, including returning to Inherit', async () => {
     const { start, panel, send, sessions, store, view } = setup();
     const pick = async (name: string) => {
       panel().querySelector<HTMLButtonElement>('[aria-label="Permission policy"]')!.click();
-      const option = [...panel().querySelectorAll<HTMLButtonElement>('.clew-picker-option')].find((el) => el.textContent === name)!;
+      const option = [...panel().querySelectorAll<HTMLButtonElement>('.vicher-picker-option')].find((el) => el.textContent === name)!;
       option.click(); await settle();
     };
     await start(); send('Wait'); await settle();
@@ -232,7 +232,7 @@ describe('concurrent chat tabs', () => {
     const { start, view, select } = setup();
     await start();
     await view.openChat({ fresh: true });
-    const strip = view.contentEl.querySelector('.clew-chat-tab-bar')!;
+    const strip = view.contentEl.querySelector('.vicher-chat-tab-bar')!;
     const parent = strip.parentElement;
     const changes: MutationRecord[] = [];
     const observer = new MutationObserver((records) => changes.push(...records));
@@ -251,7 +251,7 @@ describe('concurrent chat tabs', () => {
     const { start, view, store, sessions } = setup();
     await start();
     const previous = view.chatId!;
-    const strip = view.contentEl.querySelector<HTMLElement>('.clew-chat-tab-bar')!;
+    const strip = view.contentEl.querySelector<HTMLElement>('.vicher-chat-tab-bar')!;
     let release!: () => void;
     const opening = new Promise<void>((resolve) => { release = resolve; });
     jest.spyOn(store, 'load').mockImplementationOnce(async () => { await opening; return null; });
@@ -266,7 +266,7 @@ describe('concurrent chat tabs', () => {
       await closing;
     }
     expect(view.chatId).not.toBe(previous);
-    expect(view.contentEl.querySelector('.clew-chat-tab-bar')).toBe(strip);
+    expect(view.contentEl.querySelector('.vicher-chat-tab-bar')).toBe(strip);
     expect(strip.querySelectorAll('[role="tab"]')).toHaveLength(1);
     expect(sessions[0]!.close).toHaveBeenCalledTimes(1);
   });
@@ -289,7 +289,7 @@ describe('concurrent chat tabs', () => {
     select(1);
     send('Keep this conversation in history');
     await settle();
-    const create = view.contentEl.querySelector<HTMLButtonElement>('.clew-chat-header [aria-label="New chat"]')!;
+    const create = view.contentEl.querySelector<HTMLButtonElement>('.vicher-chat-header [aria-label="New chat"]')!;
     create.click();
     create.click();
     expect(create.disabled).toBe(true);
@@ -313,7 +313,7 @@ describe('concurrent chat tabs', () => {
     const { start, view } = setup();
     await start();
     const previous = view.chatId!;
-    view.contentEl.querySelector<HTMLButtonElement>('.clew-chat-header [aria-label="New chat"]')!.click();
+    view.contentEl.querySelector<HTMLButtonElement>('.vicher-chat-header [aria-label="New chat"]')!.click();
     await settle();
     expect(view.chatId).not.toBe(previous);
     expect(view.getState()).toEqual({ chatId: view.chatId, chatIds: [view.chatId] });
@@ -335,14 +335,14 @@ describe('concurrent chat tabs', () => {
     Object.defineProperty(window, 'matchMedia', { configurable: true, value: () => ({ matches: false }) });
     try {
       await start();
-      expect(panel().querySelector('.clew-context-label')?.textContent).toBe('Waves');
-      expect(animate.mock.instances.filter((el) => (el as unknown as HTMLElement).closest('.clew-context-chip'))).toHaveLength(0);
+      expect(panel().querySelector('.vicher-context-label')?.textContent).toBe('Waves');
+      expect(animate.mock.instances.filter((el) => (el as unknown as HTMLElement).closest('.vicher-context-chip'))).toHaveLength(0);
       await view.openChat({ fresh: true });
-      expect(panel().querySelector('.clew-context-label')?.textContent).toBe('Waves');
+      expect(panel().querySelector('.vicher-context-label')?.textContent).toBe('Waves');
       select(0);
       select(1);
-      expect(panel().querySelector('.clew-context-label')?.textContent).toBe('Waves');
-      expect(animate.mock.instances.filter((el) => (el as unknown as HTMLElement).closest('.clew-context-chip'))).toHaveLength(0);
+      expect(panel().querySelector('.vicher-context-label')?.textContent).toBe('Waves');
+      expect(animate.mock.instances.filter((el) => (el as unknown as HTMLElement).closest('.vicher-context-chip'))).toHaveLength(0);
     } finally {
       if (original) Object.defineProperty(HTMLElement.prototype, 'animate', original);
       else Reflect.deleteProperty(HTMLElement.prototype, 'animate');
@@ -402,18 +402,18 @@ describe('concurrent chat tabs', () => {
   it('keeps independent drafts and attached pastes when switching', async () => {
     const { start, view, input, type, select, panel } = setup();
     await start();
-    const tabBar = view.contentEl.querySelector('.clew-chat-tab-bar')!;
+    const tabBar = view.contentEl.querySelector('.vicher-chat-tab-bar')!;
     const tabParent = tabBar.parentElement;
-    expect(tabParent).toBe(view.contentEl.querySelector('.clew-chat-panels'));
+    expect(tabParent).toBe(view.contentEl.querySelector('.vicher-chat-panels'));
     type('Draft one');
     const paste = new Event('paste', { cancelable: true });
     Object.defineProperty(paste, 'clipboardData', { value: { getData: () => 'a'.repeat(2100), files: [] } });
     input().dispatchEvent(paste);
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(panel().querySelector('.clew-attachment-chip')).not.toBeNull();
+    expect(panel().querySelector('.vicher-attachment-chip')).not.toBeNull();
     await view.openChat({ fresh: true });
     expect(input().value).toBe('');
-    expect(panel().querySelector('.clew-attachment-chip')).toBeNull();
+    expect(panel().querySelector('.vicher-attachment-chip')).toBeNull();
     type('Draft two');
     select(0);
     expect(tabBar.parentElement).toBe(tabParent);
@@ -481,7 +481,7 @@ describe('concurrent chat tabs', () => {
     const restored = setup(); await restored.view.onOpen();
     await restored.view.setState(state, { history: false });
     expect(restored.view.getState()).toEqual({ chatId: second, chatIds: [first, second] });
-    expect(restored.view.contentEl.querySelectorAll('.clew-chat-panel:not([hidden])')).toHaveLength(1);
+    expect(restored.view.contentEl.querySelectorAll('.vicher-chat-panel:not([hidden])')).toHaveLength(1);
     const legacy = setup(); await legacy.view.onOpen(); await legacy.view.setState({ chatId: first }, { history: false });
     expect(legacy.view.getState()).toEqual({ chatId: first, chatIds: [first] });
   });
@@ -523,7 +523,7 @@ describe('concurrent chat tabs', () => {
     sessions[0]!.events.push({ type: 'text', delta: 'An explanation to quote.' });
     sessions[0]!.events.push({ type: 'done', status: 'completed' }); sessions[0]!.events.close(); await settle();
     const first = view.chatId!;
-    const text = panel().querySelector('.clew-reply-text')!;
+    const text = panel().querySelector('.vicher-reply-text')!;
     const range = document.createRange(); range.selectNodeContents(text);
     document.getSelection()!.removeAllRanges();
     document.getSelection()!.addRange(range);
@@ -541,7 +541,7 @@ describe('concurrent chat tabs', () => {
     sessions[0]!.send = async function* (text, signal) { sessions[0]!.input.push(text); sessions[0]!.signal = signal; yield* next; };
     send('Explain that'); await settle();
     expect(sessions[0]!.input.at(-1)).toContain(`<selection source="chat" chatId="${first}">\nAn explanation to quote.\n</selection>`);
-    expect(panel().querySelector('.clew-context-tray')!.textContent).not.toContain('selected');
+    expect(panel().querySelector('.vicher-context-tray')!.textContent).not.toContain('selected');
     next.push({ type: 'done', status: 'completed' }); next.close(); await settle();
     expect((await store.load(first))?.turns[1]?.quote).toMatchObject({ source: 'chat', path: first, text: 'An explanation to quote.' });
   });

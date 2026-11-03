@@ -11,10 +11,10 @@ describeUnix('login shell PATH for GUI-launched processes', () => {
 
   beforeEach(() => {
     jest.resetModules();
-    directory = mkdtempSync(path.join(tmpdir(), 'clew login shell '));
+    directory = mkdtempSync(path.join(tmpdir(), 'vicher login shell '));
     loginBin = path.join(directory, 'login only bin');
     mkdirSync(loginBin);
-    const cli = path.join(loginBin, 'clew-login-probe');
+    const cli = path.join(loginBin, 'vicher-login-probe');
     writeFileSync(cli, '#!/bin/sh\necho ok\n');
     chmodSync(cli, 0o755);
     // Mirrors a GUI app: minimal PATH, and an empty home so no guessed location holds the CLI.
@@ -50,14 +50,14 @@ describeUnix('login shell PATH for GUI-launched processes', () => {
     const { resolveLoginShellPath } = await import('@/agents/process/loginShellPath');
     const { findCLIBinaryPath } = await import('@/agents/process/cliBinaryLocator');
     await resolveLoginShellPath();
-    return findCLIBinaryPath('clew-login-probe');
+    return findCLIBinaryPath('vicher-login-probe');
   }
 
   it('resolves provider CLIs and child PATH from the login shell before launch', async () => {
     writeLoginShell();
 
     await expect(resolveProbeCliPath())
-      .resolves.toBe(path.join(loginBin, 'clew-login-probe'));
+      .resolves.toBe(path.join(loginBin, 'vicher-login-probe'));
 
     const { getEnhancedPath } = await import('@/agents/process/env');
     const entries = getEnhancedPath().split(path.delimiter);

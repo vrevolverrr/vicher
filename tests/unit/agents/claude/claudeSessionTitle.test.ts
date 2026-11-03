@@ -9,7 +9,7 @@ const ID = '8d98ab31-abf1-47e4-b458-4f1855021eaf';
 let configDir: string;
 
 beforeEach(() => {
-  configDir = mkdtempSync(path.join(tmpdir(), 'clew-claude-config-'));
+  configDir = mkdtempSync(path.join(tmpdir(), 'vicher-claude-config-'));
 });
 
 afterEach(() => {
