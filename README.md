@@ -13,6 +13,8 @@ Clew is a desktop-only Obsidian plugin for studying university-level material. O
 
 Currently runs on the [Claude Code](https://code.claude.com) or [Codex](https://github.com/openai/codex) you already have installed, on your own subscription.
 
+Figures are designed to be lightweight and beautiful, declarative enough to generalise across domains, but simple enough for smaller models like Haiku and Luna to write. However, although the renderer is almost complete, much work is still needed to steer the models to consistently remember to generate correct figures with high pedagogical value.
+
 ## 3D plots
 
 <p align="center">
@@ -31,20 +33,9 @@ Ask about gradient descent and the answer includes a 3D surface. Drag to rotate 
 
 Clew draws these too.
 
-<table>
-  <tr>
-    <td valign="top" width="50%">
-      <img src="assets/figure-graph.png" alt="Dijkstra's algorithm: a graph with settled nodes marked, beside a table of distances, with a step player underneath">
-      <br><br>
-      <img src="assets/figure-quiz.png" alt="A multiple-choice question: what is the derivative of sin x?">
-    </td>
-    <td valign="top" width="50%">
-      <img src="assets/figure-plot.png" alt="A sine curve and its degree-5 Taylor polynomial, with a slider for the number of terms">
-      <br><br>
-      <img src="assets/figure-table.png" alt="The edit-distance table for kitten and sitting, row 4 highlighted, with a step player underneath">
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <img src="assets/figures.png" alt="Six figures: Dijkstra's algorithm on a graph with a table of distances and a step player; a multiple-choice question on the derivative of sin x; a sine curve and its Taylor polynomial with a slider for the number of terms; the edit-distance table for kitten and sitting with a step player; a binary search over a sorted array with lo, mid and hi pointers and a step player; Gaussian elimination on an augmented matrix with the row operation marked and a step player" width="900">
+</p>
 
 - **Plots** in 2D and 3D. Drag a slider and the plot redraws.
 - **Step-by-step walkthroughs** for algorithms, derivations, anything that changes state.
@@ -92,6 +83,10 @@ export default function ({ angle }) {
 The program places the triangle, the angle mark and the arrows from the angle, and works out the forces. Move the slider and Clew runs it again.
 
 </details>
+
+## Why JSX
+
+A figure is a tree, and JSX nests the way the figure does: `<Row>`, `<Plot>` and `<Fn>` sit next to the plain JavaScript that computes what they show. Internal benchmarks showed that allowing the model to write code to compute results for the visuals helped with reducing reasoning tokens and mistakes. When the model worked out its numbers in code, 58 of the 62 programs that ran were also correct on 10 unseen inputs, where a prior renderer with OpenUI's syntax had it work out every value in reasoning. The syntax itself made no measurable difference: with the same helpers, OpenUI and JSX passed within one case per model. The numbers are in [the pull request](https://github.com/vrevolverrr/clew/pull/3).
 
 ## Beside the note
 
@@ -146,3 +141,5 @@ npm test
 ## Credits
 
 Parts of Clew are adapted from [Claudian](https://github.com/YishenTu/claudian) under the MIT License. See `THIRD_PARTY_NOTICES.md`.
+
+Clew's figures started on [OpenUI](https://www.openui.com) and were inspired by OpenAI's [Intelligent UI](https://openai.com/index/gpt-6-for-everyone/).
