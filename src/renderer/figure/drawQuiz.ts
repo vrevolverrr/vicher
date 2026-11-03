@@ -21,18 +21,18 @@ function plain(text: string): string {
  */
 export function drawQuiz(parent: HTMLElement, quiz: Quiz, markdown: (el: HTMLElement, text: string | number) => void, answers: Map<string, number>, send?: (message: string) => boolean): void {
   const el = parent.appendChild(createDiv());
-  el.className = 'clew-quiz';
-  markdown(el.appendChild(Object.assign(createDiv(), { className: 'clew-quiz-question' })), quiz.question);
+  el.className = 'vicher-quiz';
+  markdown(el.appendChild(Object.assign(createDiv(), { className: 'vicher-quiz-question' })), quiz.question);
   const group = el.appendChild(createDiv());
-  group.className = 'clew-quiz-options';
+  group.className = 'vicher-quiz-options';
   group.setAttribute('role', 'radiogroup');
   const bar = el.appendChild(createDiv());
-  bar.className = 'clew-quiz-bar';
+  bar.className = 'vicher-quiz-bar';
   const note = bar.appendChild(createSpan());
-  note.className = 'clew-quiz-note';
+  note.className = 'vicher-quiz-note';
   const submit = bar.appendChild(createEl('button'));
   submit.type = 'button';
-  submit.className = 'clew-quiz-submit mod-cta';
+  submit.className = 'vicher-quiz-submit mod-cta';
   submit.textContent = 'Submit';
 
   const right = quiz.options.indexOf(quiz.correct);
@@ -43,7 +43,7 @@ export function drawQuiz(parent: HTMLElement, quiz: Quiz, markdown: (el: HTMLEle
   const buttons = quiz.options.map((option, index) => {
     const button = group.appendChild(createEl('button'));
     button.type = 'button';
-    button.className = 'clew-quiz-option';
+    button.className = 'vicher-quiz-option';
     button.setAttribute('role', 'radio');
     markdown(button.appendChild(createSpan()), option);
     button.addEventListener('click', () => {
@@ -66,7 +66,7 @@ export function drawQuiz(parent: HTMLElement, quiz: Quiz, markdown: (el: HTMLEle
     bar.remove();
     if (!quiz.explanation || chosen !== right) return;
     const feedback = el.appendChild(createDiv());
-    feedback.className = 'clew-quiz-feedback';
+    feedback.className = 'vicher-quiz-feedback';
     feedback.setAttribute('aria-live', 'polite');
     markdown(feedback, quiz.explanation);
   };

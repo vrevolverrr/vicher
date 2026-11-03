@@ -21,7 +21,7 @@ function setup(chats: ChatSummary[], current?: string, tabs?: HistoryMenuHost['t
   };
   const anchor = document.body.appendChild(document.createElement('button'));
   const menu = new HistoryMenu(anchor, host);
-  const rows = () => [...document.querySelectorAll<HTMLElement>('.clew-history-row')];
+  const rows = () => [...document.querySelectorAll<HTMLElement>('.vicher-history-row')];
   return { host, anchor, menu, rows };
 }
 
@@ -50,10 +50,10 @@ describe('HistoryMenu', () => {
     ];
     const { anchor, rows } = setup([chat('a', 'First'), chat('b', 'Second')], 'b', tabs);
     anchor.dispatchEvent(new Event('pointerenter')); await settle();
-    expect(rows().map((row) => row.querySelector('.clew-history-title')?.textContent)).toEqual(['Second', 'New chat', 'First']);
-    expect(rows().map((row) => row.querySelector('.clew-history-number')?.textContent)).toEqual(['1', '2', undefined]);
+    expect(rows().map((row) => row.querySelector('.vicher-history-title')?.textContent)).toEqual(['Second', 'New chat', 'First']);
+    expect(rows().map((row) => row.querySelector('.vicher-history-number')?.textContent)).toEqual(['1', '2', undefined]);
     expect(rows()[0]!.textContent).toContain('Generating');
-    expect([...document.querySelectorAll('.clew-history-group')].map((el) => el.textContent)).toEqual(['Open chats', 'Recent chats']);
+    expect([...document.querySelectorAll('.vicher-history-group')].map((el) => el.textContent)).toEqual(['Open chats', 'Recent chats']);
   });
 
   it('refreshes pinned titles and activity while the menu stays open', async () => {
@@ -69,7 +69,7 @@ describe('HistoryMenu', () => {
     const { anchor, rows } = setup([chat('a', 'First'), chat('b', 'Second')]);
     anchor.dispatchEvent(new Event('pointerenter'));
     await settle();
-    expect(rows().map((row) => row.querySelector('.clew-history-title')?.textContent)).toEqual(['First', 'Second']);
+    expect(rows().map((row) => row.querySelector('.vicher-history-title')?.textContent)).toEqual(['First', 'Second']);
     expect(anchor.getAttribute('aria-expanded')).toBe('true');
   });
 
@@ -100,7 +100,7 @@ describe('HistoryMenu', () => {
     const { host, anchor } = setup([chat('a', 'First')]);
     anchor.dispatchEvent(new Event('pointerenter'));
     await settle();
-    document.querySelector<HTMLElement>('.clew-history-all')!.click();
+    document.querySelector<HTMLElement>('.vicher-history-all')!.click();
     expect(host.showAll).toHaveBeenCalledTimes(1);
   });
 
@@ -108,8 +108,8 @@ describe('HistoryMenu', () => {
     const { anchor } = setup([]);
     anchor.dispatchEvent(new Event('pointerenter'));
     await settle();
-    expect(document.querySelector('.clew-history-empty')?.textContent).toBe('No saved chats yet.');
-    expect(document.querySelector('.clew-history-all')).toBeNull();
+    expect(document.querySelector('.vicher-history-empty')?.textContent).toBe('No saved chats yet.');
+    expect(document.querySelector('.vicher-history-all')).toBeNull();
   });
 
   it('stays open while the pointer moves from the button onto the menu', async () => {
@@ -117,7 +117,7 @@ describe('HistoryMenu', () => {
     const { anchor, menu } = setup([chat('a', 'First')]);
     anchor.dispatchEvent(new Event('pointerenter'));
     anchor.dispatchEvent(new Event('pointerleave'));
-    document.querySelector('.clew-history-menu')!.dispatchEvent(new Event('pointerenter'));
+    document.querySelector('.vicher-history-menu')!.dispatchEvent(new Event('pointerenter'));
     jest.advanceTimersByTime(500);
     expect(anchor.getAttribute('aria-expanded')).toBe('true');
     menu.close();
@@ -144,6 +144,6 @@ describe('HistoryMenu', () => {
     anchor.dispatchEvent(new Event('pointerenter'));
     menu.close();
     await settle();
-    expect(document.querySelectorAll('.clew-history-row')).toHaveLength(0);
+    expect(document.querySelectorAll('.vicher-history-row')).toHaveLength(0);
   });
 });

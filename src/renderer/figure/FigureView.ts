@@ -160,7 +160,7 @@ export class FigureView {
   private markdown?: Drawing['markdown'];
 
   constructor(parent: HTMLElement, private readonly host: FigureHost, private readonly sandbox: FigureSandbox = figureSandbox) {
-    this.el = parent.appendChild(div('clew-figure'));
+    this.el = parent.appendChild(div('vicher-figure'));
     if (typeof ResizeObserver !== 'undefined') {
       this.observer = new ResizeObserver(() => this.resized());
       this.observer.observe(this.el);
@@ -186,9 +186,9 @@ export class FigureView {
   showError(error: string, source: string): void {
     this.clear();
     this.params = undefined;
-    const card = this.el.appendChild(div('clew-figure-error'));
+    const card = this.el.appendChild(div('vicher-figure-error'));
     card.setAttribute('role', 'note');
-    card.appendChild(div('clew-figure-error-message')).textContent = error;
+    card.appendChild(div('vicher-figure-error-message')).textContent = error;
     const details = card.appendChild(createEl('details'));
     details.appendChild(createEl('summary')).textContent = 'Figure source';
     details.appendChild(createEl('pre')).appendChild(createEl('code')).textContent = source;
@@ -353,22 +353,22 @@ export class FigureView {
     };
 
     if (figure.params.length && !this.params?.isConnected) {
-      this.params = this.el.appendChild(div('clew-figure-params'));
+      this.params = this.el.appendChild(div('vicher-figure-params'));
       drawParams(this.params, figure.params, this.values, drawing.markdown, (key, value) => {
         this.values.set(key, value);
         void this.rerun();
       });
-      this.paramError = this.el.appendChild(div('clew-figure-param-error'));
+      this.paramError = this.el.appendChild(div('vicher-figure-param-error'));
     }
-    const body = this.el.appendChild(div('clew-figure-body'));
+    const body = this.el.appendChild(div('vicher-figure-body'));
     if (shown) body.classList.add('is-pending');
-    if (figure.title) drawing.markdown(body.appendChild(div('clew-figure-title')), figure.title);
-    const main = body.appendChild(div('clew-figure-main'));
-    const scroll = main.appendChild(div('clew-figure-scroll'));
-    const stack = scroll.appendChild(div('clew-figure-stack'));
+    if (figure.title) drawing.markdown(body.appendChild(div('vicher-figure-title')), figure.title);
+    const main = body.appendChild(div('vicher-figure-main'));
+    const scroll = main.appendChild(div('vicher-figure-scroll'));
+    const stack = scroll.appendChild(div('vicher-figure-stack'));
     this.width = this.canvasWidth();
     const steps = figure.steps.map((step) => {
-      const view: StepView = { el: stack.appendChild(div('clew-figure-step')), links: [], plots: [], diagrams: [], dirty: false };
+      const view: StepView = { el: stack.appendChild(div('vicher-figure-step')), links: [], plots: [], diagrams: [], dirty: false };
       const tags = new Map<string, Tag>();
       walk(step.root, (node) => {
         if ('tags' in node) for (const [id, tag] of node.tags) tags.set(id, tag);
@@ -385,7 +385,7 @@ export class FigureView {
       return view;
     });
 
-    const side = main.appendChild(div('clew-figure-side'));
+    const side = main.appendChild(div('vicher-figure-side'));
     let playback: Playback | undefined;
     const listed = figure.steps.length > 1 && figure.steps.length <= MAX_LISTED;
     let narrate: ((index: number) => void) | undefined;
@@ -413,11 +413,11 @@ export class FigureView {
     }
     const explained = TAGS.filter((tag) => used.has(tag) && MEANING[tag]);
     if (explained.length) {
-      const key = scroll.appendChild(div('clew-figure-key'));
+      const key = scroll.appendChild(div('vicher-figure-key'));
       for (const tag of explained) {
-        const item = key.appendChild(div('clew-figure-key-item'));
+        const item = key.appendChild(div('vicher-figure-key-item'));
         const mark = item.appendChild(createSpan());
-        mark.className = 'clew-figure-key-mark';
+        mark.className = 'vicher-figure-key-mark';
         mark.dataset.tag = tag;
         mark.textContent = ' ';
         item.append(`${tag}: ${MEANING[tag]}`);
@@ -536,14 +536,14 @@ export class FigureView {
 
   /** A Graph wider than the pane shrinks to fit, down to 9 px text; past that it scrolls. */
   private fitGraphs(root: HTMLElement): void {
-    for (const graph of root.querySelectorAll<HTMLElement>('.clew-figure-graph')) {
+    for (const graph of root.querySelectorAll<HTMLElement>('.vicher-figure-graph')) {
       graph.style.zoom = String(Math.min(1, Math.max(9 / GRAPH_FONT, this.width / parseFloat(graph.style.width))));
     }
   }
 
   /** The width a Plot, Graph or Diagram draws at: the pane's, less the padding and border of the card around it. */
   private canvasWidth(): number {
-    const probe = this.el.appendChild(div('clew-figure-canvas'));
+    const probe = this.el.appendChild(div('vicher-figure-canvas'));
     const style = getComputedStyle(probe);
     const inset = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight) + parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth);
     probe.remove();
@@ -552,7 +552,7 @@ export class FigureView {
 
   /** A tag's theme colour, ink or fill, read from a probe element: the custom property's own text is not a colour. */
   private colour(tag: Tag, fill: boolean): Rgb {
-    const name = `--clew-figure-${fill ? 'fill' : 'tag'}-${tag}`;
+    const name = `--vicher-figure-${fill ? 'fill' : 'tag'}-${tag}`;
     let rgb = this.colours.get(name);
     if (!rgb) {
       rgb = parseColour(computedColour(this.el, `var(${name})`));
@@ -624,7 +624,7 @@ export class FigureView {
     const boxes: [string, HTMLElement][] = [];
     for (const step of this.steps) {
       for (const el of step.el.querySelectorAll<HTMLElement>('[data-figure-id]')) {
-        if (!(el.instanceOf(HTMLElement)) || el.tagName === 'TR' || el.closest('.clew-figure-graph, .clew-figure-plot, .clew-figure-diagram, mjx-container')) continue;
+        if (!(el.instanceOf(HTMLElement)) || el.tagName === 'TR' || el.closest('.vicher-figure-graph, .vicher-figure-plot, .vicher-figure-diagram, mjx-container')) continue;
         const id = el.dataset.figureId!;
         const width = el.getBoundingClientRect().width;
         if (!width) continue;
@@ -659,32 +659,32 @@ export class FigureView {
     switch (node.type) {
       case 'Row':
       case 'Column': {
-        const el = mark(child(`clew-figure-${node.type.toLowerCase()} is-gap-${node.gap ?? 'md'} is-align-${node.align ?? 'start'}`), node.id);
+        const el = mark(child(`vicher-figure-${node.type.toLowerCase()} is-gap-${node.gap ?? 'md'} is-align-${node.align ?? 'start'}`), node.id);
         for (const item of node.children) this.drawNode(item, el, view, drawing, tagOf, counts);
         return;
       }
       case 'Panel': {
-        const el = mark(child('clew-figure-panel'), node.id, node.tag);
-        if (node.title !== undefined) drawing.markdown(child('clew-figure-panel-title', el), node.title);
-        const inner = child('clew-figure-panel-body', el);
+        const el = mark(child('vicher-figure-panel'), node.id, node.tag);
+        if (node.title !== undefined) drawing.markdown(child('vicher-figure-panel-title', el), node.title);
+        const inner = child('vicher-figure-panel-body', el);
         for (const item of node.children) this.drawNode(item, inner, view, drawing, tagOf, counts);
         return;
       }
       case 'Table': {
-        const wrap = mark(child('clew-figure-table'), node.id);
-        if (node.title !== undefined) drawing.markdown(child('clew-figure-title', wrap), node.title);
+        const wrap = mark(child('vicher-figure-table'), node.id);
+        if (node.title !== undefined) drawing.markdown(child('vicher-figure-title', wrap), node.title);
         const lane = drawing.lanes.get(laneKey(node, ordinal()));
         const table = wrap.appendChild(createEl('table'));
         if (lane) wrap.style.paddingLeft = `${lane.name + 3}ch`;
         const head = table.createTHead().insertRow();
-        for (const column of node.columns) drawing.markdown(head.appendChild(Object.assign(createEl('th'), { className: 'clew-figure-cell' })), column);
+        for (const column of node.columns) drawing.markdown(head.appendChild(Object.assign(createEl('th'), { className: 'vicher-figure-cell' })), column);
         const rows = table.createTBody();
         node.rows.forEach((cells, r) => {
           const rowId = node.rowIds?.[r];
           const row = mark(rows.insertRow(), rowId);
           cells.forEach((cell, c) => {
             const td = mark(row.insertCell(), rowId && `${rowId}.${c}`);
-            td.classList.add('clew-figure-cell');
+            td.classList.add('vicher-figure-cell');
             if (cell === null) td.textContent = '–';
             else drawing.markdown(td, cell);
           });
@@ -692,51 +692,51 @@ export class FigureView {
         return;
       }
       case 'Seq': {
-        const wrap = mark(child('clew-figure-seq'), node.id);
-        if (node.title !== undefined) drawing.markdown(child('clew-figure-title', wrap), node.title);
-        const items = child('clew-figure-seq-items', wrap);
+        const wrap = mark(child('vicher-figure-seq'), node.id);
+        if (node.title !== undefined) drawing.markdown(child('vicher-figure-title', wrap), node.title);
+        const items = child('vicher-figure-seq-items', wrap);
         node.items.forEach((item, i) => {
-          const column = child('clew-figure-seq-item', items);
-          if (node.index) child('clew-figure-seq-index', column).textContent = node.index === true ? String(i) : formatFigure(node.index[i] ?? '');
-          const cell = mark(child('clew-figure-seq-cell', column), item.id);
+          const column = child('vicher-figure-seq-item', items);
+          if (node.index) child('vicher-figure-seq-index', column).textContent = node.index === true ? String(i) : formatFigure(node.index[i] ?? '');
+          const cell = mark(child('vicher-figure-seq-cell', column), item.id);
           drawing.markdown(cell, `${status(cell.dataset.tag ?? '')}${formatFigure(item.label)}`);
         });
         const lane = drawing.lanes.get(laneKey(node, ordinal()));
-        if (lane) child('clew-figure-lane', wrap).style.height = `${lane.count * POINTER_STEP + 4}px`;
+        if (lane) child('vicher-figure-lane', wrap).style.height = `${lane.count * POINTER_STEP + 4}px`;
         return;
       }
       case 'Node': {
-        const el = mark(child(`clew-figure-node${node.shape === 'circle' ? ' is-circle' : ''}`), node.id, node.tag);
-        drawing.markdown(child('clew-figure-node-label', el), `${status(el.dataset.tag ?? '')}${formatFigure(node.label)}`);
-        if (node.sub !== undefined) drawing.markdown(child('clew-figure-node-sub', el), node.sub);
+        const el = mark(child(`vicher-figure-node${node.shape === 'circle' ? ' is-circle' : ''}`), node.id, node.tag);
+        drawing.markdown(child('vicher-figure-node-label', el), `${status(el.dataset.tag ?? '')}${formatFigure(node.label)}`);
+        if (node.sub !== undefined) drawing.markdown(child('vicher-figure-node-sub', el), node.sub);
         return;
       }
       case 'Text':
-        drawing.markdown(mark(child('clew-figure-text'), node.id), node.text);
+        drawing.markdown(mark(child('vicher-figure-text'), node.id), node.text);
         return;
       case 'Tex': {
-        const el = mark(child('clew-figure-tex'), node.id);
+        const el = mark(child('vicher-figure-tex'), node.id);
         const lane = drawing.lanes.get(laneKey(node, ordinal()));
-        drawing.tex(child('clew-figure-tex-math', el), node.tex);
+        drawing.tex(child('vicher-figure-tex-math', el), node.tex);
         if (lane) {
-          const column = child('clew-figure-tex-lane', el);
+          const column = child('vicher-figure-tex-lane', el);
           column.setAttribute('aria-hidden', 'true');
-          const sizes = child('clew-figure-tex-sizes', column);
+          const sizes = child('vicher-figure-tex-sizes', column);
           for (const name of lane.names) sizes.append(pointerLabel(name, '←', drawing.markdown));
         }
         return;
       }
       case 'Graph': {
         const layout = drawing.graphs.get(nodeKey(node, ordinal()));
-        if (layout) drawGraph(child('clew-figure-canvas is-graph'), node, layout, tagOf, drawing.markdown);
+        if (layout) drawGraph(child('vicher-figure-canvas is-graph'), node, layout, tagOf, drawing.markdown);
         return;
       }
       case 'Quiz':
-        drawQuiz(mark(child('clew-figure-quiz'), node.id), node, drawing.markdown, this.answers, this.host.send?.bind(this.host));
+        drawQuiz(mark(child('vicher-figure-quiz'), node.id), node, drawing.markdown, this.answers, this.host.send?.bind(this.host));
         return;
       case 'Plot': {
         for (const layer of node.children) if (layer.tag) drawing.used.add(layer.tag);
-        const el = mark(child('clew-figure-plot', child('clew-figure-canvas')), node.id);
+        const el = mark(child('vicher-figure-plot', child('vicher-figure-canvas')), node.id);
         el.style.width = `${this.width}px`;
         const chart = new PlotChart(el);
         chart.height = (width) => Math.min(360, (width * 2) / 3);
@@ -747,7 +747,7 @@ export class FigureView {
       }
       case 'Plot3': {
         for (const layer of node.children) if (layer.tag) drawing.used.add(layer.tag);
-        const el = mark(child('clew-figure-plot', child('clew-figure-canvas')), node.id);
+        const el = mark(child('vicher-figure-plot', child('vicher-figure-canvas')), node.id);
         el.style.width = `${this.width}px`;
         const key = nodeKey(node, ordinal());
         const chart = new Plot3Chart(el, { get: () => this.views.get(key), set: (view) => this.views.set(key, view) });
@@ -760,7 +760,7 @@ export class FigureView {
       }
       case 'Diagram': {
         for (const layer of node.children) if (layer.tag) drawing.used.add(layer.tag);
-        const el = mark(child('clew-figure-diagram', child('clew-figure-canvas')), node.id);
+        const el = mark(child('vicher-figure-diagram', child('vicher-figure-canvas')), node.id);
         const key = nodeKey(node, ordinal());
         const extent = drawing.extents.get(key) ?? diagramExtent(node);
         const shared = this.rooms.get(key) ?? { room: { left: 0, top: 0, right: 0, bottom: 0 }, paints: new Map() };

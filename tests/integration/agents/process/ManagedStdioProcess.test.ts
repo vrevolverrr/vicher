@@ -18,7 +18,7 @@ const readers: Interface[] = [];
 const pids = new Set<number>();
 
 beforeEach(async () => {
-  directory = await realpath(await mkdtemp(path.join(tmpdir(), 'clew native 文档 ')));
+  directory = await realpath(await mkdtemp(path.join(tmpdir(), 'vicher native 文档 ')));
 });
 
 afterEach(async () => {
@@ -49,11 +49,11 @@ async function launch(
   let launchArgs = [script, ...args];
   if (commandShim) {
     command = path.join(directory, 'provider & tools.cmd');
-    await writeFile(command, '@echo off\r\n"%CLEW_NATIVE_NODE%" "%~dp0native fixture.cjs" %*\r\n');
+    await writeFile(command, '@echo off\r\n"%VICHER_NATIVE_NODE%" "%~dp0native fixture.cjs" %*\r\n');
     launchArgs = args;
   }
   const managed = new ManagedStdioProcess({
-    command, args: launchArgs, cwd: directory, env: { ...process.env, CLEW_NATIVE_TEST: 'env 文档', CLEW_NATIVE_NODE: process.execPath },
+    command, args: launchArgs, cwd: directory, env: { ...process.env, VICHER_NATIVE_TEST: 'env 文档', VICHER_NATIVE_NODE: process.execPath },
     ...options,
   });
   const closed = new Promise<ManagedStdioProcessExitState>(resolve => managed.onClose(resolve));
@@ -118,7 +118,7 @@ it.each([false, true])('delivers opaque arguments, cwd, environment and stdin wi
       process.stderr.write('diagnostic only');
       process.stdout.write(JSON.stringify({
         args: process.argv.slice(2), cwd: process.cwd(),
-        environment: process.env.CLEW_NATIVE_TEST, input: JSON.parse(input),
+        environment: process.env.VICHER_NATIVE_TEST, input: JSON.parse(input),
       }) + '\\n');
     });
   `, args, { directSpawn });

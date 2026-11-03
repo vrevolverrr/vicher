@@ -10,10 +10,10 @@ export const POINTER_STEP = 22;
 
 /** A pointer's arrow and name, the arrow first unless the pointer stands left of what it points at. */
 export function pointerLabel(name: string | number, arrow: string, markdown: Markdown, nameFirst = false): HTMLElement {
-  const label = div('clew-figure-pointer');
+  const label = div('vicher-figure-pointer');
   const text = createSpan();
   markdown(text, name);
-  const mark = Object.assign(div('clew-figure-pointer-mark'), { textContent: arrow });
+  const mark = Object.assign(div('vicher-figure-pointer-mark'), { textContent: arrow });
   label.append(...(nameFirst ? [text, mark] : [mark, text]));
   return label;
 }
@@ -23,13 +23,13 @@ export function pointerLabel(name: string | number, arrow: string, markdown: Mar
  * A pointer into a Tex goes in that Tex's pointer column instead.
  */
 export function drawLinks(step: HTMLElement, links: readonly Link[], markdown: Markdown): void {
-  step.querySelector(':scope > .clew-figure-links')?.remove();
-  for (const old of step.querySelectorAll('.clew-figure-tex-lane > .clew-figure-pointer')) old.remove();
+  step.querySelector(':scope > .vicher-figure-links')?.remove();
+  for (const old of step.querySelectorAll('.vicher-figure-tex-lane > .vicher-figure-pointer')) old.remove();
   if (!links.length) return;
-  const layer = step.appendChild(div('clew-figure-links'));
+  const layer = step.appendChild(div('vicher-figure-links'));
   layer.setAttribute('aria-hidden', 'true');
   const frame = step.getBoundingClientRect();
-  const drawing = svg('svg', { class: 'clew-figure-links-svg', width: frame.width, height: frame.height }, layer);
+  const drawing = svg('svg', { class: 'vicher-figure-links-svg', width: frame.width, height: frame.height }, layer);
   const head = arrowHeads(drawing, { markerWidth: 8, markerHeight: 8 });
   const box = (id: string): Box | null => {
     const el = step.querySelector(`[data-figure-id="${id}"]`);
@@ -50,10 +50,10 @@ export function drawLinks(step: HTMLElement, links: readonly Link[], markdown: M
       else if (b.r <= a.l + 1) [start, end] = [[a.l, (a.t + a.b) / 2], [b.r, (b.t + b.b) / 2]];
       else if (b.t >= a.b - 1) [start, end] = [[(a.l + a.r) / 2, a.b], [(b.l + b.r) / 2, b.t]];
       else [start, end] = [[(a.l + a.r) / 2, a.t], [(b.l + b.r) / 2, b.b]];
-      const path = svg('path', { d: `M${start[0]} ${start[1]}L${end[0]} ${end[1]}`, class: 'clew-figure-link', 'marker-end': head(lineInk(link.tag)) }, drawing);
+      const path = svg('path', { d: `M${start[0]} ${start[1]}L${end[0]} ${end[1]}`, class: 'vicher-figure-link', 'marker-end': head(lineInk(link.tag)) }, drawing);
       if (link.tag) path.dataset.tag = link.tag;
       if (link.label === undefined) continue;
-      const label = layer.appendChild(div('clew-figure-link-label'));
+      const label = layer.appendChild(div('vicher-figure-link-label'));
       if (link.tag) label.dataset.tag = link.tag;
       label.style.left = `${(start[0] + end[0]) / 2}px`;
       label.style.top = `${(start[1] + end[1]) / 2}px`;
@@ -63,8 +63,8 @@ export function drawLinks(step: HTMLElement, links: readonly Link[], markdown: M
     const target = box(link.to);
     if (!target) continue;
     const table = target.el.closest('table');
-    const tex = target.el.closest('.clew-figure-tex');
-    const column = tex?.querySelector<HTMLElement>(':scope > .clew-figure-tex-lane');
+    const tex = target.el.closest('.vicher-figure-tex');
+    const column = tex?.querySelector<HTMLElement>(':scope > .vicher-figure-tex-lane');
     const owner = table ?? tex ?? target.el;
     const tops = taken.get(owner) ?? [];
     taken.set(owner, tops);

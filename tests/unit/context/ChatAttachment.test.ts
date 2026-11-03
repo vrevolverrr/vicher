@@ -76,7 +76,7 @@ const whole = (text: string) => fileText(bytes(text), bytes(text).length);
 
 describe('fileText', () => {
   it('returns a small file whole, with its line count', () => {
-    expect(whole('{\n  "id": "clew"\n}\n')).toEqual({ text: '{\n  "id": "clew"\n}', lines: 3, truncated: false });
+    expect(whole('{\n  "id": "vicher"\n}\n')).toEqual({ text: '{\n  "id": "vicher"\n}', lines: 3, truncated: false });
   });
 
   it('counts a last line that has no line break', () => {
@@ -129,7 +129,7 @@ describe('readTexts', () => {
   };
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'clew-attached-'));
+    dir = mkdtempSync(join(tmpdir(), 'vicher-attached-'));
   });
   afterEach(() => rmSync(dir, { recursive: true }));
 

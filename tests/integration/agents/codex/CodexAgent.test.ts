@@ -20,7 +20,7 @@ let logPath: string;
 let session: AgentSession | null;
 
 beforeEach(() => {
-  workDir = mkdtempSync(path.join(tmpdir(), 'clew-codex-'));
+  workDir = mkdtempSync(path.join(tmpdir(), 'vicher-codex-'));
   logPath = path.join(workDir, 'received.jsonl');
   process.env.FAKE_CODEX_LOG = logPath;
   session = null;
@@ -88,7 +88,7 @@ describe('CodexAgent session', () => {
     await open('stream');
 
     const thread = paramsOf('thread/start');
-    expect(paramsOf('initialize')).toMatchObject({ clientInfo: { name: 'clew' } });
+    expect(paramsOf('initialize')).toMatchObject({ clientInfo: { name: 'vicher' } });
     expect(received().some((message) => message.method === 'initialized')).toBe(true);
     expect(thread).toMatchObject({
       model: 'gpt-6-luna',

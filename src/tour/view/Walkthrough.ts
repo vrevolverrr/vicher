@@ -43,12 +43,12 @@ export class Walkthrough {
   add(): void {
     const index = this.steps.length - 1;
     const step = this.steps[index];
-    const row = this.el.createEl('button', { cls: 'clew-step clew-walk-step', attr: { type: 'button', 'aria-label': `Show stop ${index + 1}` } });
-    row.createSpan({ cls: 'clew-step-dot', text: String(index + 1) });
-    const body = row.createSpan({ cls: 'clew-walk-body' });
-    body.createSpan({ cls: 'clew-walk-comment', text: step.comment ?? snippet(step.quote) });
-    if (step.comment) body.createSpan({ cls: 'clew-walk-quote', text: snippet(step.quote) });
-    if (step.path !== this.steps[0].path) body.createSpan({ cls: 'clew-walk-note', text: noteName(step.path) });
+    const row = this.el.createEl('button', { cls: 'vicher-step vicher-walk-step', attr: { type: 'button', 'aria-label': `Show stop ${index + 1}` } });
+    row.createSpan({ cls: 'vicher-step-dot', text: String(index + 1) });
+    const body = row.createSpan({ cls: 'vicher-walk-body' });
+    body.createSpan({ cls: 'vicher-walk-comment', text: step.comment ?? snippet(step.quote) });
+    if (step.comment) body.createSpan({ cls: 'vicher-walk-quote', text: snippet(step.quote) });
+    if (step.path !== this.steps[0].path) body.createSpan({ cls: 'vicher-walk-note', text: noteName(step.path) });
     row.addEventListener('click', () => this.host.pick(this.steps, index));
     this.rows.push({ index, row });
   }

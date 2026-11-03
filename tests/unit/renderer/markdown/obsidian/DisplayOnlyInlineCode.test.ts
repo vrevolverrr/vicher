@@ -16,10 +16,10 @@ describe('DisplayOnlyInlineCode', () => {
     const prepared = prepareDisplayOnlyInlineCode(markdown);
 
     expect(prepared.markdown).toBe([
-      'Run `clew-inline-code-0` or ``clew-inline-code-1`` now.',
-      '- item `clew-inline-code-2`',
-      '> quote `clew-inline-code-3`',
-      '| cell | `clew-inline-code-4` |',
+      'Run `vicher-inline-code-0` or ``vicher-inline-code-1`` now.',
+      '- item `vicher-inline-code-2`',
+      '> quote `vicher-inline-code-3`',
+      '| cell | `vicher-inline-code-4` |',
     ].join('\n'));
     expect(prepared.spans).toEqual(['= this.file.name', '$= dv.el("b", `x`)', '$= app.vault', '= 1 + > 2', '= x']);
   });
@@ -32,11 +32,11 @@ describe('DisplayOnlyInlineCode', () => {
 
   it('restores span text into inline code but not into fenced code', () => {
     const container = document.createElement('div');
-    container.innerHTML = '<p><code>clew-inline-code-0</code></p><pre><code>clew-inline-code-0</code></pre>';
+    container.innerHTML = '<p><code>vicher-inline-code-0</code></p><pre><code>vicher-inline-code-0</code></pre>';
 
     restoreDisplayOnlyInlineCode(container, ['$= dv.x']);
 
     expect(container.querySelector('p code')?.textContent).toBe('$= dv.x');
-    expect(container.querySelector('pre code')?.textContent).toBe('clew-inline-code-0');
+    expect(container.querySelector('pre code')?.textContent).toBe('vicher-inline-code-0');
   });
 });

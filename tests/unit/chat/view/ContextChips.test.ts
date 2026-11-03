@@ -12,8 +12,8 @@ describe('ContextChips', () => {
   let host: jest.Mocked<ContextChipsHost>;
   let chips: ContextChips;
 
-  const chipEls = () => [...document.querySelectorAll<HTMLElement>('.clew-context-chip')];
-  const labels = () => chipEls().map((chip) => chip.querySelector('.clew-context-label')?.textContent);
+  const chipEls = () => [...document.querySelectorAll<HTMLElement>('.vicher-context-chip')];
+  const labels = () => chipEls().map((chip) => chip.querySelector('.vicher-context-label')?.textContent);
   const show = (state: OpenDocumentState, exit?: 'dropped' | 'sent') => chips.set(state, exit);
 
   beforeEach(() => {
@@ -60,7 +60,7 @@ describe('ContextChips', () => {
 
   it('removes the selection without toggling the note', () => {
     show({ note: NOTE, selection: { lines: 2 } });
-    document.querySelector<HTMLElement>('.clew-context-remove')!.click();
+    document.querySelector<HTMLElement>('.vicher-context-remove')!.click();
     expect(host.removeSelection).toHaveBeenCalledTimes(1);
     expect(host.toggleNote).not.toHaveBeenCalled();
   });
@@ -91,7 +91,7 @@ describe('ContextChips', () => {
       show({ note: NOTE, selection: { lines: 2 } });
       animate.mockClear();
       show({ note: NOTE }, 'sent');
-      const leaving = document.querySelector<HTMLElement>('.clew-context-chip.is-leaving')!;
+      const leaving = document.querySelector<HTMLElement>('.vicher-context-chip.is-leaving')!;
       expect(leaving.textContent).toContain('2 lines selected');
       finish[finish.length - 1]!();
       await Promise.resolve();

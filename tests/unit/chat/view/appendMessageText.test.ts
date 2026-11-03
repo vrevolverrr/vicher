@@ -17,24 +17,24 @@ describe('appendMessageText', () => {
   it('colors a skill name and a picked file, each in its own span, and keeps the text between', () => {
     const el = draw('/review @Week 1.md please', { mentions: MENTIONS });
     expect(spans(el)).toEqual([
-      ['clew-skill-token', '/review'],
-      ['clew-mention-token', '@Week 1.md'],
+      ['vicher-skill-token', '/review'],
+      ['vicher-mention-token', '@Week 1.md'],
     ]);
     expect(el.textContent).toBe('/review @Week 1.md please');
   });
 
   it('shows the file path on hover', () => {
-    expect(draw('@Week 1.md', { mentions: MENTIONS }).querySelector('.clew-mention-token')?.getAttribute('title')).toBe('/v/notes/Week 1.md');
+    expect(draw('@Week 1.md', { mentions: MENTIONS }).querySelector('.vicher-mention-token')?.getAttribute('title')).toBe('/v/notes/Week 1.md');
   });
 
   it('colors the name being typed like a skill name', () => {
     const el = draw('compare @we', { typing: { start: 8, end: 11 } });
-    expect(spans(el)).toEqual([['clew-skill-token', '@we']]);
+    expect(spans(el)).toEqual([['vicher-skill-token', '@we']]);
   });
 
   it('draws a picked file, not the typing range, where the two overlap', () => {
     const el = draw('@Week 1.md', { mentions: MENTIONS, typing: { start: 0, end: 5 } });
-    expect(spans(el)).toEqual([['clew-mention-token', '@Week 1.md']]);
+    expect(spans(el)).toEqual([['vicher-mention-token', '@Week 1.md']]);
     expect(el.textContent).toBe('@Week 1.md');
   });
 

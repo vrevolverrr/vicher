@@ -80,7 +80,7 @@ const omitUnusedClaudeSdkPeers = {
 };
 
 // zod re-exports every locale as `z.locales`, which esbuild cannot tree-shake (evanw/esbuild#1420).
-// Clew shows no zod messages, and zod itself loads only `en`.
+// Vicher shows no zod messages, and zod itself loads only `en`.
 const englishOnlyZodLocales = {
   name: 'english-only-zod-locales',
   setup(build) {
@@ -125,7 +125,7 @@ const figureWorker = {
 };
 
 const vault = process.env.OBSIDIAN_VAULT;
-const pluginDir = vault && existsSync(vault) ? path.join(vault, '.obsidian', 'plugins', 'clew') : null;
+const pluginDir = vault && existsSync(vault) ? path.join(vault, '.obsidian', 'plugins', 'vicher') : null;
 
 const copyToObsidian = {
   name: 'copy-to-obsidian',

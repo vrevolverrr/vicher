@@ -44,20 +44,20 @@ const ARRIVED = 0.0015;
 
 function swatch(kind: string, color: string): HTMLElement {
   const el = createEl('i');
-  el.className = `clew-plot-swatch is-${kind}`;
-  el.style.setProperty('--clew-swatch', color);
+  el.className = `vicher-plot-swatch is-${kind}`;
+  el.style.setProperty('--vicher-swatch', color);
   return el;
 }
 
 function key(label: HTMLElement, color: string, kind: string): HTMLElement {
   const item = createSpan();
-  item.className = 'clew-plot-key';
+  item.className = 'vicher-plot-key';
   item.append(swatch(kind === 'line' ? 'dot' : kind, color), label);
   return item;
 }
 
 const readout = (v: number) => minus(String(+v.toPrecision(4)));
-const seriesColor = (n: number) => `var(--clew-series-${((n - 1) % SERIES) + 1})`;
+const seriesColor = (n: number) => `var(--vicher-series-${((n - 1) % SERIES) + 1})`;
 
 let sequence = 0;
 
@@ -77,12 +77,12 @@ function runs(points: readonly Point[]): [number, number][][] {
 
 /** Draws a `PlotModel` as SVG at the width its element has. */
 export class PlotChart {
-  private readonly legend = div('clew-plot-legend');
-  private readonly frame = div('clew-plot-frame');
-  private readonly canvas = svg('svg', { role: 'img', class: 'clew-plot-svg' });
+  private readonly legend = div('vicher-plot-legend');
+  private readonly frame = div('vicher-plot-frame');
+  private readonly canvas = svg('svg', { role: 'img', class: 'vicher-plot-svg' });
   /** Labels with Markdown or maths, which SVG text cannot typeset, as HTML over the drawing. */
-  private readonly rich = div('clew-plot-rich');
-  private readonly tip = div('clew-plot-tip');
+  private readonly rich = div('vicher-plot-rich');
+  private readonly tip = div('vicher-plot-tip');
   /** What is on screen, and the plot it is moving toward. */
   private shown: ResolvedModel | null = null;
   private target: ResolvedModel | null = null;
@@ -102,7 +102,7 @@ export class PlotChart {
 
   /** The owner calls `repaint` when the width changes. */
   constructor(readonly el: HTMLElement) {
-    el.classList.add('clew-plot');
+    el.classList.add('vicher-plot');
     this.tip.hidden = true;
     this.frame.append(this.canvas, this.rich, this.tip);
     el.append(this.legend, this.frame);
@@ -213,21 +213,21 @@ export class PlotChart {
     this.drawLegend(model, colors);
 
     for (const v of yTicks(ph)) {
-      svg('line', { x1: margin.left, x2: margin.left + pw, y1: sy(v), y2: sy(v), class: v === 0 ? 'clew-plot-axis' : 'clew-plot-grid' }, root);
-      svg('text', { x: margin.left - TICK_GAP, y: sy(v) + 4, 'text-anchor': 'end', class: 'clew-plot-tick' }, root, tickText(v));
+      svg('line', { x1: margin.left, x2: margin.left + pw, y1: sy(v), y2: sy(v), class: v === 0 ? 'vicher-plot-axis' : 'vicher-plot-grid' }, root);
+      svg('text', { x: margin.left - TICK_GAP, y: sy(v) + 4, 'text-anchor': 'end', class: 'vicher-plot-tick' }, root, tickText(v));
     }
-    svg('line', { x1: margin.left, x2: margin.left + pw, y1: margin.top + ph, y2: margin.top + ph, class: 'clew-plot-axis' }, root);
-    for (const v of xTicks) svg('text', { x: sx(v), y: margin.top + ph + 17, 'text-anchor': 'middle', class: 'clew-plot-tick' }, root, tickText(v));
+    svg('line', { x1: margin.left, x2: margin.left + pw, y1: margin.top + ph, y2: margin.top + ph, class: 'vicher-plot-axis' }, root);
+    for (const v of xTicks) svg('text', { x: sx(v), y: margin.top + ph + 17, 'text-anchor': 'middle', class: 'vicher-plot-tick' }, root, tickText(v));
     if (model.yLabel) {
-      if (isPlain(model.yLabel)) svg('text', { x: 0, y: 0, 'text-anchor': 'middle', transform: `translate(${12 + shift} ${margin.top + ph / 2}) rotate(-90)`, class: 'clew-plot-tick clew-plot-title' }, root, model.yLabel);
+      if (isPlain(model.yLabel)) svg('text', { x: 0, y: 0, 'text-anchor': 'middle', transform: `translate(${12 + shift} ${margin.top + ph / 2}) rotate(-90)`, class: 'vicher-plot-tick vicher-plot-title' }, root, model.yLabel);
       else this.place(this.typeset(model.yLabel, 'is-title is-vertical'), 7 + shift, margin.top + ph / 2);
     }
     if (model.xLabel) {
-      if (isPlain(model.xLabel)) svg('text', { x: margin.left + pw / 2, y: height - 6, 'text-anchor': 'middle', class: 'clew-plot-tick clew-plot-title' }, root, model.xLabel);
+      if (isPlain(model.xLabel)) svg('text', { x: margin.left + pw / 2, y: height - 6, 'text-anchor': 'middle', class: 'vicher-plot-tick vicher-plot-title' }, root, model.xLabel);
       else this.place(this.typeset(model.xLabel, 'is-title'), margin.left + pw / 2, height - 11);
     }
 
-    const clipId = `clew-plot-clip-${++sequence}`;
+    const clipId = `vicher-plot-clip-${++sequence}`;
     // The clip leaves room for half a stroke, so a line running along an edge is not cut in half.
     svg('rect', { x: margin.left - 2, y: margin.top - 2, width: pw + 4, height: ph + 4 }, svg('clipPath', { id: clipId }, svg('defs', {}, root)));
     const data = svg('g', { 'clip-path': `url(#${clipId})` }, root);
@@ -255,10 +255,10 @@ export class PlotChart {
             ? lower.filter(([x]) => x >= first[0] && x <= last[0]).reverse()
             : [[last[0], layer.base], [first[0], layer.base]] as [number, number][];
           if (!back.length) continue;
-          svg('path', { d: `${path(run)}L${path(back).slice(1)}Z`, fill: color, 'fill-opacity': 0.18, class: 'clew-plot-area' }, target);
+          svg('path', { d: `${path(run)}L${path(back).slice(1)}Z`, fill: color, 'fill-opacity': 0.18, class: 'vicher-plot-area' }, target);
         }
       } else if (layer.kind === 'line') {
-        for (const run of runs(layer.points)) svg('path', { d: path(run), stroke: color, class: 'clew-plot-line' }, data);
+        for (const run of runs(layer.points)) svg('path', { d: path(run), stroke: color, class: 'vicher-plot-line' }, data);
       }
     });
 
@@ -271,10 +271,10 @@ export class PlotChart {
       if (layer.kind === 'rule') {
         const vertical = layer.axis === 'x';
         const at = vertical ? sx(layer.at) : sy(layer.at);
-        svg('line', vertical ? { x1: at, x2: at, y1: margin.top, y2: margin.top + ph, stroke: color, class: 'clew-plot-rule' } : { x1: margin.left, x2: margin.left + pw, y1: at, y2: at, stroke: color, class: 'clew-plot-rule' }, root);
+        svg('line', vertical ? { x1: at, x2: at, y1: margin.top, y2: margin.top + ph, stroke: color, class: 'vicher-plot-rule' } : { x1: margin.left, x2: margin.left + pw, y1: at, y2: at, stroke: color, class: 'vicher-plot-rule' }, root);
         if (layer.label) label(vertical ? at : margin.left + pw, vertical ? margin.top : at, layer.label, true);
       } else if (layer.kind === 'dot') {
-        svg('circle', { cx: sx(layer.x), cy: sy(layer.y), r: 5, fill: color, class: 'clew-plot-dot' }, root);
+        svg('circle', { cx: sx(layer.x), cy: sy(layer.y), r: 5, fill: color, class: 'vicher-plot-dot' }, root);
         if (layer.label) label(sx(layer.x), sy(layer.y), layer.label, true);
       } else if (layer.kind === 'note') {
         label(sx(layer.x), sy(layer.y), layer.text, false, true);
@@ -282,7 +282,7 @@ export class PlotChart {
         const marker = `${clipId}-arrow-${index}`;
         const head = svg('marker', { id: marker, viewBox: '0 0 10 10', refX: 9, refY: 5, markerUnits: 'userSpaceOnUse', markerWidth: 12, markerHeight: 12, orient: 'auto-start-reverse' }, svg('defs', {}, root));
         svg('path', { d: 'M0 0L10 5L0 10z', fill: color }, head);
-        svg('path', { d: path([layer.from, layer.to]), stroke: color, 'marker-end': `url(#${marker})`, class: 'clew-plot-line clew-plot-arrow' }, data);
+        svg('path', { d: path([layer.from, layer.to]), stroke: color, 'marker-end': `url(#${marker})`, class: 'vicher-plot-line vicher-plot-arrow' }, data);
         if (layer.label) label(sx((layer.from[0] + layer.to[0]) / 2), sy((layer.from[1] + layer.to[1]) / 2), layer.label, true);
       }
     });
@@ -327,7 +327,7 @@ export class PlotChart {
       entries.push([layer.label, colors[index], layer.kind]);
     });
     if (layers.some((layer) => layer.kind === 'bars' && layer.mode === 'waterfall')) {
-      entries.push(['Total', 'var(--clew-series-1)', 'bars'], ['Increase', 'var(--color-green)', 'bars'], ['Decrease', 'var(--color-red)', 'bars']);
+      entries.push(['Total', 'var(--vicher-series-1)', 'bars'], ['Increase', 'var(--color-green)', 'bars'], ['Decrease', 'var(--color-red)', 'bars']);
     }
     // A single entry the y-axis title already names only repeats it.
     if (entries.length === 1 && yLabel?.toLowerCase().includes(entries[0][0].toLowerCase())) entries.length = 0;
@@ -353,7 +353,7 @@ export class PlotChart {
     const key = `${modifier}\n${text}`;
     let el = this.typesetLabels.get(key);
     if (el) return this.rich.appendChild(el);
-    el = this.rich.appendChild(div(`clew-plot-rich-label ${modifier}`.trim()));
+    el = this.rich.appendChild(div(`vicher-plot-rich-label ${modifier}`.trim()));
     this.writeLabel(el, text);
     this.typesetLabels.set(key, el);
     return el;
@@ -366,7 +366,7 @@ export class PlotChart {
   }
 
   private text(parent: Element, x: number, y: number, text: string, anchor: 'start' | 'middle' | 'end', strong: boolean): void {
-    svg('text', { x, y, 'text-anchor': anchor, class: `clew-plot-label${strong ? ' is-strong' : ''}` }, parent, text);
+    svg('text', { x, y, 'text-anchor': anchor, class: `vicher-plot-label${strong ? ' is-strong' : ''}` }, parent, text);
   }
 
   private yDomain(model: PlotModel): [number, number] {
@@ -405,19 +405,19 @@ export class PlotChart {
     const barWidth = Math.min(28, band * 0.6);
     const centre = (i: number) => g.margin.left + band * (i + 0.5);
     const root = this.canvas;
-    const fill = (kind: string) => (kind === 'up' ? 'var(--color-green)' : kind === 'down' ? 'var(--color-red)' : layer.mode === 'waterfall' ? 'var(--clew-series-1)' : color);
+    const fill = (kind: string) => (kind === 'up' ? 'var(--color-green)' : kind === 'down' ? 'var(--color-red)' : layer.mode === 'waterfall' ? 'var(--vicher-series-1)' : color);
 
     if (layer.mode === 'waterfall') {
       steps.forEach((step, i) => {
         if (i === steps.length - 1) return;
         const level = step.to;
-        svg('line', { x1: centre(i) + barWidth / 2, x2: centre(i + 1) - barWidth / 2, y1: g.sy(level), y2: g.sy(level), class: 'clew-plot-grid' }, root);
+        svg('line', { x1: centre(i) + barWidth / 2, x2: centre(i + 1) - barWidth / 2, y1: g.sy(level), y2: g.sy(level), class: 'vicher-plot-grid' }, root);
       });
     }
     steps.forEach((step, i) => {
       const top = g.sy(Math.max(step.from, step.to));
       const bottom = g.sy(Math.min(step.from, step.to));
-      svg('rect', { x: centre(i) - barWidth / 2, y: top, width: barWidth, height: Math.max(1.5, bottom - top), rx: 2, fill: fill(step.kind), class: 'clew-plot-bar', 'data-from': step.from, 'data-to': step.to }, root);
+      svg('rect', { x: centre(i) - barWidth / 2, y: top, width: barWidth, height: Math.max(1.5, bottom - top), rx: 2, fill: fill(step.kind), class: 'vicher-plot-bar', 'data-from': step.from, 'data-to': step.to }, root);
       const shown = step.kind === 'up' ? `+${readout(step.value)}` : readout(step.value);
       const above = step.to >= step.from;
       this.text(root, centre(i), above ? top - 6 : bottom + 15, shown, 'middle', true);
@@ -425,11 +425,11 @@ export class PlotChart {
       labels.lines[i].forEach((line, k) => {
         const y = g.margin.top + g.ph + 16 + k * 13;
         svg('text', labels.tilted
-          ? { x: centre(i) + 4, y: y - 4, 'text-anchor': 'end', transform: `rotate(-35 ${centre(i) + 4} ${y - 4})`, class: 'clew-plot-tick' }
-          : { x: centre(i), y, 'text-anchor': 'middle', class: 'clew-plot-tick' }, root, line);
+          ? { x: centre(i) + 4, y: y - 4, 'text-anchor': 'end', transform: `rotate(-35 ${centre(i) + 4} ${y - 4})`, class: 'vicher-plot-tick' }
+          : { x: centre(i), y, 'text-anchor': 'middle', class: 'vicher-plot-tick' }, root, line);
       });
 
-      const hit = svg('rect', { x: centre(i) - band / 2, y: g.margin.top, width: band, height: g.ph, class: 'clew-plot-hit' }, root);
+      const hit = svg('rect', { x: centre(i) - band / 2, y: g.margin.top, width: band, height: g.ph, class: 'vicher-plot-hit' }, root);
       const show = (e: Event) => this.showTip((e as PointerEvent).clientX, (e as PointerEvent).clientY, name, [[color, layer.label ?? '', shown]]);
       hit.addEventListener('pointerenter', show);
       hit.addEventListener('pointermove', show);
@@ -445,9 +445,9 @@ export class PlotChart {
     const lines = model.layers.flatMap((layer, index) => (layer.kind === 'line' && layer.label ? [{ layer, color: colors[index] }] : []));
     if (!lines.length) return;
     const root = this.canvas;
-    const cross = svg('line', { y1: g.margin.top, y2: g.margin.top + g.ph, class: 'clew-plot-cross', visibility: 'hidden' }, root);
-    const dots = lines.map(({ color }) => svg('circle', { r: 5, fill: color, class: 'clew-plot-dot', visibility: 'hidden' }, root));
-    const overlay = svg('rect', { x: g.margin.left, y: g.margin.top, width: g.pw, height: g.ph, class: 'clew-plot-hit' }, root);
+    const cross = svg('line', { y1: g.margin.top, y2: g.margin.top + g.ph, class: 'vicher-plot-cross', visibility: 'hidden' }, root);
+    const dots = lines.map(({ color }) => svg('circle', { r: 5, fill: color, class: 'vicher-plot-dot', visibility: 'hidden' }, root));
+    const overlay = svg('rect', { x: g.margin.left, y: g.margin.top, width: g.pw, height: g.ph, class: 'vicher-plot-hit' }, root);
     const hide = () => {
       cross.setAttribute('visibility', 'hidden');
       dots.forEach((dot) => dot.setAttribute('visibility', 'hidden'));
@@ -480,7 +480,7 @@ export class PlotChart {
     const tip = this.tip;
     tip.replaceChildren();
     const head = createDiv();
-    head.className = 'clew-plot-tip-head';
+    head.className = 'vicher-plot-tip-head';
     head.textContent = heading;
     tip.append(head);
     for (const [color, label, value] of rows) {

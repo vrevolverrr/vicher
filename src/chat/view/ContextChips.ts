@@ -20,7 +20,7 @@ export class ContextChips {
     parent: HTMLElement,
     private readonly host: ContextChipsHost,
   ) {
-    this.tray = parent.createDiv({ cls: 'clew-context-tray' });
+    this.tray = parent.createDiv({ cls: 'vicher-context-tray' });
   }
 
   set({ note, selection }: OpenDocumentState, exit: ChipExit = 'dropped', animate = true): void {

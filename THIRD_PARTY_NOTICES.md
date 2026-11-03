@@ -2,7 +2,7 @@
 
 ## Claudian
 
-Parts of Clew, and their tests, are adapted from [Claudian](https://github.com/YishenTu/claudian), used under the MIT License below.
+Parts of Vicher, and their tests, are adapted from [Claudian](https://github.com/YishenTu/claudian), used under the MIT License below.
 
 ```text
 MIT License

@@ -14,12 +14,12 @@ const result = (id = 'call', failed = false) => message('user', [{ type: 'tool_r
 
 it('builds the MCP enum schema, allow-list and executable result', async () => {
   const tool = jest.fn((_name: string, _description: string, _schema: unknown, run: (args: unknown) => Promise<unknown>) => ({ run }));
-  const server = { type: 'sdk', name: 'clew' };
+  const server = { type: 'sdk', name: 'vicher' };
   const createSdkMcpServer = jest.fn(() => server);
   const sdk = { tool, createSdkMcpServer } as unknown as Pick<typeof ClaudeSDK, 'tool' | 'createSdkMcpServer'>;
   const registration = await ClaudeToolAdapter.createServer([custom], sdk, new ClaudeToolAdapter('/vault', [custom]));
-  expect(registration).toEqual({ mcpServers: { clew: server }, allowedTools: ['mcp__clew__lookup'] });
-  expect(createSdkMcpServer).toHaveBeenCalledWith({ name: 'clew', version: '1.0.0', tools: [{ run: expect.any(Function) }] });
+  expect(registration).toEqual({ mcpServers: { vicher: server }, allowedTools: ['mcp__vicher__lookup'] });
+  expect(createSdkMcpServer).toHaveBeenCalledWith({ name: 'vicher', version: '1.0.0', tools: [{ run: expect.any(Function) }] });
   expect(tool.mock.calls[0]!.slice(0, 2)).toEqual(['lookup', 'Look up a pack']);
   const schema = tool.mock.calls[0]![2] as { name: { safeParse(value: unknown): { success: boolean } } };
   expect(schema.name.safeParse('plot').success).toBe(true);
@@ -40,7 +40,7 @@ it('correlates native results, suppresses duplicate starts and ignores unknown r
   expect([...adapter.events(result())]).toEqual([]);
 });
 
-it('does not apply Clew custom titles to other MCP servers', () => {
+it('does not apply Vicher custom titles to other MCP servers', () => {
   const adapter = new ClaudeToolAdapter('/vault', [custom]);
   expect([...adapter.events(call('mcp__other__lookup', { name: 'plot' }, 'other'))][0]).toMatchObject({ title: 'Used lookup' });
 });

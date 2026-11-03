@@ -7,9 +7,9 @@ export function drawParams(parent: HTMLElement, params: readonly Param[], values
     const value = values.has(param.key) ? values.get(param.key) : param.value;
     if (param.kind === 'slider') {
       const el = parent.appendChild(createEl('label'));
-      el.className = 'clew-slider';
+      el.className = 'vicher-slider';
       const row = el.appendChild(createSpan());
-      row.className = 'clew-control-row';
+      row.className = 'vicher-control-row';
       label(row.appendChild(createSpan()), param.label);
       const out = row.appendChild(createEl('output'));
       const input = el.appendChild(createEl('input'));
@@ -19,7 +19,7 @@ export function drawParams(parent: HTMLElement, params: readonly Param[], values
       input.step = String(param.step);
       const show = (shown: number): void => {
         out.textContent = `${formatFigure(shown)}${param.unit ? ` ${param.unit}` : ''}`;
-        input.style.setProperty('--clew-progress', `${((shown - param.min) / (param.max - param.min)) * 100}%`);
+        input.style.setProperty('--vicher-progress', `${((shown - param.min) / (param.max - param.min)) * 100}%`);
       };
       input.value = String(value);
       show(Number(input.value));
@@ -29,18 +29,18 @@ export function drawParams(parent: HTMLElement, params: readonly Param[], values
       });
     } else if (param.kind === 'choice') {
       const el = parent.appendChild(createDiv());
-      el.className = 'clew-choice';
+      el.className = 'vicher-choice';
       const name = el.appendChild(createSpan());
-      name.className = 'clew-control-row';
+      name.className = 'vicher-control-row';
       label(name, param.label);
       const group = el.appendChild(createDiv());
-      group.className = 'clew-choice-options';
+      group.className = 'vicher-choice-options';
       group.setAttribute('role', 'group');
       group.setAttribute('aria-label', param.label);
       const buttons = param.options.map((option) => {
         const button = group.appendChild(createEl('button'));
         button.type = 'button';
-        button.className = 'clew-choice-option';
+        button.className = 'vicher-choice-option';
         button.textContent = formatFigure(option);
         button.addEventListener('click', () => {
           press(option);
@@ -52,9 +52,9 @@ export function drawParams(parent: HTMLElement, params: readonly Param[], values
       press(value);
     } else {
       const el = parent.appendChild(createEl('label'));
-      el.className = 'clew-text-input';
+      el.className = 'vicher-text-input';
       const name = el.appendChild(createSpan());
-      name.className = 'clew-control-row';
+      name.className = 'vicher-control-row';
       label(name, param.label);
       const input = el.appendChild(createEl('input'));
       input.type = 'text';

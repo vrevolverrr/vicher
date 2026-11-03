@@ -120,7 +120,7 @@ export class FigureSandbox {
     iframe.setAttribute('sandbox', 'allow-scripts');
     iframe.setAttribute('aria-hidden', 'true');
     iframe.tabIndex = -1;
-    iframe.addClass('clew-figure-sandbox');
+    iframe.addClass('vicher-figure-sandbox');
     iframe.src = SANDBOX_URL;
     this.iframe = iframe;
     let timer: number | undefined;
@@ -150,7 +150,7 @@ export class FigureSandbox {
     const payload = await new Promise<unknown>((reply, fail) => this.post({ kind: 'probe' }, { reply, fail }, LIMITS.startMs));
     if (this.iframe !== iframe) return;
     this.disabled = probeProblem(payload);
-    if (this.disabled) console.warn(`Clew: ${this.disabled}`);
+    if (this.disabled) console.warn(`Vicher: ${this.disabled}`);
   }
 
   private post(request: unknown, posted: Posted, ms: number = LIMITS.runMs): void {

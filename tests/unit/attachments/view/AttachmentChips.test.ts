@@ -13,13 +13,13 @@ describe('AttachmentChips', () => {
   let onRemove: jest.Mock;
   let chips: AttachmentChips;
 
-  const chipEls = () => [...tray.querySelectorAll<HTMLElement>('.clew-attachment-chip')];
-  const labels = () => [...tray.querySelectorAll('.clew-context-label')].map((label) => label.textContent);
+  const chipEls = () => [...tray.querySelectorAll<HTMLElement>('.vicher-attachment-chip')];
+  const labels = () => [...tray.querySelectorAll('.vicher-context-label')].map((label) => label.textContent);
 
   beforeEach(() => {
     document.body.replaceChildren();
     tray = document.body.appendChild(document.createElement('div'));
-    tray.createDiv({ cls: 'clew-context-chip' }).createSpan({ cls: 'clew-context-label', text: 'Waves' });
+    tray.createDiv({ cls: 'vicher-context-chip' }).createSpan({ cls: 'vicher-context-label', text: 'Waves' });
     onRemove = jest.fn();
     chips = new AttachmentChips(tray, onRemove);
   });
@@ -27,8 +27,8 @@ describe('AttachmentChips', () => {
   it('adds a thumbnail chip for an image and an icon chip for a file, beside the chips already in the tray', () => {
     chips.set([IMAGE, FILE]);
     expect(labels()).toEqual(['Waves', 'a.png', 'week1.pdf']);
-    expect(tray.querySelector('.clew-image-chip img')?.getAttribute('src')).toBe('app://a');
-    expect(chipEls().map((chip) => chip.classList.contains('clew-image-chip'))).toEqual([true, false]);
+    expect(tray.querySelector('.vicher-image-chip img')?.getAttribute('src')).toBe('app://a');
+    expect(chipEls().map((chip) => chip.classList.contains('vicher-image-chip'))).toEqual([true, false]);
     expect(chipEls()[1]!.title).toBe('/Users/me/week1.pdf');
   });
 
@@ -45,7 +45,7 @@ describe('AttachmentChips', () => {
 
   it('reports the key of the chip whose remove button is clicked', () => {
     chips.set([IMAGE, FILE]);
-    const buttons = tray.querySelectorAll<HTMLElement>('.clew-attachment-chip .clew-context-remove');
+    const buttons = tray.querySelectorAll<HTMLElement>('.vicher-attachment-chip .vicher-context-remove');
     buttons[1]!.click();
     buttons[0]!.click();
     expect(onRemove.mock.calls).toEqual([['/Users/me/week1.pdf'], ['a.png']]);

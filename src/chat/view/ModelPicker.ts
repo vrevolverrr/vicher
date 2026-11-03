@@ -61,7 +61,7 @@ export class Popover {
   };
 
   private open(): void {
-    const popover = this.container.createDiv({ cls: 'clew-picker-menu', attr: { role: 'menu', 'aria-labelledby': menuLabelId(this.anchor) } });
+    const popover = this.container.createDiv({ cls: 'vicher-picker-menu', attr: { role: 'menu', 'aria-labelledby': menuLabelId(this.anchor) } });
     popover.style.left = `${this.anchor.offsetLeft}px`;
     popover.style.bottom = `${this.container.clientHeight - this.anchor.offsetTop + GAP}px`;
     this.popover = popover;
@@ -79,14 +79,14 @@ export function modelMenu(host: ModelPickerHost): Draw {
       popover.empty();
       const current = host.agent;
       for (const agent of AGENT_IDS) {
-        const section = popover.createDiv({ cls: 'clew-picker-section', attr: { role: 'group', 'aria-label': PROVIDERS[agent].modelLabel } });
-        const heading = section.createDiv({ cls: 'clew-picker-heading' });
+        const section = popover.createDiv({ cls: 'vicher-picker-section', attr: { role: 'group', 'aria-label': PROVIDERS[agent].modelLabel } });
+        const heading = section.createDiv({ cls: 'vicher-picker-heading' });
         appendAgentIcon(heading, agent);
         heading.createSpan({ text: PROVIDERS[agent].modelLabel });
 
         const models = lists.get(agent);
         if (!models) {
-          section.createDiv({ cls: 'clew-picker-loading', text: 'Loading models…' });
+          section.createDiv({ cls: 'vicher-picker-loading', text: 'Loading models…' });
           continue;
         }
         const choice = host.choice(agent);
@@ -130,9 +130,9 @@ export function effortMenu(host: ModelPickerHost): Draw {
 export function pickerBar(bar: HTMLElement, container: HTMLElement, host: ModelPickerHost & PermissionMenuHost): { update(): void; close(): void } {
   const popovers: Popover[] = [];
   const button = (draw: Draw): HTMLElement => {
-    const el = bar.createEl('button', { cls: 'clew-picker', attr: { type: 'button' } });
-    const label = el.createSpan({ cls: 'clew-picker-label' });
-    setIcon(el.createSpan({ cls: 'clew-picker-chevron' }), 'chevron-down');
+    const el = bar.createEl('button', { cls: 'vicher-picker', attr: { type: 'button' } });
+    const label = el.createSpan({ cls: 'vicher-picker-label' });
+    setIcon(el.createSpan({ cls: 'vicher-picker-chevron' }), 'chevron-down');
     const popover = new Popover(container, el, draw);
     popovers.push(popover);
     el.addEventListener('click', () => {
@@ -144,7 +144,7 @@ export function pickerBar(bar: HTMLElement, container: HTMLElement, host: ModelP
   const modelEl = button(modelMenu(host));
   const effortEl = button(effortMenu(host));
   const permissionEl = button(permissionMenu(host));
-  permissionEl.parentElement!.addClass('clew-permission-picker');
+  permissionEl.parentElement!.addClass('vicher-permission-picker');
   permissionEl.parentElement!.setAttr('aria-label', 'Permission policy');
   const update = (): void => {
     const agent = host.agent;
@@ -153,10 +153,10 @@ export function pickerBar(bar: HTMLElement, container: HTMLElement, host: ModelP
     appendAgentIcon(modelEl, agent);
     modelEl.createSpan({ text: name ?? 'Auto' });
     effortEl.empty();
-    setIcon(effortEl.createSpan({ cls: 'clew-picker-icon' }), 'gauge');
+    setIcon(effortEl.createSpan({ cls: 'vicher-picker-icon' }), 'gauge');
     effortEl.createSpan({ text: effort ? effortName(effort) : 'Auto' });
     permissionEl.empty();
-    setIcon(permissionEl.createSpan({ cls: 'clew-picker-icon' }), 'shield');
+    setIcon(permissionEl.createSpan({ cls: 'vicher-picker-icon' }), 'shield');
     const permission = POLICY_NAMES[host.permissionPolicy];
     permissionEl.createSpan({ text: permission });
     permissionEl.parentElement!.setAttr('title', `Permission policy: ${permission} (changes apply next turn)`);
@@ -178,12 +178,12 @@ export function permissionMenu(host: PermissionMenuHost): Draw {
 
 function option(parent: HTMLElement, name: string, detail: string | undefined, selected: boolean, onClick: () => void, title?: string): void {
   const button = parent.createEl('button', {
-    cls: 'clew-picker-option',
+    cls: 'vicher-picker-option',
     attr: { type: 'button', role: 'menuitemradio', 'aria-checked': String(selected), ...(title ? { title } : {}) },
   });
-  button.createSpan({ cls: 'clew-picker-option-label', text: name });
-  if (detail) button.createSpan({ cls: 'clew-picker-option-detail', text: detail });
-  if (selected) setIcon(button.createSpan({ cls: 'clew-picker-check' }), 'check');
+  button.createSpan({ cls: 'vicher-picker-option-label', text: name });
+  if (detail) button.createSpan({ cls: 'vicher-picker-option-detail', text: detail });
+  if (selected) setIcon(button.createSpan({ cls: 'vicher-picker-check' }), 'check');
   button.addEventListener('click', onClick);
 }
 

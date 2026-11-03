@@ -12,7 +12,7 @@ describe('enhanced CLI discovery and subprocess PATH', () => {
   let directory: string;
 
   beforeEach(() => {
-    directory = mkdtempSync(path.join(tmpdir(), 'clew mise '));
+    directory = mkdtempSync(path.join(tmpdir(), 'vicher mise '));
     process.env = { ...originalEnv, PATH: '' };
     for (const key of ['MISE_SHIMS_DIR', 'MISE_DATA_DIR', 'XDG_DATA_HOME', 'HOME', 'USERPROFILE', 'LOCALAPPDATA', 'npm_config_prefix']) {
       delete process.env[key];
@@ -67,7 +67,7 @@ describe('enhanced CLI discovery and subprocess PATH', () => {
             : path.join(directory, '.local', 'share', 'mise', 'shims');
       }
 
-      const binaryName = 'clew-mise-probe';
+      const binaryName = 'vicher-mise-probe';
       const executable = path.join(shims, `${binaryName}${isWindows ? '.exe' : ''}`);
       mkdirSync(shims, { recursive: true });
       // Use a runnable fixture without installing mise or downloading managed tools.

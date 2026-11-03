@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 import { evalIn, evalJson, obsidian } from './obsidianCli';
 
 // Obsidian has no public API to open or forget a vault; `vault-open` and `vault-remove` are the IPC calls its vault switcher uses.
-const NAME = 'clew-figure-bench';
+const NAME = 'vicher-figure-bench';
 const REGISTRY = path.join(homedir(), 'Library/Application Support/obsidian/obsidian.json');
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -44,12 +44,12 @@ export async function teardown(): Promise<void> {
   if ((await registered()).length) throw new Error(`Could not remove the ${NAME} vault from Obsidian`);
 }
 
-/** Builds the plugin into a fresh vault, opens it in its own Obsidian window with Clew on, and returns its name. */
+/** Builds the plugin into a fresh vault, opens it in its own Obsidian window with Vicher on, and returns its name. */
 export async function setup(): Promise<string> {
   await obsidian(undefined, 'version').catch(() => { throw new Error('Obsidian is not running, or its CLI is off (Settings → General → Command line interface).'); });
   await teardown();
   const dir = path.join(await realpath(tmpdir()), NAME);
-  await mkdir(path.join(dir, '.obsidian/plugins/clew'), { recursive: true });
+  await mkdir(path.join(dir, '.obsidian/plugins/vicher'), { recursive: true });
   await promisify(execFile)('npm', ['run', 'build'], { env: { ...process.env, OBSIDIAN_VAULT: dir }, maxBuffer: 64 << 20 });
   const opened = await evalIn(undefined, `String(require('electron').ipcRenderer.sendSync('vault-open', ${JSON.stringify(dir)}, false))`);
   if (opened !== 'true') throw new Error(`Obsidian did not open the bench vault: ${opened}`);
@@ -57,7 +57,7 @@ export async function setup(): Promise<string> {
   // Chromium slows timers in a background window to about one a minute, and the bench window is usually behind.
   await evalIn(NAME, `require('@electron/remote').getCurrentWebContents().setBackgroundThrottling(false), 'ok'`);
   // `plugins:restrict off` reloads the window and loses an enable sent during the reload; these two calls do not reload.
-  await evalIn(NAME, `(async () => { await app.plugins.setEnable(true); await app.plugins.enablePluginAndSave('clew'); return 'ok'; })()`);
-  await until('Clew to load', () => evalJson<boolean>(NAME, '!!app.plugins.plugins.clew'));
+  await evalIn(NAME, `(async () => { await app.plugins.setEnable(true); await app.plugins.enablePluginAndSave('vicher'); return 'ok'; })()`);
+  await until('Vicher to load', () => evalJson<boolean>(NAME, '!!app.plugins.plugins.vicher'));
   return NAME;
 }

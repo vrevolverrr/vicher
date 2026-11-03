@@ -10,7 +10,7 @@ import { diagramMath } from '@/renderer/mermaid/obsidian/diagramMath';
 
 jest.mock('obsidian', () => ({ renderMath: jest.fn() }), { virtual: true });
 
-// Pele is ESM only; the global build is the script Obsidian ships and Clew loads.
+// Pele is ESM only; the global build is the script Obsidian ships and Vicher loads.
 // The script is strict, so its top-level `var pele` stays local to eval; a script tag would make it global.
 window.eval(`${readFileSync(path.join(process.cwd(), 'node_modules/pele/dist/pele.global.js'), 'utf8')};window.pele = pele;`);
 const { render } = (window as unknown as { pele: typeof Pele }).pele;

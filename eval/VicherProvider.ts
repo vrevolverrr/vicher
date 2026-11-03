@@ -42,10 +42,10 @@ export function replyText(turn: ChatTurn): string {
 }
 
 /**
- * Runs each test as a turn of a real Clew chat, the way the chat pane sends one. Tests of one conversation share a chat
+ * Runs each test as a turn of a real Vicher chat, the way the chat pane sends one. Tests of one conversation share a chat
  * per repeat, and each earlier turn is sent once however many later tests need it.
  */
-export function clewProvider(agent: AgentId, model?: string): ApiProvider {
+export function vicherProvider(agent: AgentId, model?: string): ApiProvider {
   const agents = createAgents(() => ({}));
   const chats = new Map<string, Promise<{ chat: Chat; vault: string; notices: string[] }>>();
   const turns = new Map<string, Promise<ChatTurn>>();
@@ -54,7 +54,7 @@ export function clewProvider(agent: AgentId, model?: string): ApiProvider {
     let opened = chats.get(key);
     if (!opened) {
       opened = (async () => {
-        const vault = await mkdtemp(path.join(tmpdir(), 'clew-eval-'));
+        const vault = await mkdtemp(path.join(tmpdir(), 'vicher-eval-'));
         try {
           for (const [name, text] of Object.entries(vars.notes)) {
             await mkdir(path.dirname(path.join(vault, name)), { recursive: true });
@@ -116,7 +116,7 @@ export function clewProvider(agent: AgentId, model?: string): ApiProvider {
   };
 
   return {
-    id: () => `clew:${agent}${model ? `:${model}` : ''}`,
+    id: () => `vicher:${agent}${model ? `:${model}` : ''}`,
     async callApi(_prompt, context) {
       const vars = context?.vars.chat as TurnVars | undefined;
       if (!Array.isArray(vars?.messages) || !Number.isInteger(vars.turn) || vars.turn < 1 || vars.turn > vars.messages.length) {

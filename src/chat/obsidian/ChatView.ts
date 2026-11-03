@@ -11,7 +11,7 @@ import type { ChatStore } from '@/chat/ChatStore';
 import { createIconButton } from '@/shared/view/iconButtons';
 import { messageOf } from '@/shared/messageOf';
 
-export const VIEW_TYPE_CHAT = 'clew-chat';
+export const VIEW_TYPE_CHAT = 'vicher-chat';
 
 interface ChatViewHost extends Pick<ChatHost, 'files' | 'images' | 'tour'> {
   openChat(options: { chatId: string }): Promise<void>;
@@ -40,7 +40,7 @@ export class ChatView extends ItemView {
 
   getViewType(): string { return VIEW_TYPE_CHAT; }
   getIcon(): string { return 'messages-square'; }
-  getDisplayText(): string { return this.panes.get(this.selected ?? '')?.chat.record.title || 'Clew'; }
+  getDisplayText(): string { return this.panes.get(this.selected ?? '')?.chat.record.title || 'Vicher'; }
   get chatId(): string | undefined { return this.selected; }
 
   getState(): Record<string, unknown> {
@@ -60,10 +60,10 @@ export class ChatView extends ItemView {
 
   async onOpen(): Promise<void> {
     this.contentEl.empty();
-    this.contentEl.addClass('clew-chat');
-    const header = this.contentEl.createDiv({ cls: 'clew-chat-header' });
-    this.panels = this.contentEl.createDiv({ cls: 'clew-chat-panels' });
-    this.tabBar = this.panels.createDiv({ cls: 'clew-chat-tab-bar' });
+    this.contentEl.addClass('vicher-chat');
+    const header = this.contentEl.createDiv({ cls: 'vicher-chat-header' });
+    this.panels = this.contentEl.createDiv({ cls: 'vicher-chat-panels' });
+    this.tabBar = this.panels.createDiv({ cls: 'vicher-chat-tab-bar' });
     this.tabs = new ChatTabs(this.tabBar, {
       create: () => void this.openChat({ fresh: true }),
       select: (id) => this.select(id),
@@ -77,9 +77,9 @@ export class ChatView extends ItemView {
         new Notice(`Could not start a new chat: ${messageOf(error)}`);
       }).finally(() => { create.disabled = false; });
     });
-    const history = header.createEl('button', { cls: 'clew-icon-action clickable-icon clew-history-button', attr: { type: 'button' } });
+    const history = header.createEl('button', { cls: 'vicher-icon-action clickable-icon vicher-history-button', attr: { type: 'button' } });
     setIcon(history, 'history');
-    history.createSpan({ cls: 'clew-visually-hidden', text: 'Open and recent chats' });
+    history.createSpan({ cls: 'vicher-visually-hidden', text: 'Open and recent chats' });
     this.history = new HistoryMenu(history, {
       chats: () => this.store.list(),
       tabs: () => this.openTabs(),
@@ -141,7 +141,7 @@ export class ChatView extends ItemView {
       return;
     }
     if (this.closed) return;
-    const content = this.panels.createDiv({ cls: 'clew-chat-panel', attr: { id: `clew-panel-${id}`, role: 'tabpanel', 'aria-labelledby': `clew-tab-${id}` } });
+    const content = this.panels.createDiv({ cls: 'vicher-chat-panel', attr: { id: `vicher-panel-${id}`, role: 'tabpanel', 'aria-labelledby': `vicher-tab-${id}` } });
     content.hidden = true;
     const pane = new ChatPane(this.app, content, {
       files: this.host.files, images: this.host.images, tour: this.host.tour,

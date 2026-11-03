@@ -6,7 +6,7 @@ export type Rgb = readonly [number, number, number];
 const MATH = /(?<!\\)\$\$[\s\S]+?\$\$|(?<!\\)\$(?:[^$\n\\]|\\.)+?\$/g;
 /**
  * Inline maths as Obsidian reads it (Pandoc's rule): no space just inside either `$`, and no digit right after the closing
- * one, so prices stay text. Only for deciding what Clew typesets itself, never for a check.
+ * one, so prices stay text. Only for deciding what Vicher typesets itself, never for a check.
  */
 export const TYPESET_MATH = /(?<!\\)\$\$[\s\S]+?\$\$|(?<!\\)\$(?=[^\s$])(?:[^$\n\\]|\\.)*?(?<=[^\s\\])\$(?!\d)/g;
 const COLOUR = /\\(rowcolor|cellcolor|colorbox|color)\s*(\[[^\]]*\])?\s*\{([^}]*)\}/g;

@@ -81,7 +81,7 @@ export type ThreadItem =
   | { type: 'reasoning'; id: string }
   | { type: 'other'; id: string };
 
-/** A call to one of Clew's own tools, which the app server asks the client to run. */
+/** A call to one of Vicher's own tools, which the app server asks the client to run. */
 export interface DynamicToolCallParams {
   tool: string;
   arguments: unknown;

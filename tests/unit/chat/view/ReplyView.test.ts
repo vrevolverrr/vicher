@@ -42,8 +42,8 @@ function hostOf(): WalkthroughHost & { listeners: Array<(event: TourEvent) => vo
 }
 
 function blocks(el: HTMLElement): string[] {
-  return [...el.children].filter((child) => !child.matches('.clew-reply-footer')).map((child) => `${child.className.split(' ')[0]}: ${
-    child.querySelector('.clew-tools-summary')?.textContent ?? child.textContent}`);
+  return [...el.children].filter((child) => !child.matches('.vicher-reply-footer')).map((child) => `${child.className.split(' ')[0]}: ${
+    child.querySelector('.vicher-tools-summary')?.textContent ?? child.textContent}`);
 }
 
 describe('ReplyView', () => {
@@ -62,7 +62,7 @@ describe('ReplyView', () => {
       reply.destroy();
       expect(jest.getTimerCount()).toBe(idle);
       jest.advanceTimersByTime(1000);
-      expect(el.querySelector('.clew-player')).toBeNull();
+      expect(el.querySelector('.vicher-player')).toBeNull();
     } finally { jest.useRealTimers(); }
   });
   let el: HTMLElement;
@@ -89,10 +89,10 @@ describe('ReplyView', () => {
     reply.finish();
 
     expect(blocks(el)).toEqual([
-      'clew-tools: Used 1 Read',
-      'clew-reply-text: Let me check the cost formula.',
-      'clew-tools: Used 1 Grep',
-      'clew-reply-text: Put S in the outer loop.',
+      'vicher-tools: Used 1 Read',
+      'vicher-reply-text: Let me check the cost formula.',
+      'vicher-tools: Used 1 Grep',
+      'vicher-reply-text: Put S in the outer loop.',
     ]);
   });
 
@@ -102,23 +102,23 @@ describe('ReplyView', () => {
     tool('b', 'Bash', 'failed', 'Ran ls');
     reply.finish();
 
-    expect(blocks(el)).toEqual(['clew-tools: Used 1 Read and 1 Bash (1 failed)']);
-    expect([...el.querySelectorAll('.clew-tool')].map((row) => row.textContent)).toEqual(['Read notes.md', 'Ran ls']);
+    expect(blocks(el)).toEqual(['vicher-tools: Used 1 Read and 1 Bash (1 failed)']);
+    expect([...el.querySelectorAll('.vicher-tool')].map((row) => row.textContent)).toEqual(['Read notes.md', 'Ran ls']);
   });
 
   it('names the calls running now, then counts every call by name once they end', () => {
     tool('a', 'Bash', 'running');
-    expect(blocks(el)).toEqual(['clew-tools: Using Bash']);
+    expect(blocks(el)).toEqual(['vicher-tools: Using Bash']);
 
     tool('b', 'Read', 'running');
     tool('c', 'Read', 'running');
-    expect(blocks(el)).toEqual(['clew-tools: Using Bash, Read']);
-    expect(el.querySelector('.clew-tools')!.classList.contains('is-running')).toBe(true);
+    expect(blocks(el)).toEqual(['vicher-tools: Using Bash, Read']);
+    expect(el.querySelector('.vicher-tools')!.classList.contains('is-running')).toBe(true);
 
     for (const id of ['a', 'b', 'c']) tool(id, id === 'a' ? 'Bash' : 'Read', 'done');
     reply.finish();
-    expect(blocks(el)).toEqual(['clew-tools: Used 2 Reads and 1 Bash']);
-    expect(el.querySelector('.clew-tools')!.classList.contains('is-running')).toBe(false);
+    expect(blocks(el)).toEqual(['vicher-tools: Used 2 Reads and 1 Bash']);
+    expect(el.querySelector('.vicher-tools')!.classList.contains('is-running')).toBe(false);
   });
 
   it('names the two most-used kinds and counts the rest as other', () => {
@@ -127,7 +127,7 @@ describe('ReplyView', () => {
     }
     reply.finish();
 
-    expect(blocks(el)).toEqual(['clew-tools: Used 2 Reads, 1 Bash, and 3 other']);
+    expect(blocks(el)).toEqual(['vicher-tools: Used 2 Reads, 1 Bash, and 3 other']);
   });
 
   function withFakeTimers(run: () => void): void {
@@ -146,7 +146,7 @@ describe('ReplyView', () => {
   it('counts the seconds while a call runs and holds the total once the turn ends', () => {
     withFakeTimers(() => {
       tool('a', 'Bash', 'running');
-      const time = () => el.querySelector('.clew-tools-time')!.textContent;
+      const time = () => el.querySelector('.vicher-tools-time')!.textContent;
       expect(time()).toBe('');
 
       jest.advanceTimersByTime(3000);
@@ -163,20 +163,20 @@ describe('ReplyView', () => {
   });
 
   it('shows a working line from the start, which the first tool call takes over', () => {
-    expect(el.querySelector('.clew-tools')!.classList.contains('is-running')).toBe(true);
-    expect(blocks(el)).toEqual([expect.stringMatching(/^clew-tools: \w.+\w$/)]);
+    expect(el.querySelector('.vicher-tools')!.classList.contains('is-running')).toBe(true);
+    expect(blocks(el)).toEqual([expect.stringMatching(/^vicher-tools: \w.+\w$/)]);
 
     tool('a', 'Read', 'running');
-    expect(blocks(el)).toEqual(['clew-tools: Using Read']);
+    expect(blocks(el)).toEqual(['vicher-tools: Using Read']);
   });
 
   it('drops a working line under a second when the reply starts with text', () => {
     reply.appendText('\n');
-    expect(el.querySelectorAll('.clew-tools')).toHaveLength(1);
+    expect(el.querySelectorAll('.vicher-tools')).toHaveLength(1);
 
     reply.appendText('Look at line 3.');
     reply.finish();
-    expect(blocks(el)).toEqual(['clew-reply-text: Look at line 3.']);
+    expect(blocks(el)).toEqual(['vicher-reply-text: Look at line 3.']);
   });
 
   it('settles a longer working line as the time spent thinking', () => {
@@ -184,11 +184,11 @@ describe('ReplyView', () => {
       jest.advanceTimersByTime(3000);
       reply.appendText('Look at line 3.');
       reply.finish();
-      expect(blocks(el)).toEqual(['clew-tools: Thought for 3s', 'clew-reply-text: Look at line 3.']);
-      expect(el.querySelector('.clew-tools-time')!.textContent).toBe('');
+      expect(blocks(el)).toEqual(['vicher-tools: Thought for 3s', 'vicher-reply-text: Look at line 3.']);
+      expect(el.querySelector('.vicher-tools-time')!.textContent).toBe('');
 
-      el.querySelector<HTMLElement>('.clew-tools-header')!.click();
-      expect(el.querySelector('.clew-tools')!.classList.contains('is-open')).toBe(false);
+      el.querySelector<HTMLElement>('.vicher-tools-header')!.click();
+      expect(el.querySelector('.vicher-tools')!.classList.contains('is-open')).toBe(false);
     });
   });
 
@@ -199,7 +199,7 @@ describe('ReplyView', () => {
       jest.advanceTimersByTime(3000);
       reply.appendText('It tracks active users.');
       reply.finish();
-      expect(blocks(el)).toEqual(['clew-tools: Used 1 Read', 'clew-reply-text: It tracks active users.']);
+      expect(blocks(el)).toEqual(['vicher-tools: Used 1 Read', 'vicher-reply-text: It tracks active users.']);
     });
   });
 
@@ -207,12 +207,12 @@ describe('ReplyView', () => {
     reply.appendText('Let me check.');
     reply.thinking();
     reply.thinking();
-    expect([...el.children].map((child) => child.classList[0])).toEqual(['clew-reply-text', 'clew-tools']);
+    expect([...el.children].map((child) => child.classList[0])).toEqual(['vicher-reply-text', 'vicher-tools']);
     expect(el.children[1]!.classList.contains('is-running')).toBe(true);
     expect(el.children[1]!.classList.contains('is-empty')).toBe(true);
 
     reply.finish();
-    expect(blocks(el)).toEqual(['clew-reply-text: Let me check.']);
+    expect(blocks(el)).toEqual(['vicher-reply-text: Let me check.']);
   });
 
   it('follows a run of calls with a working line, which the next call replaces in the same run', () => {
@@ -221,10 +221,10 @@ describe('ReplyView', () => {
     expect(el.children).toHaveLength(1);
 
     tool('a', 'Read', 'done');
-    expect(blocks(el)).toEqual(['clew-tools: Used 1 Read', expect.stringMatching(/^clew-tools: \w.+\w$/)]);
+    expect(blocks(el)).toEqual(['vicher-tools: Used 1 Read', expect.stringMatching(/^vicher-tools: \w.+\w$/)]);
 
     tool('b', 'Grep', 'running');
-    expect(blocks(el)).toEqual(['clew-tools: Using Grep']);
+    expect(blocks(el)).toEqual(['vicher-tools: Using Grep']);
   });
 
   it('drops the working line when the turn ends before any event', () => {
@@ -233,17 +233,17 @@ describe('ReplyView', () => {
   });
 
   it('shows a drawing card while a diagram streams, and swaps it for the diagram once that renders', async () => {
-    const card = () => el.querySelector('.clew-diagram-card')?.textContent;
+    const card = () => el.querySelector('.vicher-diagram-card')?.textContent;
     reply.appendText('Flow:\n```mermaid\nflowchart LR\n  A --> B\n');
     await new Promise((resolve) => window.requestAnimationFrame(resolve));
     expect(card()).toBe('Drawing diagram');
-    expect(el.querySelector('.clew-diagram')).toBeNull();
+    expect(el.querySelector('.vicher-diagram')).toBeNull();
 
     reply.appendText('```\nDone.');
     reply.finish();
     await Promise.resolve();
     expect(card()).toBeUndefined();
-    expect(el.querySelector('.clew-diagram')!.textContent).toBe('```mermaid\nflowchart LR\n  A --> B\n```');
+    expect(el.querySelector('.vicher-diagram')!.textContent).toBe('```mermaid\nflowchart LR\n  A --> B\n```');
   });
 
   it.each(['mermaid', 'figure'])('keeps the %s loading effect at its original height while the completed figure grows', async (kind) => {
@@ -257,7 +257,7 @@ describe('ReplyView', () => {
       const source = kind === 'mermaid' ? 'flowchart LR\nA --> B' : figure(node('Total'));
       reply.appendText(`\`\`\`${kind}\n${source}\n`);
       await new Promise((resolve) => window.requestAnimationFrame(resolve));
-      const card = el.querySelector<HTMLElement>('.clew-diagram-card')!;
+      const card = el.querySelector<HTMLElement>('.vicher-diagram-card')!;
       const frame = card.parentElement!;
       Object.defineProperty(frame, 'offsetHeight', { get: () => frame.classList.contains('is-drawing') ? 160 : 600 });
       Object.defineProperty(card, 'offsetHeight', { get: () => parseFloat(card.style.height) || frame.offsetHeight });
@@ -271,7 +271,7 @@ describe('ReplyView', () => {
       expect(card.offsetHeight).toBe(160);
       expect(card.parentElement).toBe(frame);
       finish(); await settle();
-      expect(frame.querySelector('.clew-diagram-card')).toBeNull();
+      expect(frame.querySelector('.vicher-diagram-card')).toBeNull();
     } finally {
       finish?.();
       if (original) Object.defineProperty(HTMLElement.prototype, 'animate', original);
@@ -285,20 +285,20 @@ describe('ReplyView', () => {
     reply.appendText('```figure\n!Step 2: TypeError: x (line 7)\n```\n\n```figure\n' + figure(node('Safe')) + '\n```');
     reply.finish();
     await settle();
-    expect([...el.querySelectorAll('.clew-figure-error-message')].map((error) => error.textContent)).toEqual(['Step 2: TypeError: x (line 7)']);
+    expect([...el.querySelectorAll('.vicher-figure-error-message')].map((error) => error.textContent)).toEqual(['Step 2: TypeError: x (line 7)']);
     expect(el.querySelector('details summary')?.textContent).toBe('Figure source');
     expect(el.querySelector('details')?.open).toBe(false);
     expect(el.querySelector('details code')?.textContent).toBe('!Step 2: TypeError: x (line 7)');
-    expect(el.querySelector('.clew-figure-node')?.textContent).toContain('Safe');
+    expect(el.querySelector('.vicher-figure-node')?.textContent).toContain('Safe');
   });
 
   it('shows a drawing card while a figure streams, and draws it once the fence closes', async () => {
     const run = jest.mocked(figureSandbox.run);
     run.mockClear();
-    const frame = () => el.querySelector('.clew-reply-figure')!;
+    const frame = () => el.querySelector('.vicher-reply-figure')!;
     reply.appendText('```figure\n' + figure(node('Total')) + '\n');
     await new Promise((resolve) => window.requestAnimationFrame(resolve));
-    expect(el.querySelector('.clew-diagram-card')?.textContent).toBe('Drawing visual');
+    expect(el.querySelector('.vicher-diagram-card')?.textContent).toBe('Drawing visual');
     expect(frame().classList.contains('is-drawing')).toBe(true);
     expect(run).not.toHaveBeenCalled();
 
@@ -307,15 +307,15 @@ describe('ReplyView', () => {
     await settle();
     expect(run).toHaveBeenCalledTimes(1);
     expect(frame().classList.contains('is-drawing')).toBe(false);
-    expect(frame().querySelector('.clew-figure-node')?.textContent).toBe('Total');
+    expect(frame().querySelector('.vicher-figure-node')?.textContent).toBe('Total');
   });
 
   it('shows a figure past the fourth in a reply as code, with a note', async () => {
     reply.appendText([1, 2, 3, 4, 5].map((n) => '```figure\n' + figure(node(String(n))) + '\n```').join('\n\n'));
     reply.finish();
     await settle();
-    expect(el.querySelectorAll('.clew-figure-node')).toHaveLength(4);
-    expect(el.querySelector('.clew-figure-note')?.textContent).toBe('Only four figures are drawn per reply');
+    expect(el.querySelectorAll('.vicher-figure-node')).toHaveLength(4);
+    expect(el.querySelector('.vicher-figure-note')?.textContent).toBe('Only four figures are drawn per reply');
   });
 
   it('holds a live reply\'s repairable failure behind its drawing card until the reply ends', async () => {
@@ -323,17 +323,17 @@ describe('ReplyView', () => {
     live.appendText('```figure\n!Step 1: broken\n```\nMore ');
     await new Promise((resolve) => window.requestAnimationFrame(resolve));
     await settle();
-    expect(el.querySelector('.clew-figure-error')).toBeNull();
-    expect(el.querySelector('.clew-reply-figure')!.classList.contains('is-drawing')).toBe(true);
+    expect(el.querySelector('.vicher-figure-error')).toBeNull();
+    expect(el.querySelector('.vicher-reply-figure')!.classList.contains('is-drawing')).toBe(true);
     live.finish();
-    expect(el.querySelector('.clew-figure-error-message')?.textContent).toBe('Step 1: broken');
+    expect(el.querySelector('.vicher-figure-error-message')?.textContent).toBe('Step 1: broken');
   });
 
   it('draws a diagram whose source holds a fence line inside a longer fence, so the line stays source', async () => {
     reply.appendText('````mermaid\nflowchart LR\n  A["```"] --> B\n````\n');
     reply.finish();
     await Promise.resolve();
-    expect(el.querySelector('.clew-diagram')!.textContent).toBe('````mermaid\nflowchart LR\n  A["```"] --> B\n````');
+    expect(el.querySelector('.vicher-diagram')!.textContent).toBe('````mermaid\nflowchart LR\n  A["```"] --> B\n````');
   });
 
   it('asks for diagrams in a Mermaid fence, never in prose or a figure', async () => {
@@ -376,7 +376,7 @@ describe('ReplyView', () => {
       'Second, still',
       'Second, still going.\nNot a new block',
     ]);
-    expect(el.querySelector('.clew-reply-prose')!.textContent).toBe('First paragraph.\n\nSecond, still going.\nNot a new block');
+    expect(el.querySelector('.vicher-reply-prose')!.textContent).toBe('First paragraph.\n\nSecond, still going.\nNot a new block');
   });
 
   it('adds one copy button when the reply ends, which copies the text as written', async () => {
@@ -388,7 +388,7 @@ describe('ReplyView', () => {
     reply.finish();
     reply.finish();
 
-    const buttons = el.querySelectorAll<HTMLElement>('.clew-reply-copy');
+    const buttons = el.querySelectorAll<HTMLElement>('.vicher-reply-copy');
     expect(buttons).toHaveLength(1);
     buttons[0]!.click();
     await Promise.resolve();
@@ -400,15 +400,15 @@ describe('ReplyView', () => {
     reply.appendText('Done.');
     reply.finish(new Date(2024, 0, 5, 14, 30).getTime());
 
-    const footer = el.querySelector('.clew-reply-footer')!;
-    expect([...footer.children].map((child) => child.className.split(' ')[0])).toEqual(['clew-reply-time', 'clew-icon-action']);
-    expect(footer.querySelector('.clew-reply-time')!.textContent).toMatch(/^(Jan\s+5|5\s+Jan)$/);
+    const footer = el.querySelector('.vicher-reply-footer')!;
+    expect([...footer.children].map((child) => child.className.split(' ')[0])).toEqual(['vicher-reply-time', 'vicher-icon-action']);
+    expect(footer.querySelector('.vicher-reply-time')!.textContent).toMatch(/^(Jan\s+5|5\s+Jan)$/);
   });
 
   it('shows no time for a turn saved without one', () => {
     reply.appendText('Done.');
     reply.finish();
-    expect(el.querySelector('.clew-reply-time')).toBeNull();
+    expect(el.querySelector('.vicher-reply-time')).toBeNull();
   });
 
   describe('thumbs', () => {
@@ -423,13 +423,13 @@ describe('ReplyView', () => {
       const given: Array<'up' | 'down' | undefined> = [];
       reply.appendText('Done.');
       reply.finish(undefined, { rating, rate: (next) => given.push(next) });
-      const [up, down] = [...el.querySelectorAll<HTMLElement>('.clew-reply-rate')];
+      const [up, down] = [...el.querySelectorAll<HTMLElement>('.vicher-reply-rate')];
       return { up: up!, down: down!, given };
     }
 
     it('adds a thumb pair after the copy button when given feedback, lit as the turn was rated, and reports a press', () => {
       const { up, down, given } = rated('up');
-      expect(el.querySelector('.clew-reply-copy')!.nextElementSibling).toBe(up);
+      expect(el.querySelector('.vicher-reply-copy')!.nextElementSibling).toBe(up);
       expect([up, down].map((thumb) => thumb.getAttribute('aria-pressed'))).toEqual(['true', 'false']);
       down.click();
       expect(given).toEqual(['down']);
@@ -472,19 +472,19 @@ describe('ReplyView', () => {
   it('adds no thumbs without feedback', () => {
     reply.appendText('Done.');
     reply.finish();
-    expect(el.querySelector('.clew-reply-rate')).toBeNull();
+    expect(el.querySelector('.vicher-reply-rate')).toBeNull();
   });
 
   it('adds no copy button to a reply without text', () => {
     tool('a', 'Read', 'done');
     reply.finish();
-    expect(el.querySelector('.clew-reply-copy')).toBeNull();
+    expect(el.querySelector('.vicher-reply-copy')).toBeNull();
   });
 
   it('expands and collapses the list of calls from the summary line', () => {
     tool('a', 'Read', 'done');
-    const group = el.querySelector<HTMLElement>('.clew-tools')!;
-    const header = group.querySelector<HTMLElement>('.clew-tools-header')!;
+    const group = el.querySelector<HTMLElement>('.vicher-tools')!;
+    const header = group.querySelector<HTMLElement>('.vicher-tools-header')!;
 
     header.click();
     expect(group.classList.contains('is-open')).toBe(true);
@@ -496,7 +496,7 @@ describe('ReplyView', () => {
 
   describe('stops the agent pointed at', () => {
     const stop = (quote: string, extra: Partial<{ comment: string; path: string }> = {}) => ({ path: 'a.md', quote, ...extra });
-    const rows = () => Array.from(el.querySelectorAll<HTMLElement>('.clew-walk-step'));
+    const rows = () => Array.from(el.querySelectorAll<HTMLElement>('.vicher-walk-step'));
 
     it('draws each stop where it was written, between the prose around it', () => {
       reply.appendText('Look here.');
@@ -504,7 +504,7 @@ describe('ReplyView', () => {
       reply.appendText('Then this.');
       reply.highlight(stop('the intercept'));
 
-      expect(Array.from(el.children).map((child) => child.className.split(' ')[0])).toEqual(['clew-reply-text', 'clew-walkthrough', 'clew-reply-text', 'clew-walkthrough']);
+      expect(Array.from(el.children).map((child) => child.className.split(' ')[0])).toEqual(['vicher-reply-text', 'vicher-walkthrough', 'vicher-reply-text', 'vicher-walkthrough']);
     });
 
     it('numbers stops across runs, shows the comment over a snippet of the quote, and a snippet alone when there is no comment', () => {
@@ -519,7 +519,7 @@ describe('ReplyView', () => {
       reply.highlight(stop('first', { comment: 'a' }));
       reply.highlight(stop('second', { comment: 'b', path: 'notes/Waves.md' }));
 
-      expect(rows().map((row) => row.querySelector('.clew-walk-note')?.textContent)).toEqual([undefined, 'Waves']);
+      expect(rows().map((row) => row.querySelector('.vicher-walk-note')?.textContent)).toEqual([undefined, 'Waves']);
     });
 
     it('plays from the stop that was clicked, with every stop of the reply', () => {
@@ -570,7 +570,7 @@ describe('ReplyView', () => {
       reply.highlight(stop('first', { comment: 'Look' }));
       reply.finish();
 
-      el.querySelector<HTMLElement>('.clew-reply-copy')!.click();
+      el.querySelector<HTMLElement>('.vicher-reply-copy')!.click();
 
       expect(writeText).toHaveBeenCalledWith('The answer.');
     });
@@ -579,7 +579,7 @@ describe('ReplyView', () => {
       reply.thinking();
       reply.highlight(stop('first'));
 
-      expect(Array.from(el.children).map((child) => child.className.split(' ')[0])).toEqual(['clew-walkthrough']);
+      expect(Array.from(el.children).map((child) => child.className.split(' ')[0])).toEqual(['vicher-walkthrough']);
     });
   });
 
@@ -599,23 +599,23 @@ describe('ReplyView', () => {
       const quizEl = answer((message) => (sent.push(message), true));
       await settle();
 
-      quizEl.querySelectorAll<HTMLElement>('.clew-quiz-option')[1]!.click();
-      quizEl.querySelector<HTMLElement>('.clew-quiz-submit')!.click();
+      quizEl.querySelectorAll<HTMLElement>('.vicher-quiz-option')[1]!.click();
+      quizEl.querySelector<HTMLElement>('.vicher-quiz-submit')!.click();
 
       expect(sent).toEqual(['My answer: 4 (correct). Question: Pick the even number']);
-      expect(quizEl.querySelectorAll('.clew-quiz-option')[1]!.classList.contains('is-correct')).toBe(true);
-      expect(quizEl.querySelector('.clew-quiz-submit')).toBeNull();
+      expect(quizEl.querySelectorAll('.vicher-quiz-option')[1]!.classList.contains('is-correct')).toBe(true);
+      expect(quizEl.querySelector('.vicher-quiz-submit')).toBeNull();
     });
 
     it('stays open while the chat is busy', async () => {
       const quizEl = answer(() => false);
       await settle();
 
-      quizEl.querySelectorAll<HTMLElement>('.clew-quiz-option')[0]!.click();
-      quizEl.querySelector<HTMLElement>('.clew-quiz-submit')!.click();
+      quizEl.querySelectorAll<HTMLElement>('.vicher-quiz-option')[0]!.click();
+      quizEl.querySelector<HTMLElement>('.vicher-quiz-submit')!.click();
 
-      expect(quizEl.querySelector('.clew-quiz-submit')).not.toBeNull();
-      expect(quizEl.querySelector('.clew-quiz-note')!.textContent).toMatch(/finish/i);
+      expect(quizEl.querySelector('.vicher-quiz-submit')).not.toBeNull();
+      expect(quizEl.querySelector('.vicher-quiz-note')!.textContent).toMatch(/finish/i);
     });
   });
 

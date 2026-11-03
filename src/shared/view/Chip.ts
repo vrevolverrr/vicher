@@ -16,11 +16,11 @@ export class Chip {
   private arrived = false;
 
   constructor(tray: HTMLElement, remove?: { label: string; onClick: () => void }) {
-    this.el = tray.createDiv({ cls: 'clew-context-chip' });
-    this.iconEl = this.el.createSpan({ cls: 'clew-context-icon' });
-    this.labelEl = this.el.createSpan({ cls: 'clew-context-label' });
+    this.el = tray.createDiv({ cls: 'vicher-context-chip' });
+    this.iconEl = this.el.createSpan({ cls: 'vicher-context-icon' });
+    this.labelEl = this.el.createSpan({ cls: 'vicher-context-label' });
     if (remove) {
-      const button = createIconButton(this.el, 'x', remove.label, 'clew-context-remove');
+      const button = createIconButton(this.el, 'x', remove.label, 'vicher-context-remove');
       button.addEventListener('click', (event) => {
         event.stopPropagation();
         remove.onClick();

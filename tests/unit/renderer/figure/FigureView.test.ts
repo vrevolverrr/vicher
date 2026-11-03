@@ -85,10 +85,10 @@ describe('FigureView', () => {
     });
     await flush();
     expect(done).toBe(false);
-    expect(view.el.querySelector('.clew-figure-links')).toBeNull();
+    expect(view.el.querySelector('.vicher-figure-links')).toBeNull();
     markdown.finish();
     await expect(outcome).resolves.toEqual({ drawn: true });
-    expect(view.el.querySelectorAll('.clew-figure-links')).toHaveLength(2);
+    expect(view.el.querySelectorAll('.vicher-figure-links')).toHaveLength(2);
   });
 
   it('ignores the renders of an earlier draw that resolve late', async () => {
@@ -103,10 +103,10 @@ describe('FigureView', () => {
       return Promise.resolve();
     };
     await view.run('two');
-    view.el.querySelectorAll('.clew-figure-links').forEach((links) => links.remove());
+    view.el.querySelectorAll('.vicher-figure-links').forEach((links) => links.remove());
     stale();
     await first;
-    expect(view.el.querySelectorAll('.clew-figure-links')).toHaveLength(0);
+    expect(view.el.querySelectorAll('.vicher-figure-links')).toHaveLength(0);
   });
 
   it('draws every step in one grid cell and shows only the current one', async () => {
@@ -116,7 +116,7 @@ describe('FigureView', () => {
     await flush();
     markdown.finish();
     await outcome;
-    const steps = [...view.el.querySelectorAll('.clew-figure-step')];
+    const steps = [...view.el.querySelectorAll('.vicher-figure-step')];
     expect(steps).toHaveLength(2);
     expect(new Set(steps.map((step) => step.parentElement)).size).toBe(1);
     expect(steps.map((step) => step.classList.contains('is-current'))).toEqual([true, false]);
@@ -129,16 +129,16 @@ describe('FigureView', () => {
     const view = new FigureView(document.body, markdown, sandbox(() => linked));
     void view.run('src');
     await flush();
-    expect([...view.el.querySelectorAll('.clew-step .clew-step-text')].map((caption) => caption.textContent)).toEqual(['**First**', '**Second**']);
-    expect([...view.el.querySelectorAll('.clew-figure-key-mark')].map((mark) => (mark as HTMLElement).dataset.tag)).toEqual(['new']);
+    expect([...view.el.querySelectorAll('.vicher-step .vicher-step-text')].map((caption) => caption.textContent)).toEqual(['**First**', '**Second**']);
+    expect([...view.el.querySelectorAll('.vicher-figure-key-mark')].map((mark) => (mark as HTMLElement).dataset.tag)).toEqual(['new']);
   });
 
   it('draws a step heading over its caption in the list', async () => {
     const view = new FigureView(document.body, host(), sandbox(() => payload([{ caption: 'a', heading: 'One', root: el('Node', { label: 'x' }) }, { caption: 'b', root: el('Node', { label: 'y' }) }])));
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
-    expect([...view.el.querySelectorAll('.clew-step .clew-step-text')].map((text) => [...text.children].map((part) => `${part.className}:${part.textContent}`))).toEqual([
-      ['clew-step-heading:One', 'clew-step-caption:a'],
-      ['clew-step-caption:b'],
+    expect([...view.el.querySelectorAll('.vicher-step .vicher-step-text')].map((text) => [...text.children].map((part) => `${part.className}:${part.textContent}`))).toEqual([
+      ['vicher-step-heading:One', 'vicher-step-caption:a'],
+      ['vicher-step-caption:b'],
     ]);
   });
 
@@ -148,15 +148,15 @@ describe('FigureView', () => {
     const view = new FigureView(document.body, host(), sandbox(() => payload(frames)));
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
     view.el.querySelector<HTMLButtonElement>('button[aria-label="Next"]')!.click();
-    expect(view.el.querySelector('.clew-steps')!.classList.contains('is-single')).toBe(true);
-    expect(view.el.querySelector('.clew-step.is-current .clew-step-dot')!.textContent).toBe('2');
-    expect([...view.el.querySelectorAll<HTMLButtonElement>('.clew-step-button')].every((button) => button.tabIndex === -1)).toBe(true);
+    expect(view.el.querySelector('.vicher-steps')!.classList.contains('is-single')).toBe(true);
+    expect(view.el.querySelector('.vicher-step.is-current .vicher-step-dot')!.textContent).toBe('2');
+    expect([...view.el.querySelectorAll<HTMLButtonElement>('.vicher-step-button')].every((button) => button.tabIndex === -1)).toBe(true);
   });
 
   it('draws no step list for one step without a caption', async () => {
     const view = new FigureView(document.body, host(), sandbox(() => payload([{ caption: '', root: el('Node', { label: 'x' }) }])));
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
-    expect(view.el.querySelector('.clew-steps')).toBeNull();
+    expect(view.el.querySelector('.vicher-steps')).toBeNull();
   });
 
   it('shows the step picked in the list and marks the ones before it done', async () => {
@@ -164,9 +164,9 @@ describe('FigureView', () => {
     const view = new FigureView(document.body, markdown, sandbox(() => linked));
     void view.run('src');
     await flush();
-    const items = [...view.el.querySelectorAll<HTMLElement>('.clew-step')];
+    const items = [...view.el.querySelectorAll<HTMLElement>('.vicher-step')];
     items[1].querySelector('button')!.click();
-    expect([...view.el.querySelectorAll('.clew-figure-step')].map((step) => step.classList.contains('is-current'))).toEqual([false, true]);
+    expect([...view.el.querySelectorAll('.vicher-figure-step')].map((step) => step.classList.contains('is-current'))).toEqual([false, true]);
     expect(items.map((item) => [item.classList.contains('is-done'), item.getAttribute('aria-current')])).toEqual([[true, null], [false, 'step']]);
   });
 
@@ -186,7 +186,7 @@ describe('FigureView', () => {
     await flush();
     expect(markdown.math).toEqual(['$mg$']);
     expect([...new Set(markdown.rendered)]).toEqual(['**Bold**']);
-    expect(view.el.querySelector('.clew-figure-node-label')!.textContent).toBe('Force mg');
+    expect(view.el.querySelector('.vicher-figure-node-label')!.textContent).toBe('Force mg');
   });
 
   it("frames a Diagram for every value of its slider, so moving it never moves the drawing", async () => {
@@ -198,7 +198,7 @@ describe('FigureView', () => {
     const view = new FigureView(document.body, markdown, runs);
     await view.run('src');
     for (let i = 0; i < 4; i += 1) await flush();
-    const height = (): string | null => view.el.querySelector('.clew-figure-body:not(.is-pending) svg')!.getAttribute('height');
+    const height = (): string | null => view.el.querySelector('.vicher-figure-body:not(.is-pending) svg')!.getAttribute('height');
     const first = height();
     const slider = view.el.querySelector<HTMLInputElement>('input[type="range"]')!;
     for (const value of ['9', '1']) {
@@ -219,7 +219,7 @@ describe('FigureView', () => {
     ])));
     void view.run('src');
     await flush();
-    expect(view.el.querySelectorAll('.clew-plot')).toHaveLength(4);
+    expect(view.el.querySelectorAll('.vicher-plot')).toHaveLength(4);
     expect(observers).toHaveLength(1);
     view.destroy();
     expect(observers[0].disconnected).toBe(true);
@@ -236,7 +236,7 @@ describe('FigureView', () => {
     void view.run('src');
     await flush();
     expect(markdown.math).toEqual(expect.arrayContaining(['$\\zeta$', '$m$', '$n$']));
-    expect(view.el.querySelector('.clew-figure-params')!.textContent).not.toContain('$');
+    expect(view.el.querySelector('.vicher-figure-params')!.textContent).not.toContain('$');
   });
 
   it('reruns once for a burst of param changes, with the latest value', async () => {
@@ -266,13 +266,13 @@ describe('FigureView', () => {
     void view.run('src');
     await flush();
     markdown.accept = false;
-    view.el.querySelectorAll<HTMLButtonElement>('.clew-quiz-option')[1].click();
-    view.el.querySelector<HTMLButtonElement>('.clew-quiz-submit')!.click();
-    expect(view.el.querySelector('.clew-quiz-note')!.textContent).toBe('Wait for the reply to finish, then submit.');
+    view.el.querySelectorAll<HTMLButtonElement>('.vicher-quiz-option')[1].click();
+    view.el.querySelector<HTMLButtonElement>('.vicher-quiz-submit')!.click();
+    expect(view.el.querySelector('.vicher-quiz-note')!.textContent).toBe('Wait for the reply to finish, then submit.');
     markdown.accept = true;
-    view.el.querySelector<HTMLButtonElement>('.clew-quiz-submit')!.click();
+    view.el.querySelector<HTMLButtonElement>('.vicher-quiz-submit')!.click();
     expect(markdown.sent).toEqual(['My answer: y (correct). Question: Which?', 'My answer: y (correct). Question: Which?']);
-    expect(view.el.querySelector('.clew-quiz-bar')).toBeNull();
+    expect(view.el.querySelector('.vicher-quiz-bar')).toBeNull();
   });
 
   it('keeps a sent Quiz answered when the figure redraws', async () => {
@@ -280,14 +280,14 @@ describe('FigureView', () => {
     const view = new FigureView(document.body, markdown, sandbox(() => payload([{ caption: '', root: el('Quiz', { question: 'Which?', options: ['x', 'y'], correct: 'y' }) }])));
     void view.run('src');
     await flush();
-    view.el.querySelectorAll<HTMLButtonElement>('.clew-quiz-option')[0].click();
-    view.el.querySelector<HTMLButtonElement>('.clew-quiz-submit')!.click();
+    view.el.querySelectorAll<HTMLButtonElement>('.vicher-quiz-option')[0].click();
+    view.el.querySelector<HTMLButtonElement>('.vicher-quiz-submit')!.click();
     view.retheme();
     markdown.finish();
     await flush();
-    expect(view.el.querySelectorAll('.clew-quiz')).toHaveLength(1);
-    expect(view.el.querySelector('.clew-quiz-bar')).toBeNull();
-    expect([...view.el.querySelectorAll('.clew-quiz-option')].map((option) => option.classList.contains('is-wrong'))).toEqual([true, false]);
+    expect(view.el.querySelectorAll('.vicher-quiz')).toHaveLength(1);
+    expect(view.el.querySelector('.vicher-quiz-bar')).toBeNull();
+    expect([...view.el.querySelectorAll('.vicher-quiz-option')].map((option) => option.classList.contains('is-wrong'))).toEqual([true, false]);
     expect(markdown.sent).toHaveLength(1);
   });
 
@@ -295,18 +295,18 @@ describe('FigureView', () => {
     const diagrams = (pt: number[]): El => el('Row', {}, el('Diagram', { id: 'a', width: 1, height: 1 }, el('Points', { pts: [[1, 1]] })), el('Diagram', { width: 1, height: 1 }, el('Points', { pts: [pt] })));
     const view = new FigureView(document.body, host(), sandbox(() => payload([{ caption: 'One', root: diagrams([20, 10]) }, { caption: 'Two', root: diagrams([5, 10]) }])));
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
-    const widths = [...view.el.querySelectorAll('.clew-figure-step')].map((step) => step.querySelectorAll('svg')[1].getAttribute('width'));
+    const widths = [...view.el.querySelectorAll('.vicher-figure-step')].map((step) => step.querySelectorAll('svg')[1].getAttribute('width'));
     expect(widths[0]).toBe(widths[1]);
   });
 
   it('draws a Plot inside its card at the pane width less the card padding and border', async () => {
     const style = document.head.appendChild(document.createElement('style'));
-    style.textContent = '.clew-figure-canvas { padding: 16px; border: 1px solid; }';
+    style.textContent = '.vicher-figure-canvas { padding: 16px; border: 1px solid; }';
     const plot = el('Plot', { x: [0, 1] }, el('Points', { pts: [[0.5, 0.5]] }));
     const view = new FigureView(document.body, host(), sandbox(() => payload([{ caption: '', root: plot }])));
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
     style.remove();
-    expect(view.el.querySelector<HTMLElement>('.clew-figure-canvas > .clew-figure-plot')!.style.width).toBe('446px');
+    expect(view.el.querySelector<HTMLElement>('.vicher-figure-canvas > .vicher-figure-plot')!.style.width).toBe('446px');
   });
 
   it('typesets a Plot legend label once, and sets no SVG title the browser would show on hover', async () => {
@@ -315,15 +315,15 @@ describe('FigureView', () => {
     const view = new FigureView(document.body, markdown, sandbox(() => payload([{ caption: '', root: plot }])));
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
     expect(markdown.math).toEqual(['$x^2$']);
-    expect(view.el.querySelector('.clew-plot-key')!.textContent).toBe('x^2');
-    expect(view.el.querySelector('.clew-plot svg title')).toBeNull();
+    expect(view.el.querySelector('.vicher-plot-key')!.textContent).toBe('x^2');
+    expect(view.el.querySelector('.vicher-plot svg title')).toBeNull();
   });
 
   it('gives every step of a Diagram the same frame when only one step has a label past its edge', async () => {
     const diagram = (label?: string): El => el('Diagram', { width: 4, height: 3 }, el('Segment', { from: [0, 3], to: [4, 3], ...(label ? { label } : {}) }), el('Segment', { from: [2, 0], to: [2, 3] }));
     const view = new FigureView(document.body, host(), sandbox(() => payload([{ caption: 'a', root: diagram('ceiling') }, { caption: 'b', root: diagram() }])));
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
-    const frames = [...view.el.querySelectorAll('.clew-figure-step svg')].map((svg) => svg.getAttribute('viewBox'));
+    const frames = [...view.el.querySelectorAll('.vicher-figure-step svg')].map((svg) => svg.getAttribute('viewBox'));
     expect(frames).toHaveLength(2);
     expect(frames[1]).toBe(frames[0]);
   });
@@ -336,12 +336,12 @@ describe('FigureView', () => {
     await flush();
     const box = HTMLElement.prototype.getBoundingClientRect;
     const rendered = jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
-      return this.classList.contains('clew-figure-diagram-label') ? ({ width: 900, height: 60 } as DOMRect) : box.call(this);
+      return this.classList.contains('vicher-figure-diagram-label') ? ({ width: 900, height: 60 } as DOMRect) : box.call(this);
     });
     markdown.finish();
     await expect(ran).resolves.toEqual({ drawn: true });
     await flush();
-    const frame = (): string | null => view.el.querySelector('.clew-figure-step.is-current svg')!.getAttribute('viewBox');
+    const frame = (): string | null => view.el.querySelector('.vicher-figure-step.is-current svg')!.getAttribute('viewBox');
     const before = frame();
     view.el.querySelector<HTMLButtonElement>('button[aria-label="Next"]')!.click();
     rendered.mockRestore();
@@ -354,10 +354,10 @@ describe('FigureView', () => {
     Object.defineProperty(view.el, 'clientWidth', { get: () => width });
     const box = HTMLElement.prototype.getBoundingClientRect;
     const laidOut = jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
-      return this.classList.contains('clew-figure-tex') ? ({ width: Math.max(width, parseFloat(this.style.minWidth) || 0), height: 40 } as DOMRect) : box.call(this);
+      return this.classList.contains('vicher-figure-tex') ? ({ width: Math.max(width, parseFloat(this.style.minWidth) || 0), height: 40 } as DOMRect) : box.call(this);
     });
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
-    const reserved = (): string[] => [...view.el.querySelectorAll<HTMLElement>('.clew-figure-tex')].map((tex) => tex.style.minWidth);
+    const reserved = (): string[] => [...view.el.querySelectorAll<HTMLElement>('.vicher-figure-tex')].map((tex) => tex.style.minWidth);
     expect(reserved()).toEqual(['900px', '900px']);
     width = 260;
     observers[0].resized();
@@ -370,16 +370,16 @@ describe('FigureView', () => {
     const step = (name: string): { caption: string; root: El } => ({ caption: name, root: el('Column', {}, el('Tex', { id: 't', tex: 'x = 1' }), el('Pointer', { to: 't', name })) });
     const view = new FigureView(document.body, host(), sandbox(() => payload([step('i'), step('long name')])));
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
-    const columns = [...view.el.querySelectorAll('.clew-figure-tex-lane')];
-    expect(columns.map((column) => [...column.querySelectorAll('.clew-figure-tex-sizes > .clew-figure-pointer')].map((size) => size.textContent))).toEqual([['←i', '←long name'], ['←i', '←long name']]);
-    expect(columns.map((column) => column.querySelector(':scope > .clew-figure-pointer')?.textContent)).toEqual(['←i', '←long name']);
+    const columns = [...view.el.querySelectorAll('.vicher-figure-tex-lane')];
+    expect(columns.map((column) => [...column.querySelectorAll('.vicher-figure-tex-sizes > .vicher-figure-pointer')].map((size) => size.textContent))).toEqual([['←i', '←long name'], ['←i', '←long name']]);
+    expect(columns.map((column) => column.querySelector(':scope > .vicher-figure-pointer')?.textContent)).toEqual(['←i', '←long name']);
   });
 
   it('gives a Tex a pointer column for a pointer that names the Tex itself', async () => {
     const root = el('Column', {}, el('Tex', { id: 't', tex: 'x = 1' }), el('Pointer', { to: 't', name: 'all' }));
     const view = new FigureView(document.body, host(), sandbox(() => payload([{ caption: '', root }])));
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
-    expect(view.el.querySelector('.clew-figure-tex-lane > .clew-figure-pointer')?.textContent).toBe('←all');
+    expect(view.el.querySelector('.vicher-figure-tex-lane > .vicher-figure-pointer')?.textContent).toBe('←all');
   });
 
   it('stacks pointers to two cells of one table row instead of drawing them on top of each other', async () => {
@@ -387,7 +387,7 @@ describe('FigureView', () => {
     const root = el('Row', {}, table, el('Pointer', { to: 'r.0', name: 'i' }), el('Pointer', { to: 'r.1', name: 'j' }));
     const view = new FigureView(document.body, host(), sandbox(() => payload([{ caption: '', root }])));
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
-    const tops = [...view.el.querySelectorAll<HTMLElement>('.clew-figure-pointer')].map((pointer) => pointer.style.top);
+    const tops = [...view.el.querySelectorAll<HTMLElement>('.vicher-figure-pointer')].map((pointer) => pointer.style.top);
     expect(tops).toHaveLength(2);
     expect(tops[1]).not.toBe(tops[0]);
   });
@@ -395,7 +395,7 @@ describe('FigureView', () => {
   it('draws a Table without rowIds, its cells unaddressed', async () => {
     const view = new FigureView(document.body, host(), sandbox(() => payload([{ caption: '', root: el('Table', { columns: ['a', 'b'], rows: [[1, 2]] }) }])));
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
-    expect(view.el.querySelectorAll('td.clew-figure-cell')).toHaveLength(2);
+    expect(view.el.querySelectorAll('td.vicher-figure-cell')).toHaveLength(2);
     expect(view.el.querySelector('td[data-figure-id]')).toBeNull();
   });
 
@@ -410,7 +410,7 @@ describe('FigureView', () => {
     const view = new FigureView(document.body, host(), failing);
     await expect(view.run('src')).resolves.toEqual({ drawn: false, error: 'Step 2: TypeError: x (line 7)', repairable: true });
     view.showError('Step 2: TypeError: x (line 7)', 'src');
-    expect(view.el.querySelector('.clew-figure-error-message')!.textContent).toBe('Step 2: TypeError: x (line 7)');
+    expect(view.el.querySelector('.vicher-figure-error-message')!.textContent).toBe('Step 2: TypeError: x (line 7)');
     expect(view.el.querySelector('details code')!.textContent).toBe('src');
   });
 });
@@ -451,7 +451,7 @@ describe('a 3D Plot in a figure', () => {
     await outcome;
     return view;
   }
-  const frame = (view: FigureView): HTMLElement => view.el.querySelector<HTMLElement>('.clew-figure-step.is-current .clew-plot3-frame')!;
+  const frame = (view: FigureView): HTMLElement => view.el.querySelector<HTMLElement>('.vicher-figure-step.is-current .vicher-plot3-frame')!;
   const angle = (view: FigureView): string => /azimuth (-?\d+)°, elevation (-?\d+)°/.exec(frame(view).getAttribute('aria-label') ?? '')!.slice(1).join('/');
   const pointer = (target: HTMLElement, type: string, x: number, y: number): void => {
     target.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, button: 0, bubbles: true }));
@@ -501,11 +501,11 @@ describe('a 3D Plot in a figure', () => {
 
   it('keeps a canvas bitmap only for the shown step near the view, and redraws at its kept angle when it comes back', async () => {
     const view = await drawn(sandbox(() => payload([{ caption: 'one', root: plot3(0.1) }, { caption: 'two', root: plot3(0.2) }])));
-    const canvases = [...view.el.querySelectorAll<HTMLCanvasElement>('.clew-plot3-canvas')];
+    const canvases = [...view.el.querySelectorAll<HTMLCanvasElement>('.vicher-plot3-canvas')];
     expect(canvases.map((canvas) => canvas.width > 0)).toEqual([true, false]);
     frame(view).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
     await flush();
-    const watcher = intersections.find((observer) => observer.targets.includes(canvases[0].closest('.clew-plot3')!))!;
+    const watcher = intersections.find((observer) => observer.targets.includes(canvases[0].closest('.vicher-plot3')!))!;
     watcher.callback([{ isIntersecting: false }]);
     expect(canvases[0].width).toBe(0);
     watcher.callback([{ isIntersecting: true }]);

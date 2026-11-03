@@ -60,7 +60,7 @@ function checkActivity<Native>(adapter: AgentToolAdapter<Native>, start: Native,
 it('normalizes different native activity through one event consumer', () => {
   checkActivity(new ClaudeToolAdapter('/vault', [tool]), {
     type: 'assistant', parent_tool_use_id: null,
-    message: { content: [{ type: 'tool_use', id: 'call', name: 'mcp__clew__lookup', input: { name: 'plot' } }] },
+    message: { content: [{ type: 'tool_use', id: 'call', name: 'mcp__vicher__lookup', input: { name: 'plot' } }] },
   } as SDKMessage, {
     type: 'user', parent_tool_use_id: null,
     message: { content: [{ type: 'tool_result', tool_use_id: 'call', content: 'Pack: plot' }] },

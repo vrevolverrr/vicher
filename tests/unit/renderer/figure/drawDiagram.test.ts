@@ -42,7 +42,7 @@ describe('drawDiagram', () => {
     const el = document.createElement('div');
     drawDiagram(el, node, diagramExtent(node), 480, (box, text) => void (box.textContent = String(text)));
     const fills = [...el.querySelectorAll('path.is-vector')].map((path) => el.querySelector<SVGElement>(`${path.getAttribute('marker-end')!.slice(4, -1)} path`)!.style.fill);
-    expect(fills).toEqual(['var(--clew-figure-tag-good)', 'var(--clew-figure-ink)']);
+    expect(fills).toEqual(['var(--vicher-figure-tag-good)', 'var(--vicher-figure-ink)']);
   });
 
   it('grows above a line along its top edge to hold the line\'s label', () => {
@@ -51,7 +51,7 @@ describe('drawDiagram', () => {
     drawDiagram(el, node, diagramExtent(node), 480, (box, text) => void (box.textContent = String(text)));
     const vy = Number(el.querySelector('svg')!.getAttribute('viewBox')!.split(' ')[1]);
     const lineY = Number(/^M[\d.-]+,([\d.-]+)/.exec(el.querySelector('path')!.getAttribute('d')!)![1]) - vy;
-    const label = el.querySelector<HTMLElement>('.clew-figure-diagram-label')!;
+    const label = el.querySelector<HTMLElement>('.vicher-figure-diagram-label')!;
     expect(parseFloat(label.style.top) + 18).toBeLessThanOrEqual(lineY);
   });
 
@@ -59,6 +59,6 @@ describe('drawDiagram', () => {
     const node = diagram({ type: 'Shape', pts: [[0, 0], [2, 0], [2, 1], [0, 1]], closed: true, label: 'M' });
     const el = document.createElement('div');
     drawDiagram(el, node, diagramExtent(node), 480, (box, text) => void (box.textContent = String(text)));
-    expect(el.querySelector('.clew-figure-diagram-label')!.classList.contains('is-inside')).toBe(true);
+    expect(el.querySelector('.vicher-figure-diagram-label')!.classList.contains('is-inside')).toBe(true);
   });
 });

@@ -18,7 +18,7 @@ const SESSION: AgentSessionOptions = {
   systemPrompt: 'Reply with JSON Lines only.',
   model: 'haiku',
   effort: 'low',
-  cwd: '/tmp/clew-test',
+  cwd: '/tmp/vicher-test',
   cliPath: process.execPath,
 };
 
@@ -146,7 +146,7 @@ describe('ClaudeAgent session', () => {
   });
 
   it("reports the title Claude Code wrote for the session's conversation", async () => {
-    const configDir = mkdtempSync(path.join(tmpdir(), 'clew-claude-config-'));
+    const configDir = mkdtempSync(path.join(tmpdir(), 'vicher-claude-config-'));
     const previous = process.env.CLAUDE_CONFIG_DIR;
     process.env.CLAUDE_CONFIG_DIR = configDir;
     try {
@@ -165,7 +165,7 @@ describe('ClaudeAgent session', () => {
   });
 
   it('sends an attached image as a base64 block ahead of the text', async () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'clew-claude-'));
+    const dir = mkdtempSync(path.join(tmpdir(), 'vicher-claude-'));
     const file = path.join(dir, 'figure.png');
     writeFileSync(file, Buffer.from('not really a png'));
     const cli = new ScriptedQuery([completed, completed]);
@@ -221,7 +221,7 @@ describe('ClaudeAgent session', () => {
 
   it('reports each tool call as running, then done', async () => {
     const cli = new ScriptedQuery([{ messages: toolTurn as SDKMessage[] }]);
-    const session = await new ClaudeAgent(cli.query).openSession({ ...SESSION, cwd: '/private/tmp/clew-capture' });
+    const session = await new ClaudeAgent(cli.query).openSession({ ...SESSION, cwd: '/private/tmp/vicher-capture' });
 
     const events = await collect(session.send('What does the pin count track?'));
 
@@ -245,18 +245,18 @@ describe('ClaudeAgent session', () => {
 
     it('hands the CLI the tool and lets it run without asking', async () => {
       const cli = new ScriptedQuery([completed]);
-      const server = { type: 'sdk', name: 'clew' };
+      const server = { type: 'sdk', name: 'vicher' };
       const offered: AgentTool[][] = [];
       const agent = new ClaudeAgent(cli.query, async (tools) => {
         offered.push(tools);
-        return { mcpServers: { clew: server as never }, allowedTools: ['mcp__clew__load_pack'] };
+        return { mcpServers: { vicher: server as never }, allowedTools: ['mcp__vicher__load_pack'] };
       });
 
       await agent.openSession({ ...SESSION, tools: [loadPack] });
 
       expect(offered).toEqual([[loadPack]]);
-      expect(cli.options?.mcpServers).toEqual({ clew: server });
-      expect(cli.options?.allowedTools).toEqual(['mcp__clew__load_pack']);
+      expect(cli.options?.mcpServers).toEqual({ vicher: server });
+      expect(cli.options?.allowedTools).toEqual(['mcp__vicher__load_pack']);
     });
 
     it('starts no tool server for a session with no tools', async () => {
@@ -272,7 +272,7 @@ describe('ClaudeAgent session', () => {
     it("titles a call to it with the tool's own line", async () => {
       const messages = (toolTurn as SDKMessage[]).map((message) => {
         if (message.type !== 'assistant') return message;
-        const content = (message.message.content as { type: string }[]).map((block) => (block.type === 'tool_use' ? { ...block, name: 'mcp__clew__load_pack', input: { name: 'plot' } } : block));
+        const content = (message.message.content as { type: string }[]).map((block) => (block.type === 'tool_use' ? { ...block, name: 'mcp__vicher__load_pack', input: { name: 'plot' } } : block));
         return { ...message, message: { ...message.message, content } };
       }) as SDKMessage[];
       const cli = new ScriptedQuery([{ messages }]);
@@ -412,7 +412,7 @@ describe('ClaudeAgent session', () => {
   });
 
   it('rejects, and closes the process, when the CLI no longer has the session to resume', async () => {
-    const configDir = mkdtempSync(path.join(tmpdir(), 'clew-claude-config-'));
+    const configDir = mkdtempSync(path.join(tmpdir(), 'vicher-claude-config-'));
     try {
       const cli = new ScriptedQuery([]);
       cli.startError = new Error('Claude Code process exited with code 1');
@@ -427,7 +427,7 @@ describe('ClaudeAgent session', () => {
   });
 
   it('reports any other resume failure as itself while the conversation is still on disk', async () => {
-    const configDir = mkdtempSync(path.join(tmpdir(), 'clew-claude-config-'));
+    const configDir = mkdtempSync(path.join(tmpdir(), 'vicher-claude-config-'));
     try {
       mkdirSync(path.join(configDir, 'projects', '-vault'), { recursive: true });
       writeFileSync(path.join(configDir, 'projects', '-vault', 'kept.jsonl'), '{}');

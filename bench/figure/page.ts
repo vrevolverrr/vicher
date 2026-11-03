@@ -9,13 +9,13 @@ interface ChatView {
 }
 
 declare const app: {
-  plugins: { plugins: { clew: { openFreshChat(): Promise<ChatView | null> } } };
+  plugins: { plugins: { vicher: { openFreshChat(): Promise<ChatView | null> } } };
   workspace: { getLeaf(newLeaf: boolean): { setViewState(state: object): Promise<void> } };
   vault: { saveConfig(): Promise<void> };
   changeTheme(theme: string): void;
 };
 
-const VISUAL = '.clew-reply-figure, .clew-reply-mermaid';
+const VISUAL = '.vicher-reply-figure, .vicher-reply-mermaid';
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // A window the OS is not drawing gets no animation frames, so a frame wait gives up after 100 ms.
 const frame = () => new Promise((resolve) => { requestAnimationFrame(resolve); setTimeout(resolve, 100); });
@@ -38,26 +38,26 @@ async function settle(el: Element, quiet = 250, max = 8000): Promise<void> {
 }
 
 const visuals = (): HTMLElement[] => [...(view?.containerEl.querySelectorAll<HTMLElement>(VISUAL) ?? [])];
-const playerRange = (el: Element) => el.querySelector<HTMLInputElement>('.clew-player input[type=range]');
-const paramRanges = (el: Element) => [...el.querySelectorAll<HTMLInputElement>('input[type=range]')].filter((input) => !input.closest('.clew-player'));
+const playerRange = (el: Element) => el.querySelector<HTMLInputElement>('.vicher-player input[type=range]');
+const paramRanges = (el: Element) => [...el.querySelectorAll<HTMLInputElement>('input[type=range]')].filter((input) => !input.closest('.vicher-player'));
 
 function info(el: HTMLElement): VisualInfo {
   const range = playerRange(el);
-  const steps = range ? Number(range.max) + 1 : Math.max(1, el.querySelectorAll('.clew-step-button').length);
+  const steps = range ? Number(range.max) + 1 : Math.max(1, el.querySelectorAll('.vicher-step-button').length);
   return {
-    kind: el.matches('.clew-reply-mermaid') ? 'mermaid' : 'figure',
+    kind: el.matches('.vicher-reply-mermaid') ? 'mermaid' : 'figure',
     steps,
     params: paramRanges(el).map((input) => ({ label: input.closest('[aria-label]')?.getAttribute('aria-label') ?? 'param', min: Number(input.min), max: Number(input.max), value: Number(input.value) })),
   };
 }
 
 export async function play(reply: string): Promise<VisualInfo[]> {
-  // Clew opens a demo chat in the first chat leaf, or the collapsed right sidebar when there is none, so a main-area
+  // Vicher opens a demo chat in the first chat leaf, or the collapsed right sidebar when there is none, so a main-area
   // leaf is made before the old one goes (detaching the main area's last leaf first leaves no tab group to open in).
-  await app.workspace.getLeaf(true).setViewState({ type: 'clew-chat', active: true });
+  await app.workspace.getLeaf(true).setViewState({ type: 'vicher-chat', active: true });
   view?.leaf.detach();
-  view = await app.plugins.plugins.clew.openFreshChat();
-  if (!view) throw new Error('Clew opened no chat');
+  view = await app.plugins.plugins.vicher.openFreshChat();
+  if (!view) throw new Error('Vicher opened no chat');
   const session = {
     id: 'bench',
     async *send() { yield { type: 'text', delta: reply }; yield { type: 'done', status: 'completed' }; },
@@ -103,7 +103,7 @@ export async function measure(index: number, width: number, state: string): Prom
   if (kind === 'step') {
     const range = playerRange(el);
     if (range) setRange(range, Number(a));
-    else el.querySelectorAll<HTMLElement>('.clew-step-button')[Number(a)]?.click();
+    else el.querySelectorAll<HTMLElement>('.vicher-step-button')[Number(a)]?.click();
   } else if (kind === 'param') {
     setRange(paramRanges(el)[Number(a)], Number(b));
   }
@@ -157,12 +157,12 @@ function geometry(root: HTMLElement, state: string, width: number): StateGeometr
       fg: el instanceof SVGElement && style.fill !== 'none' && !el.closest('foreignObject') ? style.fill : style.color,
       bg: background(el instanceof SVGElement ? el.closest('svg')?.parentElement ?? el : el),
       px: parseFloat(style.fontSize),
-      muted: el.closest('.clew-step:not(.is-current)') ? true : undefined,
+      muted: el.closest('.vicher-step:not(.is-current)') ? true : undefined,
       rotated: sideways(el) || undefined,
     });
   };
   const visit = (el: Element): void => {
-    if (el.matches('.clew-visually-hidden, mjx-assistive-mml, style, script')) return;
+    if (el.matches('.vicher-visually-hidden, mjx-assistive-mml, style, script')) return;
     if (!el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) return;
     if (el.tagName === 'MJX-CONTAINER') {
       add(el, el.getAttribute('aria-label') ?? el.textContent ?? '', el.getBoundingClientRect(), 'math');
@@ -177,7 +177,7 @@ function geometry(root: HTMLElement, state: string, width: number): StateGeometr
       // One box per line: the union of a wrapped run would cover the inline elements beside it.
       const range = document.createRange();
       range.selectNodeContents(child);
-      for (const line of range.getClientRects()) add(el, child.textContent.trim(), line, el.closest('button, input, .clew-player') ? 'control' : 'text');
+      for (const line of range.getClientRects()) add(el, child.textContent.trim(), line, el.closest('button, input, .vicher-player') ? 'control' : 'text');
     }
     for (const child of el.children) visit(child);
   };
@@ -185,8 +185,8 @@ function geometry(root: HTMLElement, state: string, width: number): StateGeometr
   const bad = [...root.querySelectorAll('svg *')].flatMap((el) => [...el.attributes]
     .filter((attr) => /NaN|Infinity|undefined/.test(attr.value))
     .map((attr) => `<${el.tagName} ${attr.name}="${attr.value.slice(0, 60)}">`));
-  const error = root.querySelector('.clew-figure-error, .clew-render-error, .mermaid-error, [class*="error"]')?.textContent?.trim().slice(0, 300);
-  const page = view?.containerEl.querySelector<HTMLElement>('.clew-messages');
+  const error = root.querySelector('.vicher-figure-error, .vicher-render-error, .mermaid-error, [class*="error"]')?.textContent?.trim().slice(0, 300);
+  const page = view?.containerEl.querySelector<HTMLElement>('.vicher-messages');
   return {
     state, width,
     rect: { x: origin.x, y: origin.y, w: origin.width, h: origin.height },
@@ -195,7 +195,7 @@ function geometry(root: HTMLElement, state: string, width: number): StateGeometr
   };
 }
 
-const frame3 = (root: Element) => root.querySelector<HTMLElement>('.clew-figure-step.is-current .clew-plot3-frame');
+const frame3 = (root: Element) => root.querySelector<HTMLElement>('.vicher-figure-step.is-current .vicher-plot3-frame');
 const angleOf = (root: Element) => /azimuth (-?\d+)°, elevation (-?\d+)°/.exec(frame3(root)?.getAttribute('aria-label') ?? '')?.slice(1).map(Number) ?? null;
 const key = (target: HTMLElement, name: string) => target.dispatchEvent(new KeyboardEvent('keydown', { key: name }));
 
@@ -205,12 +205,12 @@ const key = (target: HTMLElement, name: string) => target.dispatchEvent(new Keyb
  */
 export function inspect3(index: number): { painted: number[]; outside: string[]; live: number; shown: number } | null {
   const root = visuals()[index];
-  const charts = [...(root?.querySelectorAll<HTMLElement>('.clew-figure-step.is-current .clew-plot3') ?? [])];
+  const charts = [...(root?.querySelectorAll<HTMLElement>('.vicher-figure-step.is-current .vicher-plot3') ?? [])];
   if (!charts.length) return null;
   const outside: string[] = [];
   const painted = charts.map((chart) => {
-    const frame = chart.querySelector('.clew-plot3-frame')!.getBoundingClientRect();
-    for (const el of chart.querySelectorAll('.clew-plot3-svg path, .clew-plot3-svg circle, .clew-plot3-svg line, .clew-plot3-svg text, .clew-plot-rich-label')) {
+    const frame = chart.querySelector('.vicher-plot3-frame')!.getBoundingClientRect();
+    for (const el of chart.querySelectorAll('.vicher-plot3-svg path, .vicher-plot3-svg circle, .vicher-plot3-svg line, .vicher-plot3-svg text, .vicher-plot-rich-label')) {
       const r = el.getBoundingClientRect();
       if (r.width === 0 && r.height === 0) continue;
       if (r.left < frame.left - 1 || r.top < frame.top - 1 || r.right > frame.right + 1 || r.bottom > frame.bottom + 1) {
@@ -234,7 +234,7 @@ export function inspect3(index: number): { painted: number[]; outside: string[];
     }
     return filled / seen;
   });
-  const live = [...root.querySelectorAll<HTMLCanvasElement>('.clew-plot3-canvas')].filter((canvas) => canvas.width > 0).length;
+  const live = [...root.querySelectorAll<HTMLCanvasElement>('.vicher-plot3-canvas')].filter((canvas) => canvas.width > 0).length;
   return { painted, outside, live, shown: charts.length };
 }
 
@@ -253,7 +253,7 @@ export async function angleKept(index: number): Promise<string[]> {
   const turned = angleOf(root);
   let want = turned;
   const range = playerRange(root);
-  const buttons = root.querySelectorAll<HTMLElement>('.clew-step-button');
+  const buttons = root.querySelectorAll<HTMLElement>('.vicher-step-button');
   if (range || buttons.length > 1) {
     if (range) setRange(range, 1);
     else buttons[1].click();

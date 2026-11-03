@@ -25,7 +25,7 @@ it('updates status and selection without replacing focused buttons', () => {
   expect(first.getAttribute('aria-label')).toBe('1: Topic a, Generating');
   expect(first.getAttribute('aria-selected')).toBe('true');
   expect(tabs.el.querySelectorAll('button')[1]!.getAttribute('aria-label')).toBe('2: Topic b, Unread reply');
-  expect(first.querySelector('.clew-chat-tab-title')!.textContent).toBe('Topic a');
+  expect(first.querySelector('.vicher-chat-tab-title')!.textContent).toBe('Topic a');
   tabs.destroy();
 });
 

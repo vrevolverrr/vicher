@@ -57,10 +57,10 @@ export async function renderMermaidDiagrams(
     const source = code.textContent ?? '';
     const figure = createDiv();
     pre.before(figure);
-    const header = figure.createDiv({ cls: 'clew-mermaid-header' });
-    const box = figure.createDiv({ cls: 'clew-mermaid' });
+    const header = figure.createDiv({ cls: 'vicher-mermaid-header' });
+    const box = figure.createDiv({ cls: 'vicher-mermaid' });
     // Pele scales the drawing down to the pane; `styles.css` stops it where text would be too small to read.
-    const diagram = loaded.mount(box, source, { ...SAFE, zoom: false, onRender: ({ width }) => box.style.setProperty('--clew-diagram-width', `${width}px`) });
+    const diagram = loaded.mount(box, source, { ...SAFE, zoom: false, onRender: ({ width }) => box.style.setProperty('--vicher-diagram-width', `${width}px`) });
     if (!diagram.result) {
       diagram.destroy();
       figure.remove();
@@ -69,7 +69,7 @@ export async function renderMermaidDiagrams(
     pre.remove();
     scope.register(() => diagram.destroy());
     const title = titleOf(diagram.result.type);
-    header.createSpan({ cls: 'clew-mermaid-title', text: title });
+    header.createSpan({ cls: 'vicher-mermaid-title', text: title });
     createCopyButton(header, 'Copy diagram source', () => source);
     createIconButton(header, 'maximize-2', 'Expand diagram')
       .addEventListener('click', () => new DiagramModal(app, loaded, source, title, figure).open());
@@ -133,9 +133,9 @@ class DiagramModal extends Modal {
   }
 
   override onOpen(): void {
-    this.modalEl.addClass('clew-diagram-modal');
+    this.modalEl.addClass('vicher-diagram-modal');
     this.titleEl.setText(this.title);
-    const container = this.contentEl.createDiv({ cls: 'clew-mermaid' });
+    const container = this.contentEl.createDiv({ cls: 'vicher-mermaid' });
     // Pele zooms on a modified wheel only, so a page can scroll; nothing scrolls here, so a plain wheel zooms too.
     container.addEventListener('wheel', (event) => {
       if (event.ctrlKey || event.metaKey || !this.diagram?.zoom) return;
@@ -145,7 +145,7 @@ class DiagramModal extends Modal {
     this.diagram = this.pele.mount(container, this.source, {
       ...SAFE,
       zoom: { always: true, maxScale: 6 },
-      onRender: ({ width, height }) => container.style.setProperty('--clew-diagram-ratio', String(width / height)),
+      onRender: ({ width, height }) => container.style.setProperty('--vicher-diagram-ratio', String(width / height)),
     });
   }
 

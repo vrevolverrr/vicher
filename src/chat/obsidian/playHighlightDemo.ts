@@ -2,7 +2,7 @@ import { type App, normalizePath, Notice, type TFile } from 'obsidian';
 
 import type { AgentEvent, AgentSession } from '@/agents/types';
 
-const FOLDER = 'Clew demo';
+const FOLDER = 'Vicher demo';
 const FIRST = `${FOLDER}/Optics.md`;
 const SECOND = `${FOLDER}/Waves.md`;
 const CHUNK = 24;

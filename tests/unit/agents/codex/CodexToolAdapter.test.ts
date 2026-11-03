@@ -7,7 +7,7 @@ const custom: AgentTool = {
   run: (name) => 'Pack: ' + name, title: (name) => 'Loaded ' + name,
 };
 
-it('registers the exact Clew tool contract, and nothing for no tools', () => {
+it('registers the exact Vicher tool contract, and nothing for no tools', () => {
   expect(new CodexToolAdapter('/vault', [custom]).registration()).toEqual({ dynamicTools: [{
     type: 'function', name: 'lookup', description: 'Look up a pack',
     inputSchema: { type: 'object', properties: { name: { type: 'string', enum: ['plot', 'grid'] } }, required: ['name'], additionalProperties: false },

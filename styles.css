@@ -1,28 +1,28 @@
-.workspace-leaf-content .clew-chat {
+.workspace-leaf-content .vicher-chat {
   position: relative;
   display: flex;
   flex-direction: column;
   padding-inline: var(--size-4-3);
 }
 
-.clew-messages {
-  --clew-message-fade: 64px;
+.vicher-messages {
+  --vicher-message-fade: 64px;
   position: relative;
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--size-4-6);
-  padding-block: var(--size-4-12) calc(var(--clew-message-fade) + var(--size-4-2));
+  padding-block: var(--size-4-12) calc(var(--vicher-message-fade) + var(--size-4-2));
   padding-inline: var(--size-2-1) var(--size-4-3);
   user-select: text;
   container-type: size;
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb-bg) transparent;
-  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--clew-message-fade)), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--vicher-message-fade)), transparent);
 }
 
-.clew-turn {
+.vicher-turn {
   display: flex;
   flex-shrink: 0;
   flex-direction: column;
@@ -30,11 +30,11 @@
 }
 
 /* The newest turn fills the view, so a sent message can scroll to the top with room below for the reply. */
-.clew-turn:last-child {
+.vicher-turn:last-child {
   min-height: 100cqh;
 }
 
-.clew-user-message {
+.vicher-user-message {
   align-self: flex-end;
   max-width: 85%;
   padding: 6px 16px;
@@ -45,7 +45,7 @@
   white-space: pre-wrap;
 }
 
-.clew-user-quote {
+.vicher-user-quote {
   align-self: flex-end;
   max-width: 85%;
   margin-bottom: 4px;
@@ -62,35 +62,35 @@
   cursor: pointer;
 }
 
-.clew-user-quote:hover {
+.vicher-user-quote:hover {
   color: var(--text-normal);
 }
 
-.clew-reply {
-  --clew-reply-line-height: 1.75;
+.vicher-reply {
+  --vicher-reply-line-height: 1.75;
   display: flex;
   flex-direction: column;
   gap: var(--size-4-2);
   padding-inline: var(--size-4-2);
   font-size: var(--font-ui-medium);
-  line-height: var(--clew-reply-line-height);
+  line-height: var(--vicher-reply-line-height);
 }
 
-.clew-reply pre {
+.vicher-reply pre {
   line-height: var(--line-height-normal);
 }
 
-.clew-reply.markdown-rendered ul > li {
+.vicher-reply.markdown-rendered ul > li {
   margin-inline-start: 2ch;
 }
 
-.clew-reply.markdown-rendered ol > li {
+.vicher-reply.markdown-rendered ol > li {
   margin-inline-start: 2.5ch;
 }
 
 /* Tall inline math (fractions, subscripts) would otherwise push its line away from its neighbours.
    The zero line height holds only for one line, so a formula never wraps; a narrow table cell scrolls instead. */
-.clew-reply mjx-container:not([display='true']) {
+.vicher-reply mjx-container:not([display='true']) {
   display: inline-block;
   margin-block: -0.5em;
   line-height: 0;
@@ -98,39 +98,39 @@
 }
 
 /* MathJax 4 breaks inline math at operators through these elements, which set their own `white-space: normal`. */
-.clew-reply mjx-container:not([display='true']) mjx-break {
+.vicher-reply mjx-container:not([display='true']) mjx-break {
   white-space: nowrap;
 }
 
 /* A wide formula scrolls in its own row; MathJax's default lets it widen, and so pan, the whole chat. */
-.clew-reply mjx-container[display='true'] {
+.vicher-reply mjx-container[display='true'] {
   overflow: auto clip;
   min-width: initial !important;
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb-bg) transparent;
 }
 
-.clew-reply-error {
+.vicher-reply-error {
   color: var(--text-error);
 }
 
-.clew-reply-status {
+.vicher-reply-status {
   color: var(--text-muted);
   font-size: var(--font-ui-small);
 }
 
-.clew-notice {
+.vicher-notice {
   margin: var(--size-4-3) 0;
 }
 
-.clew-composer {
-  --clew-ink: var(--text-normal);
-  --clew-ring-shadow:
-    0 0 0 0.5px color-mix(in srgb, var(--clew-ink) 16%, transparent),
-    0 1px 0 0 color-mix(in srgb, var(--clew-ink) 6%, transparent),
-    0 1px 1px 0 color-mix(in srgb, var(--clew-ink) 1%, transparent),
-    0 0 2px 0 color-mix(in srgb, var(--clew-ink) 11%, transparent),
-    0 2px 7px -2px color-mix(in srgb, var(--clew-ink) 13%, transparent);
+.vicher-composer {
+  --vicher-ink: var(--text-normal);
+  --vicher-ring-shadow:
+    0 0 0 0.5px color-mix(in srgb, var(--vicher-ink) 16%, transparent),
+    0 1px 0 0 color-mix(in srgb, var(--vicher-ink) 6%, transparent),
+    0 1px 1px 0 color-mix(in srgb, var(--vicher-ink) 1%, transparent),
+    0 0 2px 0 color-mix(in srgb, var(--vicher-ink) 11%, transparent),
+    0 2px 7px -2px color-mix(in srgb, var(--vicher-ink) 13%, transparent);
 
   position: relative;
   display: flex;
@@ -142,37 +142,37 @@
   margin-bottom: var(--size-4-2);
 }
 
-.theme-dark .clew-composer {
-  --clew-shade: color-mix(in srgb, var(--background-primary) 20%, black);
-  --clew-ring-shadow:
-    inset 0 0.5px 0 0 color-mix(in srgb, var(--clew-ink) 7%, transparent),
-    inset 0 0 0 0.5px color-mix(in srgb, var(--clew-ink) 10%, transparent),
-    0 1px 2px 0 color-mix(in srgb, var(--clew-shade) 24%, transparent),
-    0 0 2px 0 color-mix(in srgb, var(--clew-shade) 19%, transparent),
-    0 1px 6px -1px color-mix(in srgb, var(--clew-shade) 14%, transparent);
+.theme-dark .vicher-composer {
+  --vicher-shade: color-mix(in srgb, var(--background-primary) 20%, black);
+  --vicher-ring-shadow:
+    inset 0 0.5px 0 0 color-mix(in srgb, var(--vicher-ink) 7%, transparent),
+    inset 0 0 0 0.5px color-mix(in srgb, var(--vicher-ink) 10%, transparent),
+    0 1px 2px 0 color-mix(in srgb, var(--vicher-shade) 24%, transparent),
+    0 0 2px 0 color-mix(in srgb, var(--vicher-shade) 19%, transparent),
+    0 1px 6px -1px color-mix(in srgb, var(--vicher-shade) 14%, transparent);
 }
 
-.clew-composer::after {
+.vicher-composer::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  box-shadow: var(--clew-ring-shadow);
+  box-shadow: var(--vicher-ring-shadow);
 }
 
-.clew-context-tray {
+.vicher-context-tray {
   display: flex;
   flex-wrap: wrap;
   gap: var(--size-2-2);
   margin: 0 4px;
 }
 
-.clew-context-tray:empty {
+.vicher-context-tray:empty {
   display: none;
 }
 
-.clew-context-chip {
+.vicher-context-chip {
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
@@ -188,33 +188,33 @@
   transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 150ms ease;
 }
 
-.clew-context-chip:hover {
+.vicher-context-chip:hover {
   background: color-mix(in srgb, var(--text-normal) 12%, var(--background-modifier-hover));
   color: var(--text-normal);
 }
 
-.clew-context-chip:active:not(:has(.clew-context-remove:active)) {
+.vicher-context-chip:active:not(:has(.vicher-context-remove:active)) {
   transform: scale(0.97);
 }
 
-.clew-context-chip:focus-visible {
+.vicher-context-chip:focus-visible {
   outline: 2px solid var(--background-modifier-border-focus);
   outline-offset: 1px;
 }
 
-.clew-context-chip.is-leaving {
+.vicher-context-chip.is-leaving {
   pointer-events: none;
 }
 
-.clew-context-chip .clew-context-icon,
-.clew-context-chip .svg-icon {
+.vicher-context-chip .vicher-context-icon,
+.vicher-context-chip .svg-icon {
   display: inline-flex;
   width: var(--icon-xs);
   height: var(--icon-xs);
   flex: none;
 }
 
-.clew-context-chip .clew-context-label {
+.vicher-context-chip .vicher-context-label {
   position: relative;
   min-width: 0;
   overflow: hidden;
@@ -222,7 +222,7 @@
   white-space: nowrap;
 }
 
-.clew-context-label::after {
+.vicher-context-label::after {
   content: '';
   position: absolute;
   inset: 50% 0 auto;
@@ -233,15 +233,15 @@
   transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.clew-context-chip.is-excluded {
+.vicher-context-chip.is-excluded {
   opacity: 0.6;
 }
 
-.clew-context-chip.is-excluded .clew-context-label::after {
+.vicher-context-chip.is-excluded .vicher-context-label::after {
   transform: scaleX(1);
 }
 
-.clew-context-chip .clew-context-remove {
+.vicher-context-chip .vicher-context-remove {
   width: auto;
   height: auto;
   padding: 0;
@@ -252,37 +252,37 @@
   transition: color 150ms ease, opacity 150ms ease, transform 150ms ease;
 }
 
-.clew-context-chip .clew-context-remove:hover {
+.vicher-context-chip .vicher-context-remove:hover {
   background: none;
   color: var(--text-error);
   opacity: 1;
 }
 
-.clew-context-chip .clew-context-remove:active {
+.vicher-context-chip .vicher-context-remove:active {
   transform: scale(0.85);
 }
 
-.clew-attachment-chip {
+.vicher-attachment-chip {
   order: 1;
 }
 
-.clew-image-chip {
+.vicher-image-chip {
   box-shadow: inset 0 0 0 1px var(--background-modifier-border);
 }
 
-.clew-image-chip .clew-context-icon {
+.vicher-image-chip .vicher-context-icon {
   width: 18px;
   height: 18px;
 }
 
-.clew-image-chip .clew-context-icon img {
+.vicher-image-chip .vicher-context-icon img {
   width: 100%;
   height: 100%;
   border-radius: 3px;
   object-fit: cover;
 }
 
-.clew-composer.is-dragging::before {
+.vicher-composer.is-dragging::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -291,7 +291,7 @@
   pointer-events: none;
 }
 
-.clew-user-attachments {
+.vicher-user-attachments {
   align-self: flex-end;
   display: flex;
   flex-wrap: wrap;
@@ -300,24 +300,24 @@
   max-width: 85%;
 }
 
-.clew-user-attachments img {
+.vicher-user-attachments img {
   max-width: 160px;
   max-height: 120px;
   border-radius: var(--radius-s);
   object-fit: cover;
 }
 
-.clew-folding {
+.vicher-folding {
   overflow: hidden;
 }
 
-.clew-input-wrap {
+.vicher-input-wrap {
   position: relative;
   margin: 8px 4px 0;
 }
 
-.clew-input,
-.clew-input-mirror {
+.vicher-input,
+.vicher-input-mirror {
   box-sizing: border-box;
   width: 100%;
   min-height: 1.5em;
@@ -333,7 +333,7 @@
   white-space: pre-wrap;
 }
 
-.clew-input {
+.vicher-input {
   position: relative;
   display: block;
   height: auto;
@@ -343,11 +343,11 @@
   resize: none;
 }
 
-.clew-input::placeholder {
+.vicher-input::placeholder {
   color: var(--text-faint);
 }
 
-.clew-input-mirror {
+.vicher-input-mirror {
   position: absolute;
   inset: 0;
   overflow-y: auto;
@@ -356,18 +356,18 @@
 }
 
 /* Obsidian fills a hovered or pressed textarea, which would hide the mirror behind this one. */
-.clew-input-wrap .clew-input {
+.vicher-input-wrap .vicher-input {
   background: transparent;
   box-shadow: none;
 }
 
-.clew-input:focus,
-.clew-input:focus-visible {
+.vicher-input:focus,
+.vicher-input:focus-visible {
   box-shadow: none;
   outline: none;
 }
 
-.clew-composer-bar {
+.vicher-composer-bar {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -375,11 +375,11 @@
   gap: 2px;
 }
 
-.clew-composer-spacer {
+.vicher-composer-spacer {
   flex: 1;
 }
 
-.clew-composer .clew-composer-bar button {
+.vicher-composer .vicher-composer-bar button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -395,71 +395,71 @@
   transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 150ms ease;
 }
 
-.clew-composer .clew-composer-bar button:hover {
+.vicher-composer .vicher-composer-bar button:hover {
   background: var(--background-modifier-hover);
   color: var(--text-normal);
 }
 
-.clew-composer .clew-composer-bar button:active {
+.vicher-composer .vicher-composer-bar button:active {
   transform: scale(0.96);
 }
 
-.clew-composer-bar .svg-icon {
+.vicher-composer-bar .svg-icon {
   width: 16px;
   height: 16px;
 }
 
-.clew-picker-chevron {
+.vicher-picker-chevron {
   display: inline-flex;
   flex: none;
   opacity: 0.5;
 }
 
-.clew-composer .clew-composer-bar .clew-picker {
+.vicher-composer .vicher-composer-bar .vicher-picker {
   min-width: 0;
 }
 
-.clew-picker-label {
+.vicher-picker-label {
   display: inline-flex;
   min-width: 0;
   align-items: center;
   gap: 6px;
 }
 
-.clew-picker-label > span:last-child {
+.vicher-picker-label > span:last-child {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.clew-agent-icon {
+.vicher-agent-icon {
   flex-shrink: 0;
   width: 14px;
   height: 14px;
-  color: var(--clew-agent-color, var(--text-normal));
+  color: var(--vicher-agent-color, var(--text-normal));
 }
 
-.clew-picker-chevron .svg-icon {
+.vicher-picker-chevron .svg-icon {
   transition: transform 160ms ease;
 }
 
-.clew-picker[aria-expanded='true'] .clew-picker-chevron .svg-icon {
+.vicher-picker[aria-expanded='true'] .vicher-picker-chevron .svg-icon {
   transform: rotate(180deg);
 }
 
-.clew-picker-icon {
+.vicher-picker-icon {
   display: inline-flex;
   flex: none;
 }
 
-.clew-composer-bar .clew-picker-icon .svg-icon {
+.vicher-composer-bar .vicher-picker-icon .svg-icon {
   width: 14px;
   height: 14px;
 }
 
-.clew-picker-menu,
-.clew-skill-menu {
+.vicher-picker-menu,
+.vicher-skill-menu {
   position: absolute;
   right: 0;
   bottom: calc(100% + 6px);
@@ -467,7 +467,7 @@
   max-height: min(280px, 50vh);
 }
 
-.clew-picker-menu {
+.vicher-picker-menu {
   display: flex;
   flex-direction: column;
   min-width: 150px;
@@ -477,24 +477,24 @@
   scrollbar-color: var(--scrollbar-thumb-bg) transparent;
 }
 
-.clew-picker-menu,
-.clew-history-menu {
-  animation: clew-pop-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+.vicher-picker-menu,
+.vicher-history-menu {
+  animation: vicher-pop-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.clew-picker-menu.is-closing,
-.clew-history-menu.is-closing {
+.vicher-picker-menu.is-closing,
+.vicher-history-menu.is-closing {
   pointer-events: none;
-  animation: clew-pop-out 120ms ease-in forwards;
+  animation: vicher-pop-out 120ms ease-in forwards;
 }
 
-.clew-picker-section + .clew-picker-section {
+.vicher-picker-section + .vicher-picker-section {
   margin-top: 4px;
   padding-top: 4px;
   border-top: 1px solid var(--background-modifier-border);
 }
 
-.clew-picker-heading {
+.vicher-picker-heading {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -504,13 +504,13 @@
   font-weight: var(--font-semibold);
 }
 
-.clew-picker-loading {
+.vicher-picker-loading {
   padding: 5px 8px;
   color: var(--text-faint);
 }
 
 /* The row buttons of the floating lists, which reset Obsidian's button look alike. */
-:is(.clew-picker-menu .clew-picker-option, .clew-history-menu :is(.clew-history-row, .clew-history-all), .clew-chat-modal .clew-chat-open) {
+:is(.vicher-picker-menu .vicher-picker-option, .vicher-history-menu :is(.vicher-history-row, .vicher-history-all), .vicher-chat-modal .vicher-chat-open) {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -523,71 +523,71 @@
   text-align: start;
 }
 
-:is(.clew-picker-menu .clew-picker-option, .clew-history-menu :is(.clew-history-row, .clew-history-all)) {
+:is(.vicher-picker-menu .vicher-picker-option, .vicher-history-menu :is(.vicher-history-row, .vicher-history-all)) {
   width: 100%;
   border-radius: 8px;
   corner-shape: round;
 }
 
-:is(.clew-picker-menu .clew-picker-option, .clew-history-menu :is(.clew-history-row, .clew-history-all)):is(:hover, :focus-visible) {
+:is(.vicher-picker-menu .vicher-picker-option, .vicher-history-menu :is(.vicher-history-row, .vicher-history-all)):is(:hover, :focus-visible) {
   background: var(--background-modifier-hover);
 }
 
-:is(.clew-picker-menu .clew-picker-option, .clew-history-menu :is(.clew-history-row, .clew-history-all)):focus-visible {
+:is(.vicher-picker-menu .vicher-picker-option, .vicher-history-menu :is(.vicher-history-row, .vicher-history-all)):focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: -2px;
 }
 
-.clew-picker-menu .clew-picker-option {
+.vicher-picker-menu .vicher-picker-option {
   gap: 6px;
   padding: 5px 8px;
   transition: background-color 150ms ease, transform 150ms ease;
 }
 
-.clew-picker-menu .clew-picker-option:active {
+.vicher-picker-menu .vicher-picker-option:active {
   transform: scale(0.98);
 }
 
-.clew-picker-option-label {
+.vicher-picker-option-label {
   display: inline-block;
   transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.clew-picker-option:is(:hover, :focus-visible) .clew-picker-option-label {
+.vicher-picker-option:is(:hover, :focus-visible) .vicher-picker-option-label {
   transform: translateX(2px);
 }
 
-.clew-picker-option-detail {
+.vicher-picker-option-detail {
   color: var(--text-faint);
 }
 
-.clew-picker-check {
+.vicher-picker-check {
   display: inline-flex;
   margin-left: auto;
   padding-left: 12px;
-  animation: clew-check-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: vicher-check-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.clew-picker-check .svg-icon {
+.vicher-picker-check .svg-icon {
   width: 14px;
   height: 14px;
 }
 
-@keyframes clew-pop-in {
+@keyframes vicher-pop-in {
   from {
     opacity: 0;
     transform: translateY(6px) scale(0.97);
   }
 }
 
-@keyframes clew-pop-out {
+@keyframes vicher-pop-out {
   to {
     opacity: 0;
     transform: translateY(4px) scale(0.98);
   }
 }
 
-@keyframes clew-check-in {
+@keyframes vicher-check-in {
   from {
     opacity: 0;
     transform: scale(0.6);
@@ -595,35 +595,35 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .clew-diagram-rings {
+  .vicher-diagram-rings {
     display: none;
   }
 
-  .clew-tools.is-running .clew-tools-orb::before,
-  .clew-diagram-card .clew-tools-orb::before {
+  .vicher-tools.is-running .vicher-tools-orb::before,
+  .vicher-diagram-card .vicher-tools-orb::before {
     animation: none;
   }
 
-  .clew-picker-menu,
-  .clew-picker-menu.is-closing,
-  .clew-history-menu,
-  .clew-history-menu.is-closing,
-  .clew-picker-check {
+  .vicher-picker-menu,
+  .vicher-picker-menu.is-closing,
+  .vicher-history-menu,
+  .vicher-history-menu.is-closing,
+  .vicher-picker-check {
     animation-duration: 1ms;
   }
 
-  .clew-composer .clew-composer-bar button,
-  .clew-context-chip,
-  .clew-context-label::after,
-  .clew-context-chip .clew-context-remove,
-  .clew-picker-menu .clew-picker-option,
-  .clew-picker-option-label,
-  .clew-picker-chevron .svg-icon {
+  .vicher-composer .vicher-composer-bar button,
+  .vicher-context-chip,
+  .vicher-context-label::after,
+  .vicher-context-chip .vicher-context-remove,
+  .vicher-picker-menu .vicher-picker-option,
+  .vicher-picker-option-label,
+  .vicher-picker-chevron .svg-icon {
     transition: none;
   }
 }
 
-.clew-composer .clew-composer-bar .clew-send {
+.vicher-composer .vicher-composer-bar .vicher-send {
   flex: none;
   width: 28px;
   height: 28px;
@@ -635,48 +635,48 @@
   color: var(--background-primary);
 }
 
-.clew-composer .clew-composer-bar .clew-send .svg-icon {
+.vicher-composer .vicher-composer-bar .vicher-send .svg-icon {
   width: 14px;
   height: 14px;
 }
 
-.clew-composer .clew-composer-bar .clew-send:hover {
+.vicher-composer .vicher-composer-bar .vicher-send:hover {
   background: var(--text-normal);
   color: var(--background-primary);
   opacity: 0.9;
   transform: scale(1.05);
 }
 
-.clew-composer .clew-composer-bar .clew-send:active {
+.vicher-composer .vicher-composer-bar .vicher-send:active {
   transform: scale(0.94);
 }
 
-.clew-composer .clew-composer-bar .clew-send:disabled {
+.vicher-composer .vicher-composer-bar .vicher-send:disabled {
   opacity: 0.3;
   transform: none;
   cursor: default;
 }
 
-.clew-reply-figure {
+.vicher-reply-figure {
   position: relative;
   margin: var(--size-4-2) 0;
   line-height: var(--line-height-normal);
 }
 
-.clew-reply-figure .clew-diagram-card,
-.clew-figure-canvas {
+.vicher-reply-figure .vicher-diagram-card,
+.vicher-figure-canvas {
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-l);
   background: var(--background-primary);
 }
 
 /* FigureView reads this padding and border to size what it draws inside. */
-.clew-figure-canvas {
+.vicher-figure-canvas {
   width: fit-content;
   padding: var(--size-4-3);
 }
 
-.clew-mermaid {
+.vicher-mermaid {
   --pele-bg: var(--background-primary);
   --pele-fg: var(--text-normal);
   --pele-muted: var(--text-muted);
@@ -692,37 +692,37 @@
   --pele-radius: var(--radius-s);
 }
 
-.clew-reply-mermaid,
-.clew-reply-figure .clew-diagram-card,
-.clew-figure-canvas.is-graph,
-.modal.clew-diagram-modal {
+.vicher-reply-mermaid,
+.vicher-reply-figure .vicher-diagram-card,
+.vicher-figure-canvas.is-graph,
+.modal.vicher-diagram-modal {
   background:
     radial-gradient(circle, color-mix(in srgb, var(--background-modifier-border) 55%, transparent) 0.9px, transparent 1.4px) 0 0 / 16px 16px,
     var(--background-primary);
 }
 
-.clew-reply-mermaid {
+.vicher-reply-mermaid {
   position: relative;
   overflow: hidden;
   isolation: isolate;
   padding: var(--size-4-4);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-l);
-  animation: clew-pop-in 240ms ease-out;
+  animation: vicher-pop-in 240ms ease-out;
 }
 
-.clew-reply-mermaid.is-drawing,
-.clew-reply-figure.is-drawing {
+.vicher-reply-mermaid.is-drawing,
+.vicher-reply-figure.is-drawing {
   min-height: 160px;
   overflow: hidden;
   isolation: isolate;
 }
 
-.clew-reply-mermaid pre {
+.vicher-reply-mermaid pre {
   margin: 0;
 }
 
-.clew-diagram-card {
+.vicher-diagram-card {
   position: absolute;
   inset: 0;
   box-sizing: border-box;
@@ -738,7 +738,7 @@
   isolation: isolate;
 }
 
-.clew-diagram-card > span {
+.vicher-diagram-card > span {
   position: relative;
   z-index: 1;
 }
@@ -747,15 +747,15 @@
  * Two staggered rings ripple out from the label and light the grid's dots: each is a soft ring that scales up
  * under a stencil cut out at the dots, so only transform and opacity animate and the lit dots stay on the grid.
  */
-.clew-diagram-rings,
-.clew-diagram-stencil {
+.vicher-diagram-rings,
+.vicher-diagram-stencil {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-.clew-diagram-rings::before,
-.clew-diagram-rings::after {
+.vicher-diagram-rings::before,
+.vicher-diagram-rings::after {
   content: '';
   position: absolute;
   top: 50%;
@@ -764,19 +764,19 @@
   height: 900px;
   margin: -450px 0 0 -450px;
   background: radial-gradient(circle closest-side, transparent 58%, var(--interactive-accent) 68%, transparent 78%);
-  animation: clew-ripple 2.8s cubic-bezier(0.25, 0.6, 0.35, 1) infinite;
+  animation: vicher-ripple 2.8s cubic-bezier(0.25, 0.6, 0.35, 1) infinite;
 }
 
-.clew-diagram-rings::after {
+.vicher-diagram-rings::after {
   animation-delay: 1.4s;
 }
 
-.clew-diagram-stencil {
+.vicher-diagram-stencil {
   background: var(--background-primary);
   mask: radial-gradient(circle, transparent 1.6px, #000 2.4px) 0 0 / 16px 16px;
 }
 
-@keyframes clew-ripple {
+@keyframes vicher-ripple {
   from {
     transform: scale(0);
     opacity: 1;
@@ -789,17 +789,17 @@
 
 /* Pele fits the drawing to the pane's width. Past three quarters of its own size the text drops under 10 px, so a wider
    diagram scrolls instead. The modal sets no width and zooms. */
-.clew-mermaid > svg {
+.vicher-mermaid > svg {
   display: block;
-  min-width: calc(var(--clew-diagram-width, 0px) * 0.75);
+  min-width: calc(var(--vicher-diagram-width, 0px) * 0.75);
   margin-inline: auto;
 }
 
-.clew-mermaid:not(.clew-diagram-modal .clew-mermaid) {
+.vicher-mermaid:not(.vicher-diagram-modal .vicher-mermaid) {
   overflow-x: auto;
 }
 
-.clew-mermaid-header {
+.vicher-mermaid-header {
   display: flex;
   align-items: center;
   gap: var(--size-2-1);
@@ -810,11 +810,11 @@
   line-height: var(--line-height-tight);
 }
 
-.clew-mermaid-title {
+.vicher-mermaid-title {
   flex: 1;
 }
 
-.clew-icon-action.clickable-icon {
+.vicher-icon-action.clickable-icon {
   color: var(--text-faint);
   cursor: var(--cursor-link);
   transition:
@@ -822,158 +822,158 @@
     background-color 150ms ease;
 }
 
-.clew-icon-action.clickable-icon:hover {
+.vicher-icon-action.clickable-icon:hover {
   color: var(--text-normal);
 }
 
-.clew-icon-action.is-copied .svg-icon {
+.vicher-icon-action.is-copied .svg-icon {
   color: var(--color-green);
-  animation: clew-check-in 200ms ease-out;
+  animation: vicher-check-in 200ms ease-out;
 }
 
-.clew-icon-action.clickable-icon.clew-reply-rate {
+.vicher-icon-action.clickable-icon.vicher-reply-rate {
   transition:
     color 150ms ease,
     background-color 150ms ease,
     transform 100ms ease;
 }
 
-.clew-reply-rate.is-up {
-  --clew-rating-color: var(--color-green);
+.vicher-reply-rate.is-up {
+  --vicher-rating-color: var(--color-green);
 }
 
-.clew-reply-rate.is-down {
-  --clew-rating-color: var(--color-red);
+.vicher-reply-rate.is-down {
+  --vicher-rating-color: var(--color-red);
 }
 
-.clew-icon-action.clickable-icon.clew-reply-rate:active {
+.vicher-icon-action.clickable-icon.vicher-reply-rate:active {
   transform: scale(0.88);
 }
 
-.clew-icon-action.clickable-icon.clew-reply-rate.is-active {
-  color: var(--clew-rating-color);
-  background-color: color-mix(in srgb, var(--clew-rating-color) 14%, transparent);
+.vicher-icon-action.clickable-icon.vicher-reply-rate.is-active {
+  color: var(--vicher-rating-color);
+  background-color: color-mix(in srgb, var(--vicher-rating-color) 14%, transparent);
 }
 
-.clew-reply-rate.is-active .svg-icon {
+.vicher-reply-rate.is-active .svg-icon {
   fill: currentColor;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .clew-icon-action.clickable-icon.clew-reply-rate {
+  .vicher-icon-action.clickable-icon.vicher-reply-rate {
     transition: none;
   }
 
-  .clew-icon-action.clickable-icon.clew-reply-rate:active {
+  .vicher-icon-action.clickable-icon.vicher-reply-rate:active {
     transform: none;
   }
 }
 
-.modal.clew-diagram-modal {
+.modal.vicher-diagram-modal {
   width: 90vw;
   height: 85vh;
   max-width: none;
 }
 
-.clew-diagram-modal .modal-content {
+.vicher-diagram-modal .modal-content {
   display: flex;
   flex: 1;
   min-height: 0;
   container-type: size;
 }
 
-.clew-diagram-modal .clew-mermaid {
+.vicher-diagram-modal .vicher-mermaid {
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 1;
   min-height: 0;
   /* Pele fits by width only, so a tall diagram overflows and its top is clipped. Padding narrows the box until the width fit is also the height fit. */
-  padding-inline: max(0px, calc((100cqw - 100cqh * var(--clew-diagram-ratio, 1)) / 2));
+  padding-inline: max(0px, calc((100cqw - 100cqh * var(--vicher-diagram-ratio, 1)) / 2));
   --pele-zoom-top: auto;
   --pele-zoom-bottom: var(--size-4-2);
   --pele-zoom-right: var(--size-4-2);
 }
 
 /* The figure lays out at full width under the card, and shows once the card fades. */
-.clew-reply-mermaid.is-drawing .clew-diagram,
-.clew-reply-figure.is-drawing .clew-figure {
+.vicher-reply-mermaid.is-drawing .vicher-diagram,
+.vicher-reply-figure.is-drawing .vicher-figure {
   position: absolute;
   inset-inline: var(--size-4-4);
   visibility: hidden;
 }
 
-.clew-reply-figure.is-drawing .clew-figure {
+.vicher-reply-figure.is-drawing .vicher-figure {
   inset-inline: 0;
 }
 
-.clew-reply-mermaid:not(.is-drawing) .clew-diagram,
-.clew-reply-figure:not(.is-drawing) .clew-figure {
-  animation: clew-fade-in 320ms ease 80ms both;
+.vicher-reply-mermaid:not(.is-drawing) .vicher-diagram,
+.vicher-reply-figure:not(.is-drawing) .vicher-figure {
+  animation: vicher-fade-in 320ms ease 80ms both;
 }
 
-@keyframes clew-fade-in {
+@keyframes vicher-fade-in {
   from {
     opacity: 0;
   }
 }
 
-.clew-reply-footer {
+.vicher-reply-footer {
   display: flex;
   align-items: center;
   align-self: flex-start;
   gap: var(--size-2-2);
-  animation: clew-pop-in 200ms ease-out;
+  animation: vicher-pop-in 200ms ease-out;
 }
 
-.clew-reply-time {
+.vicher-reply-time {
   color: var(--text-faint);
   font-size: var(--font-ui-smaller);
   font-variant-numeric: tabular-nums;
 }
 
-.clew-control-row {
+.vicher-control-row {
   color: var(--text-muted);
   font-size: var(--font-ui-small);
 }
 
 /* The stack's gap alone spaces the blocks, so the paragraph margins at a text block's edges would double it. */
-.clew-quiz-question > :first-child,
-.clew-quiz-question > :first-child > :first-child,
-.clew-quiz-feedback > :first-child,
-.clew-quiz-feedback > :first-child > :first-child {
+.vicher-quiz-question > :first-child,
+.vicher-quiz-question > :first-child > :first-child,
+.vicher-quiz-feedback > :first-child,
+.vicher-quiz-feedback > :first-child > :first-child {
   margin-top: 0;
 }
 
-.clew-quiz-question > :last-child,
-.clew-quiz-question > :last-child > :last-child,
-.clew-quiz-feedback > :last-child,
-.clew-quiz-feedback > :last-child > :last-child {
+.vicher-quiz-question > :last-child,
+.vicher-quiz-question > :last-child > :last-child,
+.vicher-quiz-feedback > :last-child,
+.vicher-quiz-feedback > :last-child > :last-child {
   margin-bottom: 0;
 }
 
-.clew-slider,
-.clew-text-input,
-.clew-choice {
+.vicher-slider,
+.vicher-text-input,
+.vicher-choice {
   display: flex;
   flex-direction: column;
   gap: var(--size-2-3);
 }
 
-.clew-slider .clew-control-row {
+.vicher-slider .vicher-control-row {
   display: flex;
   justify-content: space-between;
   gap: var(--size-4-2);
 }
 
-.clew-slider output {
+.vicher-slider output {
   color: var(--text-normal);
   font-weight: var(--font-semibold);
   font-variant-numeric: tabular-nums;
 }
 
 /* Obsidian draws the track on the input itself and lifts the thumb by --slider-thumb-y, so the slider sets those variables. */
-.clew-slider input[type='range'] {
+.vicher-slider input[type='range'] {
   --slider-thumb-width: 12px;
   --slider-thumb-height: 12px;
   --slider-thumb-width-active: 12px;
@@ -990,23 +990,23 @@
   width: 100%;
   height: 16px;
   margin: 0;
-  background: linear-gradient(to right, var(--interactive-accent) var(--clew-progress, 0%), var(--background-modifier-border) var(--clew-progress, 0%)) center / 100% 4px no-repeat;
+  background: linear-gradient(to right, var(--interactive-accent) var(--vicher-progress, 0%), var(--background-modifier-border) var(--vicher-progress, 0%)) center / 100% 4px no-repeat;
   border-radius: 2px;
 }
 
-.clew-slider input[type='range']::-webkit-slider-runnable-track {
+.vicher-slider input[type='range']::-webkit-slider-runnable-track {
   height: 4px;
   background: none;
 }
 
-.clew-text-input input[type='text'] {
+.vicher-text-input input[type='text'] {
   width: 100%;
   height: auto;
   padding: var(--size-4-2) var(--size-4-3);
   font-size: var(--font-ui-medium);
 }
 
-.clew-choice-options {
+.vicher-choice-options {
   display: flex;
   flex-wrap: wrap;
   align-self: flex-start;
@@ -1016,7 +1016,7 @@
 }
 
 /* Doubled up so Obsidian's own button styles (background, shadow, height) do not win. */
-.clew-choice .clew-choice-option {
+.vicher-choice .vicher-choice-option {
   height: auto;
   padding: var(--size-4-2) var(--size-4-4);
   border: 0;
@@ -1029,38 +1029,38 @@
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.clew-choice .clew-choice-option + .clew-choice-option {
+.vicher-choice .vicher-choice-option + .vicher-choice-option {
   border-left: 1px solid var(--background-modifier-border);
 }
 
-.clew-choice .clew-choice-option:hover {
+.vicher-choice .vicher-choice-option:hover {
   background: var(--background-modifier-hover);
   color: var(--text-normal);
 }
 
-.clew-choice .clew-choice-option:active {
+.vicher-choice .vicher-choice-option:active {
   background: var(--background-modifier-active-hover);
 }
 
 /* The weight stays the same when picked, so the segments do not change width and shift their neighbours. */
-.clew-choice .clew-choice-option[aria-pressed='true'] {
+.vicher-choice .vicher-choice-option[aria-pressed='true'] {
   background: color-mix(in srgb, var(--interactive-accent) 16%, var(--background-primary));
   color: var(--text-accent);
 }
 
-.clew-choice .clew-choice-option:focus-visible {
+.vicher-choice .vicher-choice-option:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: -2px;
 }
 
-.clew-player {
+.vicher-player {
   display: flex;
   align-items: center;
   gap: var(--size-2-1);
 }
 
 /* Doubled up so Obsidian's own button styles (background, shadow, height) do not win. */
-.clew-player .clew-player-button {
+.vicher-player .vicher-player-button {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -1077,26 +1077,26 @@
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
-.clew-player .clew-player-button:active {
+.vicher-player .vicher-player-button:active {
   transform: scale(0.92);
 }
 
-.clew-player .clew-player-button:hover {
+.vicher-player .vicher-player-button:hover {
   background: var(--background-modifier-hover);
 }
 
-.clew-player .clew-player-button:focus-visible,
-.clew-player input[type='range']:focus-visible {
+.vicher-player .vicher-player-button:focus-visible,
+.vicher-player input[type='range']:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 1px;
 }
 
-.clew-player .clew-player-button:disabled {
+.vicher-player .vicher-player-button:disabled {
   opacity: 0.4;
   cursor: default;
 }
 
-.clew-player .clew-player-button svg {
+.vicher-player .vicher-player-button svg {
   width: 16px;
   height: 16px;
   stroke: currentColor;
@@ -1106,7 +1106,7 @@
 }
 
 /* Obsidian draws the track on the input itself and lifts the thumb by --slider-thumb-y, so the bar changes those variables. */
-.clew-player input[type='range'] {
+.vicher-player input[type='range'] {
   --slider-thumb-width: 12px;
   --slider-thumb-height: 12px;
   --slider-thumb-width-active: 12px;
@@ -1123,15 +1123,15 @@
   min-width: 80px;
   height: 14px;
   margin: 0 var(--size-2-3);
-  background: linear-gradient(to right, var(--interactive-accent) var(--clew-progress, 0%), var(--background-modifier-border-hover) var(--clew-progress, 0%)) center / 100% 2px no-repeat;
+  background: linear-gradient(to right, var(--interactive-accent) var(--vicher-progress, 0%), var(--background-modifier-border-hover) var(--vicher-progress, 0%)) center / 100% 2px no-repeat;
   border-radius: 0;
 }
 
-.clew-player input[type='range']::-webkit-slider-runnable-track {
+.vicher-player input[type='range']::-webkit-slider-runnable-track {
   height: 14px;
 }
 
-.clew-player-count {
+.vicher-player-count {
   text-align: right;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
@@ -1139,8 +1139,8 @@
   white-space: nowrap;
 }
 
-.clew-network-node,
-.clew-network-edge-label {
+.vicher-network-node,
+.vicher-network-edge-label {
   position: absolute;
   top: 0;
   left: 0;
@@ -1148,8 +1148,8 @@
   border-radius: var(--radius-s);
 }
 
-.clew-network-node,
-.clew-network-edge-label {
+.vicher-network-node,
+.vicher-network-edge-label {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1161,107 +1161,107 @@
   background: var(--background-primary);
 }
 
-.clew-network-node {
+.vicher-network-node {
   border: 1px solid var(--text-muted);
   z-index: 2;
 }
 
-.clew-network-edge-label {
+.vicher-network-edge-label {
   z-index: 1;
   padding: 0;
   background: none;
 }
 
-.clew-network-edge-label > span {
+.vicher-network-edge-label > span {
   padding: 0 4px;
   border-radius: var(--radius-s);
   background: var(--background-primary);
 }
 
-.clew-network-edges {
+.vicher-network-edges {
   position: absolute;
   inset: 0;
 }
 
-.clew-network-edge {
+.vicher-network-edge {
   stroke: var(--text-muted);
   stroke-width: 2;
 }
 
-.clew-network-node[data-tag='active'] {
+.vicher-network-node[data-tag='active'] {
   border: 2px solid var(--interactive-accent);
 }
 
-.clew-network-edge[data-tag='active'] {
+.vicher-network-edge[data-tag='active'] {
   stroke: var(--interactive-accent);
   stroke-width: 4;
 }
 
-.clew-network-edge[data-tag='done'] {
+.vicher-network-edge[data-tag='done'] {
   stroke-dasharray: 7 4;
 }
 
 /* Fade only the text, so the label still covers the dot grid. */
-.clew-network-edge-label[data-tag='dim'] {
+.vicher-network-edge-label[data-tag='dim'] {
   opacity: 1;
   color: var(--text-faint);
 }
 
 /* Markdown tables share one presentation in prose and OpenUI text. */
-.clew-reply.markdown-rendered .table-wrapper {
+.vicher-reply.markdown-rendered .table-wrapper {
   width: 100%;
   min-width: 0;
   max-width: 100%;
   overflow-x: auto;
 }
 
-.clew-reply.markdown-rendered table {
+.vicher-reply.markdown-rendered table {
   width: 100%;
 }
 
-.clew-reply.markdown-rendered .clew-reply-prose table {
+.vicher-reply.markdown-rendered .vicher-reply-prose table {
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-m);
   line-height: var(--line-height-tight);
 }
 
-.clew-reply.markdown-rendered .clew-reply-prose th,
-.clew-reply.markdown-rendered .clew-reply-prose td {
+.vicher-reply.markdown-rendered .vicher-reply-prose th,
+.vicher-reply.markdown-rendered .vicher-reply-prose td {
   padding: var(--size-4-2) var(--size-4-3);
   vertical-align: middle;
 }
 
-.clew-reply.markdown-rendered .clew-reply-prose th {
+.vicher-reply.markdown-rendered .vicher-reply-prose th {
   background: var(--background-secondary);
 }
 
-.clew-reply.markdown-rendered .clew-reply-prose td {
+.vicher-reply.markdown-rendered .vicher-reply-prose td {
   background: var(--background-primary);
 }
 
-.clew-reply.markdown-rendered .clew-reply-prose tbody tr:hover > td {
+.vicher-reply.markdown-rendered .vicher-reply-prose tbody tr:hover > td {
   background: var(--background-modifier-hover);
 }
 
-.clew-quiz {
+.vicher-quiz {
   display: flex;
   flex-direction: column;
   gap: var(--size-4-3);
 }
 
-.clew-quiz-question {
+.vicher-quiz-question {
   font-weight: var(--font-semibold);
 }
 
-.clew-quiz-options {
+.vicher-quiz-options {
   display: flex;
   flex-direction: column;
   gap: var(--size-2-3);
 }
 
 /* Doubled up so Obsidian's own button styles (background, shadow, height) do not win. */
-.clew-quiz .clew-quiz-option {
+.vicher-quiz .vicher-quiz-option {
   display: flex;
   align-items: center;
   gap: var(--size-4-3);
@@ -1281,13 +1281,13 @@
   transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
 }
 
-.clew-quiz .clew-quiz-option > span {
+.vicher-quiz .vicher-quiz-option > span {
   flex: 1;
   min-width: 0;
 }
 
 /* A round mark in front of each option. Picked, it fills with a dot; marked, it becomes a tick or a cross. */
-.clew-quiz .clew-quiz-option::before {
+.vicher-quiz .vicher-quiz-option::before {
   content: '';
   flex: none;
   box-sizing: border-box;
@@ -1298,54 +1298,54 @@
   transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.clew-quiz .clew-quiz-option > span > :first-child,
-.clew-quiz .clew-quiz-option > span > :first-child > :first-child {
+.vicher-quiz .vicher-quiz-option > span > :first-child,
+.vicher-quiz .vicher-quiz-option > span > :first-child > :first-child {
   margin: 0;
 }
 
-.clew-quiz .clew-quiz-option:hover:not(:disabled) {
+.vicher-quiz .vicher-quiz-option:hover:not(:disabled) {
   border-color: var(--background-modifier-border-hover);
   background: var(--background-modifier-hover);
 }
 
-.clew-quiz .clew-quiz-option:hover:not(:disabled)::before {
+.vicher-quiz .vicher-quiz-option:hover:not(:disabled)::before {
   border-color: var(--text-muted);
 }
 
-.clew-quiz .clew-quiz-option:active:not(:disabled) {
+.vicher-quiz .vicher-quiz-option:active:not(:disabled) {
   transform: scale(0.99);
 }
 
-.clew-quiz .clew-quiz-option[aria-checked='true'] {
+.vicher-quiz .vicher-quiz-option[aria-checked='true'] {
   border-color: var(--interactive-accent);
   background: color-mix(in srgb, var(--interactive-accent) 10%, var(--background-primary));
 }
 
-.clew-quiz .clew-quiz-option[aria-checked='true']::before {
+.vicher-quiz .vicher-quiz-option[aria-checked='true']::before {
   border-color: var(--interactive-accent);
   background: var(--interactive-accent);
   box-shadow: inset 0 0 0 2px var(--background-primary);
 }
 
-.clew-quiz .clew-quiz-option:focus-visible {
+.vicher-quiz .vicher-quiz-option:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 1px;
 }
 
-.clew-quiz .clew-quiz-option:disabled {
+.vicher-quiz .vicher-quiz-option:disabled {
   cursor: default;
   opacity: 1;
 }
 
 /* Once marked, a tick or a cross replaces the round mark, and the border grows by 1px that the padding gives back. */
-.clew-quiz .clew-quiz-option.is-correct,
-.clew-quiz .clew-quiz-option.is-wrong {
+.vicher-quiz .vicher-quiz-option.is-correct,
+.vicher-quiz .vicher-quiz-option.is-wrong {
   padding: calc(var(--size-4-2) - 1px) calc(var(--size-4-3) - 1px);
   border-width: 2px;
 }
 
-.clew-quiz .clew-quiz-option.is-correct::before,
-.clew-quiz .clew-quiz-option.is-wrong::before {
+.vicher-quiz .vicher-quiz-option.is-correct::before,
+.vicher-quiz .vicher-quiz-option.is-wrong::before {
   width: 16px;
   height: auto;
   border: 0;
@@ -1355,45 +1355,45 @@
   font-weight: var(--font-bold);
   line-height: 1;
   text-align: center;
-  animation: clew-check-in 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
+  animation: vicher-check-in 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
 
-.clew-quiz .clew-quiz-option.is-correct {
+.vicher-quiz .vicher-quiz-option.is-correct {
   border-style: dashed;
   border-color: var(--text-success);
   background: color-mix(in srgb, var(--text-success) 6%, var(--background-primary));
 }
 
-.clew-quiz .clew-quiz-option.is-correct::before {
+.vicher-quiz .vicher-quiz-option.is-correct::before {
   content: '✓';
   color: var(--text-success);
 }
 
-.clew-quiz .clew-quiz-option.is-wrong {
+.vicher-quiz .vicher-quiz-option.is-wrong {
   border-color: var(--color-orange);
   background: color-mix(in srgb, var(--color-orange) 10%, var(--background-primary));
-  animation: clew-quiz-shake 0.3s ease;
+  animation: vicher-quiz-shake 0.3s ease;
 }
 
-.clew-quiz .clew-quiz-option.is-wrong::before {
+.vicher-quiz .vicher-quiz-option.is-wrong::before {
   content: '✕';
   color: var(--color-orange);
 }
 
-.clew-quiz-bar {
+.vicher-quiz-bar {
   display: flex;
   align-items: center;
   gap: var(--size-4-3);
   margin-top: var(--size-4-1);
 }
 
-.clew-quiz-note {
+.vicher-quiz-note {
   margin-right: auto;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
 }
 
-.clew-quiz .clew-quiz-submit {
+.vicher-quiz .vicher-quiz-submit {
   height: auto;
   padding: var(--size-4-2) var(--size-4-6);
   border-radius: var(--radius-m);
@@ -1402,22 +1402,22 @@
   transition: opacity 0.15s ease, transform 0.1s ease, background-color 0.15s ease;
 }
 
-.clew-quiz .clew-quiz-submit:disabled {
+.vicher-quiz .vicher-quiz-submit:disabled {
   opacity: 0.45;
 }
 
-.clew-quiz .clew-quiz-submit:active:not(:disabled) {
+.vicher-quiz .vicher-quiz-submit:active:not(:disabled) {
   transform: scale(0.97);
 }
 
-.clew-quiz-feedback {
+.vicher-quiz-feedback {
   margin-top: var(--size-4-1);
   color: var(--text-muted);
   font-size: var(--font-ui-small);
-  animation: clew-pop-in 0.25s ease;
+  animation: vicher-pop-in 0.25s ease;
 }
 
-@keyframes clew-quiz-shake {
+@keyframes vicher-quiz-shake {
   25% {
     transform: translateX(-3px);
   }
@@ -1427,35 +1427,35 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .clew-quiz *,
-  .clew-quiz *::before {
+  .vicher-quiz *,
+  .vicher-quiz *::before {
     animation: none !important;
     transition: none !important;
   }
 }
 
 /* Obsidian gives the thumb its own `cursor: default`, so the input's cursor never shows over it. */
-.clew-slider input[type='range'],
-.clew-slider input[type='range']::-webkit-slider-thumb,
-.clew-slider input[type='range']::-webkit-slider-runnable-track,
-.clew-player input[type='range'],
-.clew-player input[type='range']::-webkit-slider-thumb,
-.clew-player input[type='range']::-webkit-slider-runnable-track {
+.vicher-slider input[type='range'],
+.vicher-slider input[type='range']::-webkit-slider-thumb,
+.vicher-slider input[type='range']::-webkit-slider-runnable-track,
+.vicher-player input[type='range'],
+.vicher-player input[type='range']::-webkit-slider-thumb,
+.vicher-player input[type='range']::-webkit-slider-runnable-track {
   cursor: pointer;
 }
 
 /* A plot draws with Obsidian's own colours, so its series follow the vault's theme. */
-.clew-plot {
-  --clew-series-1: var(--color-blue);
-  --clew-series-2: var(--color-orange);
-  --clew-series-3: var(--color-green);
-  --clew-series-4: var(--color-purple);
-  --clew-series-5: var(--color-cyan);
-  --clew-series-6: var(--color-pink);
+.vicher-plot {
+  --vicher-series-1: var(--color-blue);
+  --vicher-series-2: var(--color-orange);
+  --vicher-series-3: var(--color-green);
+  --vicher-series-4: var(--color-purple);
+  --vicher-series-5: var(--color-cyan);
+  --vicher-series-6: var(--color-pink);
   min-width: 0;
 }
 
-.clew-plot-legend {
+.vicher-plot-legend {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -1465,55 +1465,55 @@
   font-size: calc(var(--font-ui-small) - 1px);
 }
 
-.clew-plot-legend:empty {
+.vicher-plot-legend:empty {
   display: none;
 }
 
-.clew-plot-swatch {
+.vicher-plot-swatch {
   display: inline-block;
   margin-right: var(--size-2-3);
-  background: var(--clew-swatch);
+  background: var(--vicher-swatch);
   vertical-align: middle;
 }
 
-.clew-plot-swatch.is-area,
-.clew-plot-swatch.is-bars {
+.vicher-plot-swatch.is-area,
+.vicher-plot-swatch.is-bars {
   width: 10px;
   height: 10px;
   border-radius: 2px;
 }
 
-.clew-plot-swatch.is-dot {
+.vicher-plot-swatch.is-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
 }
 
-.clew-plot-frame {
+.vicher-plot-frame {
   position: relative;
   min-width: 0;
   overflow: hidden;
 }
 
-.clew-plot-svg {
+.vicher-plot-svg {
   display: block;
 }
 
-.clew-plot-svg text {
+.vicher-plot-svg text {
   font-family: inherit;
   font-size: 12px;
 }
 
-.clew-plot-tick {
+.vicher-plot-tick {
   fill: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
-.clew-plot-svg .clew-plot-title {
+.vicher-plot-svg .vicher-plot-title {
   font-size: 13px;
 }
 
-.clew-plot-label {
+.vicher-plot-label {
   fill: var(--text-normal);
   paint-order: stroke;
   stroke: var(--background-primary);
@@ -1521,12 +1521,12 @@
   stroke-linejoin: round;
 }
 
-.clew-plot-label.is-strong {
+.vicher-plot-label.is-strong {
   font-weight: var(--font-semibold);
 }
 
-/* A label with Markdown or maths, which SVG text cannot typeset, drawn like `.clew-plot-label` over the plot. */
-.clew-plot-rich-label {
+/* A label with Markdown or maths, which SVG text cannot typeset, drawn like `.vicher-plot-label` over the plot. */
+.vicher-plot-rich-label {
   position: absolute;
   padding: 0 2px;
   border-radius: var(--radius-s);
@@ -1537,11 +1537,11 @@
   white-space: nowrap;
 }
 
-.clew-plot-rich-label.is-strong {
+.vicher-plot-rich-label.is-strong {
   font-weight: var(--font-semibold);
 }
 
-.clew-plot-rich-label.is-title {
+.vicher-plot-rich-label.is-title {
   padding: 0;
   background: none;
   color: var(--text-muted);
@@ -1549,92 +1549,92 @@
   transform: translate(-50%, -50%);
 }
 
-.clew-plot-rich-label.is-vertical {
+.vicher-plot-rich-label.is-vertical {
   transform: translate(-50%, -50%) rotate(-90deg);
 }
 
-.clew-plot-grid,
-.clew-plot-axis {
+.vicher-plot-grid,
+.vicher-plot-axis {
   stroke: var(--background-modifier-border);
   stroke-width: 1;
 }
 
-.clew-plot-grid {
+.vicher-plot-grid {
   stroke-dasharray: 5 4;
 }
 
-.clew-plot-axis {
+.vicher-plot-axis {
   stroke: var(--background-modifier-border-hover);
 }
 
-.clew-plot-line {
+.vicher-plot-line {
   fill: none;
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.clew-plot-rule {
+.vicher-plot-rule {
   stroke-width: 1.5;
 }
 
-.clew-plot-dot {
+.vicher-plot-dot {
   stroke: var(--background-primary);
   stroke-width: 2;
 }
 
 /* A 3D plot's height colours (viridis), its cell edges and its box. The dark ramp lifts the low end off the background. */
-.clew-plot3 {
-  --clew-surface-1: #440154;
-  --clew-surface-2: #3b528b;
-  --clew-surface-3: #21918c;
-  --clew-surface-4: #5ec962;
-  --clew-surface-5: #fde725;
-  --clew-surface-edge: rgb(0 0 0 / 22%);
-  --clew-surface-box: var(--text-faint);
+.vicher-plot3 {
+  --vicher-surface-1: #440154;
+  --vicher-surface-2: #3b528b;
+  --vicher-surface-3: #21918c;
+  --vicher-surface-4: #5ec962;
+  --vicher-surface-5: #fde725;
+  --vicher-surface-edge: rgb(0 0 0 / 22%);
+  --vicher-surface-box: var(--text-faint);
 }
 
-.theme-dark .clew-plot3 {
-  --clew-surface-1: #5b2a86;
-  --clew-surface-2: #41609a;
+.theme-dark .vicher-plot3 {
+  --vicher-surface-1: #5b2a86;
+  --vicher-surface-2: #41609a;
 }
 
-.clew-plot3-frame {
+.vicher-plot3-frame {
   cursor: grab;
   touch-action: none;
   user-select: none;
 }
 
-.clew-plot3-frame:active {
+.vicher-plot3-frame:active {
   cursor: grabbing;
 }
 
-.clew-plot3-frame:focus-visible {
+.vicher-plot3-frame:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 2px;
 }
 
-.clew-plot3-canvas {
+.vicher-plot3-canvas {
   position: absolute;
   inset: 0;
 }
 
-.clew-plot3-svg {
+.vicher-plot3-svg {
   position: relative;
 }
 
-.clew-plot-cross {
+.vicher-plot-cross {
   stroke: var(--text-faint);
   stroke-width: 1;
 }
 
-.clew-plot-hit {
+.vicher-plot-hit {
   fill: transparent;
   pointer-events: all;
   touch-action: pan-y;
 }
 
-.clew-plot-tip {
+.vicher-plot-tip {
   position: absolute;
   z-index: 2;
   max-width: 240px;
@@ -1648,54 +1648,54 @@
   pointer-events: none;
 }
 
-.clew-plot-tip-head {
+.vicher-plot-tip-head {
   color: var(--text-muted);
 }
 
-.clew-tools {
+.vicher-tools {
   color: var(--text-muted);
   font-size: var(--font-ui-small);
 }
 
-.clew-reply > .clew-tools:first-child {
+.vicher-reply > .vicher-tools:first-child {
   margin-top: var(--size-4-2);
 }
 
 /* The header is a full line tall, so the reply's gap after it reads wider than the gap between text blocks. */
-.clew-tools + .clew-reply-text {
+.vicher-tools + .vicher-reply-text {
   margin-top: calc(var(--size-4-1) * -1);
 }
 
 /* The reply's gap alone spaces its blocks, so paragraph margins at a text block's edges don't widen it. */
-.clew-reply-text > :first-child > :first-child,
-.clew-reply-text > .clew-reply-prose:first-child > :first-child > :first-child {
+.vicher-reply-text > :first-child > :first-child,
+.vicher-reply-text > .vicher-reply-prose:first-child > :first-child > :first-child {
   margin-top: 0;
 }
 
-.clew-reply-text > :last-child > :last-child,
-.clew-reply-text > .clew-reply-prose:last-child > :last-child > :last-child {
+.vicher-reply-text > :last-child > :last-child,
+.vicher-reply-text > .vicher-reply-prose:last-child > :last-child > :last-child {
   margin-bottom: 0;
 }
 
 /* A heading sits closer to its section than to the one before. Each block renders in its own div, so app.css's wider
    gap above a heading after a paragraph never matches here, and a vault snippet may widen the gap below with !important. */
-.clew-reply.markdown-rendered .clew-reply-prose :is(h1, h2, h3, h4, h5, h6) {
+.vicher-reply.markdown-rendered .vicher-reply-prose :is(h1, h2, h3, h4, h5, h6) {
   margin-top: 1.25em !important;
   margin-bottom: var(--size-4-2) !important;
 }
 
-.clew-reply.markdown-rendered .clew-reply-text > .clew-reply-prose:first-child > :first-child > :is(h1, h2, h3, h4, h5, h6):first-child {
+.vicher-reply.markdown-rendered .vicher-reply-text > .vicher-reply-prose:first-child > :first-child > :is(h1, h2, h3, h4, h5, h6):first-child {
   margin-top: 0 !important;
 }
 
 /* As tall as a line of reply text, so a line that replaces another lands in the same spot. */
-.clew-tools .clew-tools-header {
+.vicher-tools .vicher-tools-header {
   display: flex;
   align-items: center;
   gap: var(--size-2-2);
   max-width: 100%;
   height: auto;
-  min-height: calc(var(--font-ui-medium) * var(--clew-reply-line-height));
+  min-height: calc(var(--font-ui-medium) * var(--vicher-reply-line-height));
   padding: 0;
   border: none;
   background: transparent;
@@ -1707,44 +1707,44 @@
   cursor: pointer;
 }
 
-.clew-tools .clew-tools-header:hover {
+.vicher-tools .vicher-tools-header:hover {
   background: transparent;
 }
 
-.clew-tools:not(.is-empty) .clew-tools-header:hover {
+.vicher-tools:not(.is-empty) .vicher-tools-header:hover {
   color: var(--text-normal);
 }
 
-.clew-tools:not(.is-running) {
+.vicher-tools:not(.is-running) {
   color: var(--text-faint);
 }
 
-.clew-tools.is-empty .clew-tools-header {
+.vicher-tools.is-empty .vicher-tools-header {
   cursor: default;
 }
 
-.clew-tools-summary,
-.clew-tool {
+.vicher-tools-summary,
+.vicher-tool {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.clew-tools-summary {
+.vicher-tools-summary {
   font-weight: var(--font-medium);
 }
 
-.clew-tools.is-running .clew-tools-summary,
-.clew-tool[data-status='running'],
-.clew-diagram-card-label {
+.vicher-tools.is-running .vicher-tools-summary,
+.vicher-tool[data-status='running'],
+.vicher-diagram-card-label {
   background: linear-gradient(90deg, var(--text-muted) 40%, var(--text-normal) 50%, var(--text-muted) 60%) 0 0 / 250% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: clew-shimmer 1.6s linear infinite;
+  animation: vicher-shimmer 1.6s linear infinite;
 }
 
-.clew-tools-orb {
+.vicher-tools-orb {
   position: relative;
   flex-shrink: 0;
   width: 0;
@@ -1757,15 +1757,15 @@
     opacity 240ms ease;
 }
 
-.clew-tools.is-running .clew-tools-orb,
-.clew-diagram-card .clew-tools-orb {
+.vicher-tools.is-running .vicher-tools-orb,
+.vicher-diagram-card .vicher-tools-orb {
   width: 12px;
   margin-inline-end: var(--size-2-1);
   opacity: 1;
-  animation: clew-breathe 2.6s ease-in-out infinite;
+  animation: vicher-breathe 2.6s ease-in-out infinite;
 }
 
-.clew-tools-orb::before {
+.vicher-tools-orb::before {
   content: '';
   position: relative;
   display: block;
@@ -1781,7 +1781,7 @@
 }
 
 /* A soft gradient halo instead of an animated box-shadow, so the glow pulses by opacity alone. */
-.clew-tools-orb::after {
+.vicher-tools-orb::after {
   content: '';
   position: absolute;
   z-index: -1;
@@ -1795,53 +1795,53 @@
   opacity: 0;
 }
 
-.clew-tools.is-running .clew-tools-orb::before,
-.clew-diagram-card .clew-tools-orb::before {
+.vicher-tools.is-running .vicher-tools-orb::before,
+.vicher-diagram-card .vicher-tools-orb::before {
   animation:
-    clew-squish 1.7s ease-in-out infinite,
-    clew-spin 3.6s linear infinite;
+    vicher-squish 1.7s ease-in-out infinite,
+    vicher-spin 3.6s linear infinite;
 }
 
-.clew-tools.is-running .clew-tools-orb::after,
-.clew-diagram-card .clew-tools-orb::after {
-  animation: clew-glow 2.6s ease-in-out infinite;
+.vicher-tools.is-running .vicher-tools-orb::after,
+.vicher-diagram-card .vicher-tools-orb::after {
+  animation: vicher-glow 2.6s ease-in-out infinite;
 }
 
-.clew-tools-time {
+.vicher-tools-time {
   flex-shrink: 0;
   color: var(--text-faint);
   transition: color 150ms ease;
   font-variant-numeric: tabular-nums;
 }
 
-.clew-tools:not(.is-empty) .clew-tools-header:hover .clew-tools-time {
+.vicher-tools:not(.is-empty) .vicher-tools-header:hover .vicher-tools-time {
   color: inherit;
 }
 
-.clew-tools-time:empty {
+.vicher-tools-time:empty {
   display: none;
 }
 
-.clew-tools-chevron {
+.vicher-tools-chevron {
   display: inline-flex;
   flex-shrink: 0;
   transition: transform 150ms ease;
 }
 
-.clew-tools.is-empty .clew-tools-chevron {
+.vicher-tools.is-empty .vicher-tools-chevron {
   display: none;
 }
 
-.clew-tools-chevron .svg-icon {
+.vicher-tools-chevron .svg-icon {
   width: 14px;
   height: 14px;
 }
 
-.clew-tools.is-open .clew-tools-chevron {
+.vicher-tools.is-open .vicher-tools-chevron {
   transform: rotate(90deg);
 }
 
-.clew-tools-list {
+.vicher-tools-list {
   display: none;
   flex-direction: column;
   gap: var(--size-2-2);
@@ -1850,16 +1850,16 @@
   border-left: 1px solid var(--background-modifier-border);
 }
 
-.clew-tools.is-open .clew-tools-list {
+.vicher-tools.is-open .vicher-tools-list {
   display: flex;
 }
 
-.clew-tool[data-status='failed'] {
+.vicher-tool[data-status='failed'] {
   color: var(--text-error);
 }
 
 /* Only rotate, scale and opacity animate, so the orb never repaints; the uneven outline turning under an uneven squish reads as a morph. */
-@keyframes clew-squish {
+@keyframes vicher-squish {
   0%,
   100% {
     scale: 1 0.9;
@@ -1875,14 +1875,14 @@
   }
 }
 
-@keyframes clew-spin {
+@keyframes vicher-spin {
   to {
     rotate: 1turn;
   }
 }
 
 /* Quick inhale, slow exhale. */
-@keyframes clew-breathe {
+@keyframes vicher-breathe {
   0%,
   100% {
     scale: 0.78;
@@ -1892,7 +1892,7 @@
   }
 }
 
-@keyframes clew-glow {
+@keyframes vicher-glow {
   0%,
   100% {
     opacity: 0.25;
@@ -1902,7 +1902,7 @@
   }
 }
 
-@keyframes clew-shimmer {
+@keyframes vicher-shimmer {
   from {
     background-position: 100% 0;
   }
@@ -1912,9 +1912,9 @@
 }
 
 /* The look every floating menu shares; each menu sets its own placement. */
-.clew-picker-menu,
-.clew-skill-menu,
-.clew-history-menu {
+.vicher-picker-menu,
+.vicher-skill-menu,
+.vicher-history-menu {
   z-index: var(--layer-popover);
   overflow-y: auto;
   padding: 4px;
@@ -1926,26 +1926,26 @@
   font-size: var(--font-ui-small);
 }
 
-.clew-skill-option {
+.vicher-skill-option {
   padding: 5px 8px;
   border-radius: 10px;
   cursor: pointer;
 }
 
-.clew-skill-option.is-active {
+.vicher-skill-option.is-active {
   background: var(--background-modifier-hover);
 }
 
-.clew-skill-name {
+.vicher-skill-name {
   font-weight: var(--font-medium);
 }
 
-.clew-skill-hint {
+.vicher-skill-hint {
   color: var(--text-faint);
   font-weight: var(--font-normal);
 }
 
-.clew-skill-description {
+.vicher-skill-description {
   overflow: hidden;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
@@ -1953,20 +1953,20 @@
   white-space: nowrap;
 }
 
-.clew-skill-token,
-.clew-skill-match {
+.vicher-skill-token,
+.vicher-skill-match {
   color: var(--text-accent);
 }
 
 /* No padding or margin: the input's mirror must keep the textarea's text metrics. */
-.clew-mention-token {
+.vicher-mention-token {
   color: var(--text-accent);
   background: color-mix(in srgb, var(--interactive-accent) 18%, transparent);
   border-radius: 4px;
   box-decoration-break: clone;
 }
 
-.clew-history-menu {
+.vicher-history-menu {
   position: fixed;
   display: flex;
   flex-direction: column;
@@ -1977,36 +1977,36 @@
   scrollbar-width: auto;
 }
 
-.clew-history-menu::-webkit-scrollbar {
+.vicher-history-menu::-webkit-scrollbar {
   width: 3px;
 }
 
-.clew-history-menu::-webkit-scrollbar-track {
+.vicher-history-menu::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.clew-history-menu::-webkit-scrollbar-thumb {
+.vicher-history-menu::-webkit-scrollbar-thumb {
   border: none;
   border-radius: 999px;
   background: var(--scrollbar-thumb-bg);
 }
 
-.clew-history-menu :is(.clew-history-row, .clew-history-all) {
+.vicher-history-menu :is(.vicher-history-row, .vicher-history-all) {
   gap: 8px;
   padding: 6px 8px;
 }
 
-.clew-history-row[aria-current='true'] {
+.vicher-history-row[aria-current='true'] {
   color: var(--text-accent);
 }
 
-.clew-history-row .clew-agent-icon {
+.vicher-history-row .vicher-agent-icon {
   flex: none;
   width: 14px;
   height: 14px;
 }
 
-.clew-history-title {
+.vicher-history-title {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -2014,23 +2014,23 @@
   white-space: nowrap;
 }
 
-.clew-history-when {
+.vicher-history-when {
   flex: none;
   color: var(--text-faint);
   font-size: var(--font-ui-smaller);
 }
 
-.clew-history-menu .clew-history-all {
+.vicher-history-menu .vicher-history-all {
   margin-top: 4px;
   color: var(--text-muted);
 }
 
-.clew-history-empty {
+.vicher-history-empty {
   padding: 6px 8px;
   color: var(--text-faint);
 }
 
-.clew-chat-header {
+.vicher-chat-header {
   position: absolute;
   top: var(--size-4-2);
   inset-inline-end: var(--size-4-3);
@@ -2039,7 +2039,7 @@
   gap: 4px;
 }
 
-.clew-chat-header .clew-icon-action {
+.vicher-chat-header .vicher-icon-action {
   width: 28px;
   height: 28px;
   padding: 4px;
@@ -2050,39 +2050,39 @@
   color: var(--text-muted);
 }
 
-.clew-chat-header .clew-icon-action .svg-icon {
+.vicher-chat-header .vicher-icon-action .svg-icon {
   width: 18px;
   height: 18px;
 }
 
-.clew-chat-panels,
-.clew-chat-panel {
+.vicher-chat-panels,
+.vicher-chat-panel {
   display: grid;
   min-height: 0;
   min-width: 0;
 }
 
-.clew-chat-panels {
+.vicher-chat-panels {
   position: relative;
   flex: 1;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto auto;
 }
 
-.clew-chat-panel {
+.vicher-chat-panel {
   grid-area: 1 / 1 / 4 / 2;
   grid-template-rows: subgrid;
 }
 
-.clew-chat-panel .clew-messages {
+.vicher-chat-panel .vicher-messages {
   grid-row: 1;
   min-height: 0;
 }
 
-.clew-chat-panel[hidden],
-.clew-chat-tab[hidden] { display: none; }
+.vicher-chat-panel[hidden],
+.vicher-chat-tab[hidden] { display: none; }
 
-.clew-chat-composer-area {
+.vicher-chat-composer-area {
   grid-row: 3;
   container-type: inline-size;
   min-width: 0;
@@ -2090,11 +2090,11 @@
   margin-bottom: var(--size-4-2);
 }
 
-.clew-chat-composer-area .clew-composer {
+.vicher-chat-composer-area .vicher-composer {
   margin-bottom: 0;
 }
 
-.clew-approval-card {
+.vicher-approval-card {
   grid-row: 2;
   min-width: 0;
   margin: 0 4px 42px;
@@ -2106,19 +2106,19 @@
   color: var(--text-normal);
   font-size: var(--font-ui-small);
   line-height: 1.5;
-  animation: clew-approval-enter 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: vicher-approval-enter 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.clew-approval-card[hidden] { display: none; }
-.clew-approval-body {
+.vicher-approval-card[hidden] { display: none; }
+.vicher-approval-body {
   max-height: min(300px, 32vh);
   min-width: 0;
   overflow: auto;
   scrollbar-width: thin;
-  animation: clew-approval-reveal 180ms ease-out;
+  animation: vicher-approval-reveal 180ms ease-out;
 }
-.clew-approval-header { display: flex; align-items: center; gap: 8px; padding: 12px 14px 10px; }
-.clew-approval-icon {
+.vicher-approval-header { display: flex; align-items: center; gap: 8px; padding: 12px 14px 10px; }
+.vicher-approval-icon {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
@@ -2129,34 +2129,34 @@
   background: color-mix(in srgb, var(--interactive-accent) 9%, var(--background-primary));
   color: var(--text-accent);
 }
-.clew-approval-icon .svg-icon { width: 16px; height: 16px; }
-.clew-approval-title { min-width: 0; font-weight: var(--font-semibold); line-height: 1.35; overflow-wrap: anywhere; }
-.clew-approval-reason {
+.vicher-approval-icon .svg-icon { width: 16px; height: 16px; }
+.vicher-approval-title { min-width: 0; font-weight: var(--font-semibold); line-height: 1.35; overflow-wrap: anywhere; }
+.vicher-approval-reason {
   margin: 0 14px 10px;
   color: var(--text-muted);
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.clew-approval-summary { padding: 0 14px 6px; }
-.clew-approval-diff + .clew-approval-diff { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--background-modifier-border); }
-.clew-approval-diff-header { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
-.clew-approval-diff-path { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: var(--font-smallest); font-weight: var(--font-medium); }
-.clew-approval-diff-kind { flex: none; color: var(--text-muted); font-size: var(--font-smallest); }
-.clew-approval-diff-note { margin: 6px 0; color: var(--text-muted); font-size: var(--font-smallest); overflow-wrap: anywhere; }
-.clew-approval-diff-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; tab-size: 2; }
-.clew-approval-diff-text + .clew-approval-diff-text { margin-top: 8px; }
-.clew-approval-diff-text :is(del, ins) { padding-inline: 2px; border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-.clew-approval-diff-text del { color: var(--text-error); background: color-mix(in srgb, var(--color-red) 12%, transparent); text-decoration: line-through; }
-.clew-approval-diff-text ins { color: var(--text-success, var(--color-green)); background: color-mix(in srgb, var(--color-green) 12%, transparent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
-.clew-approval-label { color: var(--text-muted); font-size: var(--font-smallest); }
-.clew-approval-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; }
-.clew-approval-row:first-child { margin-top: 0; }
-.clew-approval-row-icon { display: flex; flex: 0 0 auto; padding-top: 3px; color: var(--text-muted); }
-.clew-approval-row-icon .svg-icon { width: 16px; height: 16px; }
-.clew-approval-row-content { min-width: 0; flex: 1; }
-.clew-approval-card .clew-approval-value,
-.clew-approval-card .clew-approval-details {
+.vicher-approval-summary { padding: 0 14px 6px; }
+.vicher-approval-diff + .vicher-approval-diff { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--background-modifier-border); }
+.vicher-approval-diff-header { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.vicher-approval-diff-path { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: var(--font-smallest); font-weight: var(--font-medium); }
+.vicher-approval-diff-kind { flex: none; color: var(--text-muted); font-size: var(--font-smallest); }
+.vicher-approval-diff-note { margin: 6px 0; color: var(--text-muted); font-size: var(--font-smallest); overflow-wrap: anywhere; }
+.vicher-approval-diff-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; tab-size: 2; }
+.vicher-approval-diff-text + .vicher-approval-diff-text { margin-top: 8px; }
+.vicher-approval-diff-text :is(del, ins) { padding-inline: 2px; border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.vicher-approval-diff-text del { color: var(--text-error); background: color-mix(in srgb, var(--color-red) 12%, transparent); text-decoration: line-through; }
+.vicher-approval-diff-text ins { color: var(--text-success, var(--color-green)); background: color-mix(in srgb, var(--color-green) 12%, transparent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.vicher-approval-label { color: var(--text-muted); font-size: var(--font-smallest); }
+.vicher-approval-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; }
+.vicher-approval-row:first-child { margin-top: 0; }
+.vicher-approval-row-icon { display: flex; flex: 0 0 auto; padding-top: 3px; color: var(--text-muted); }
+.vicher-approval-row-icon .svg-icon { width: 16px; height: 16px; }
+.vicher-approval-row-content { min-width: 0; flex: 1; }
+.vicher-approval-card .vicher-approval-value,
+.vicher-approval-card .vicher-approval-details {
   margin: 4px 0 0;
   padding: 0;
   border: 0;
@@ -2169,18 +2169,18 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.clew-approval-row[data-field="command"] .clew-approval-value,
-.clew-approval-card .clew-approval-details {
+.vicher-approval-row[data-field="command"] .vicher-approval-value,
+.vicher-approval-card .vicher-approval-details {
   padding: 8px 10px;
   border-radius: 8px;
   background: var(--background-secondary);
   line-height: 1.5;
   tab-size: 2;
 }
-.clew-approval-row[data-field="cwd"] .clew-approval-value { color: var(--text-muted); }
-.clew-approval-row[data-field="command"] .clew-approval-row-icon { padding-top: 12px; }
-.clew-approval-disclosure { margin-top: 6px; }
-.clew-approval-disclosure > summary {
+.vicher-approval-row[data-field="cwd"] .vicher-approval-value { color: var(--text-muted); }
+.vicher-approval-row[data-field="command"] .vicher-approval-row-icon { padding-top: 12px; }
+.vicher-approval-disclosure { margin-top: 6px; }
+.vicher-approval-disclosure > summary {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2196,19 +2196,19 @@
   list-style: none;
   transition: color 140ms ease, background-color 140ms ease;
 }
-.clew-approval-disclosure > summary::-webkit-details-marker { display: none; }
-.clew-approval-disclosure > summary:hover { color: var(--text-normal); background: var(--background-modifier-hover); }
-.clew-approval-chevron { display: flex; flex: 0 0 auto; }
-.clew-approval-chevron .svg-icon { width: 14px; height: 14px; transform: rotate(0deg); transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1); }
-.clew-approval-chevron:dir(rtl) .svg-icon { transform: rotate(180deg); }
-.clew-approval-disclosure[open] .clew-approval-chevron .svg-icon { transform: rotate(90deg); }
-.clew-approval-disclosure[open] > pre { animation: clew-approval-reveal 180ms ease-out; }
-.clew-question-form { display: contents; }
-.clew-question[hidden] { display: none; }
-.clew-question .clew-approval-header { align-items: flex-start; padding-bottom: 12px; }
-.clew-question-heading { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-top: 3px; }
-.clew-question-options { display: flex; flex-direction: column; gap: 6px; padding: 0 14px 14px; }
-.clew-question-option {
+.vicher-approval-disclosure > summary::-webkit-details-marker { display: none; }
+.vicher-approval-disclosure > summary:hover { color: var(--text-normal); background: var(--background-modifier-hover); }
+.vicher-approval-chevron { display: flex; flex: 0 0 auto; }
+.vicher-approval-chevron .svg-icon { width: 14px; height: 14px; transform: rotate(0deg); transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1); }
+.vicher-approval-chevron:dir(rtl) .svg-icon { transform: rotate(180deg); }
+.vicher-approval-disclosure[open] .vicher-approval-chevron .svg-icon { transform: rotate(90deg); }
+.vicher-approval-disclosure[open] > pre { animation: vicher-approval-reveal 180ms ease-out; }
+.vicher-question-form { display: contents; }
+.vicher-question[hidden] { display: none; }
+.vicher-question .vicher-approval-header { align-items: flex-start; padding-bottom: 12px; }
+.vicher-question-heading { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-top: 3px; }
+.vicher-question-options { display: flex; flex-direction: column; gap: 6px; padding: 0 14px 14px; }
+.vicher-question-option {
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -2219,20 +2219,20 @@
   overflow-wrap: anywhere;
   transition: background-color 120ms ease, border-color 120ms ease;
 }
-.clew-question-option:hover { background: var(--background-modifier-hover); }
-.clew-question-option:has(input:checked) { border-color: var(--interactive-accent); background: color-mix(in srgb, var(--interactive-accent) 8%, transparent); }
-.clew-question-option input { flex: none; margin: 3px 0 0; }
-.clew-question-option-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.clew-question-options .clew-question-other { width: 100%; height: auto; margin-top: 6px; padding: 11px 14px; border-radius: 10px; }
-.clew-approval-actions button:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
-.clew-approval-actions {
+.vicher-question-option:hover { background: var(--background-modifier-hover); }
+.vicher-question-option:has(input:checked) { border-color: var(--interactive-accent); background: color-mix(in srgb, var(--interactive-accent) 8%, transparent); }
+.vicher-question-option input { flex: none; margin: 3px 0 0; }
+.vicher-question-option-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.vicher-question-options .vicher-question-other { width: 100%; height: auto; margin-top: 6px; padding: 11px 14px; border-radius: 10px; }
+.vicher-approval-actions button:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
+.vicher-approval-actions {
   display: grid;
   grid-template-columns: 1fr 1.3fr;
   gap: 8px;
   padding: 10px 14px 12px;
   border-top: 1px solid var(--background-modifier-border);
 }
-.clew-approval-actions button {
+.vicher-approval-actions button {
   width: 100%;
   min-width: 0;
   height: auto;
@@ -2246,41 +2246,41 @@
   white-space: normal;
   transition: background-color 140ms ease, box-shadow 140ms ease, transform 100ms ease;
 }
-.clew-approval-actions .clew-approval-deny { background: var(--background-primary); color: var(--text-normal); }
-.clew-approval-actions .clew-approval-deny:hover { background: var(--background-modifier-hover); }
-.clew-approval-actions .clew-approval-allow { background: var(--text-normal); color: var(--background-primary); border-color: transparent; }
-.clew-approval-actions .clew-approval-allow:hover { background: color-mix(in srgb, var(--text-normal) 88%, var(--background-primary)); }
-.clew-approval-actions button:hover { transform: translateY(-1px); box-shadow: 0 2px 4px color-mix(in srgb, var(--text-normal) 8%, transparent); }
-.clew-approval-actions button:active { transform: scale(0.97); box-shadow: none; }
-.clew-approval-actions button:focus-visible,
-.clew-approval-disclosure > summary:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: 2px; }
-@keyframes clew-approval-enter {
+.vicher-approval-actions .vicher-approval-deny { background: var(--background-primary); color: var(--text-normal); }
+.vicher-approval-actions .vicher-approval-deny:hover { background: var(--background-modifier-hover); }
+.vicher-approval-actions .vicher-approval-allow { background: var(--text-normal); color: var(--background-primary); border-color: transparent; }
+.vicher-approval-actions .vicher-approval-allow:hover { background: color-mix(in srgb, var(--text-normal) 88%, var(--background-primary)); }
+.vicher-approval-actions button:hover { transform: translateY(-1px); box-shadow: 0 2px 4px color-mix(in srgb, var(--text-normal) 8%, transparent); }
+.vicher-approval-actions button:active { transform: scale(0.97); box-shadow: none; }
+.vicher-approval-actions button:focus-visible,
+.vicher-approval-disclosure > summary:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: 2px; }
+@keyframes vicher-approval-enter {
   from { opacity: 0; transform: translateY(8px) scale(0.99); }
   to { opacity: 1; transform: none; }
 }
-@keyframes clew-approval-reveal {
+@keyframes vicher-approval-reveal {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .clew-approval-card,
-  .clew-approval-body,
-  .clew-approval-disclosure[open] > pre { animation: none; }
-  .clew-approval-actions button,
-  .clew-approval-disclosure > summary,
-  .clew-approval-chevron .svg-icon { transition: none; }
-  .clew-approval-actions button:is(:hover, :active) { transform: none; }
+  .vicher-approval-card,
+  .vicher-approval-body,
+  .vicher-approval-disclosure[open] > pre { animation: none; }
+  .vicher-approval-actions button,
+  .vicher-approval-disclosure > summary,
+  .vicher-approval-chevron .svg-icon { transition: none; }
+  .vicher-approval-actions button:is(:hover, :active) { transform: none; }
 }
 @container (max-width: 360px) {
-  .clew-permission-picker .clew-picker-chevron,
-  .clew-permission-picker .clew-picker-label > span:last-child { display: none; }
+  .vicher-permission-picker .vicher-picker-chevron,
+  .vicher-permission-picker .vicher-picker-label > span:last-child { display: none; }
 }
-.clew-chat-tab.is-running.needs-approval .clew-chat-tab-status {
+.vicher-chat-tab.is-running.needs-approval .vicher-chat-tab-status {
   background: var(--text-warning);
   animation: none;
 }
 
-.clew-chat-tab-bar {
+.vicher-chat-tab-bar {
   position: absolute;
   grid-area: 3 / 1;
   inset-inline: 7px;
@@ -2292,13 +2292,13 @@
   pointer-events: none;
 }
 
-.clew-chat-tabs {
+.vicher-chat-tabs {
   display: flex;
   min-width: 0;
   align-items: center;
 }
 
-.clew-chat-tabs .clew-chat-tab {
+.vicher-chat-tabs .vicher-chat-tab {
   position: relative;
   flex: none;
   width: 28px;
@@ -2318,35 +2318,35 @@
   transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
 }
 
-.clew-chat-tab-list { display: flex; flex: none; }
+.vicher-chat-tab-list { display: flex; flex: none; }
 
-.clew-chat-tabs .clew-chat-tab-add { margin-inline-end: 0; }
+.vicher-chat-tabs .vicher-chat-tab-add { margin-inline-end: 0; }
 
-.clew-chat-tab:is(.is-entering, .is-leaving) {
+.vicher-chat-tab:is(.is-entering, .is-leaving) {
   overflow: hidden;
 }
 
-.clew-chat-tabs .clew-chat-tab:is(:hover, :focus-visible) {
+.vicher-chat-tabs .vicher-chat-tab:is(:hover, :focus-visible) {
   background: var(--background-modifier-hover);
   color: var(--text-normal);
 }
 
-.clew-chat-tabs .clew-chat-tab:focus-visible {
+.vicher-chat-tabs .vicher-chat-tab:focus-visible {
   outline: 2px solid var(--background-modifier-border-focus);
   outline-offset: 2px;
 }
 
-.clew-chat-tabs .clew-chat-tab:active {
+.vicher-chat-tabs .vicher-chat-tab:active {
   transform: scale(0.94);
 }
 
-.clew-chat-tabs .clew-chat-tab[aria-selected="true"] {
+.vicher-chat-tabs .vicher-chat-tab[aria-selected="true"] {
   background: color-mix(in srgb, var(--interactive-accent) 16%, var(--background-primary));
   color: var(--text-accent);
   font-weight: var(--font-semibold);
 }
 
-.clew-chat-tab-title {
+.vicher-chat-tab-title {
   position: fixed;
   z-index: var(--layer-popover);
   width: max-content;
@@ -2366,13 +2366,13 @@
   transition: opacity 100ms ease, visibility 0s linear 100ms;
 }
 
-.clew-chat-tab:is(:hover, :focus-visible) .clew-chat-tab-title {
+.vicher-chat-tab:is(:hover, :focus-visible) .vicher-chat-tab-title {
   visibility: visible;
   opacity: 1;
   transition-delay: 200ms;
 }
 
-.clew-chat-tab-status {
+.vicher-chat-tab-status {
   position: absolute;
   top: 4px;
   right: 3px;
@@ -2381,45 +2381,45 @@
   border-radius: 50%;
 }
 
-.clew-chat-tab.is-unread .clew-chat-tab-status { background: var(--text-accent); }
-.clew-chat-tab.is-failed .clew-chat-tab-status { background: var(--text-error); }
-.clew-chat-tab.is-running .clew-chat-tab-status {
+.vicher-chat-tab.is-unread .vicher-chat-tab-status { background: var(--text-accent); }
+.vicher-chat-tab.is-failed .vicher-chat-tab-status { background: var(--text-error); }
+.vicher-chat-tab.is-running .vicher-chat-tab-status {
   width: 7px;
   height: 7px;
   border: 1px solid var(--text-faint);
   border-top-color: var(--text-accent);
   background: transparent;
-  animation: clew-tab-spin 900ms linear infinite;
+  animation: vicher-tab-spin 900ms linear infinite;
 }
 
-@keyframes clew-tab-spin { to { transform: rotate(360deg); } }
+@keyframes vicher-tab-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .clew-chat-tab.is-running .clew-chat-tab-status { animation: none; }
-  .clew-chat-tab-title { transition: none; }
-  .clew-chat-tabs .clew-chat-tab { transition: none; }
-  .clew-chat-tabs .clew-chat-tab:active { transform: none; }
+  .vicher-chat-tab.is-running .vicher-chat-tab-status { animation: none; }
+  .vicher-chat-tab-title { transition: none; }
+  .vicher-chat-tabs .vicher-chat-tab { transition: none; }
+  .vicher-chat-tabs .vicher-chat-tab:active { transform: none; }
 }
 
-.clew-history-group {
+.vicher-history-group {
   padding: 6px 8px 3px;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
 }
 
-.clew-history-number {
+.vicher-history-number {
   flex: none;
   min-width: 18px;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
-.clew-history-status {
+.vicher-history-status {
   flex: none;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
 }
 
-.clew-visually-hidden {
+.vicher-visually-hidden {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -2429,27 +2429,27 @@
 }
 
 /* Beats Obsidian's own cursor on buttons and icons, but not the rules that set another cursor (an empty tool header). */
-:is(.clew-chat, .clew-history-menu, .clew-chat-modal) :is(button:not(:disabled), .clickable-icon) {
+:is(.vicher-chat, .vicher-history-menu, .vicher-chat-modal) :is(button:not(:disabled), .clickable-icon) {
   cursor: pointer;
 }
 
-.clew-chat-list {
+.vicher-chat-list {
   min-height: 0;
 }
 
-.clew-chat-group {
+.vicher-chat-group {
   padding: 10px 8px 4px;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
   font-weight: var(--font-semibold);
 }
 
-.clew-chat-empty {
+.vicher-chat-empty {
   padding: 12px 8px;
   color: var(--text-faint);
 }
 
-.clew-chat-row {
+.vicher-chat-row {
   position: relative;
   display: flex;
   align-items: center;
@@ -2458,46 +2458,46 @@
   corner-shape: round;
 }
 
-.clew-chat-row:is(:hover, .is-active, :focus-within) {
+.vicher-chat-row:is(:hover, .is-active, :focus-within) {
   background: var(--background-modifier-hover);
 }
 
-.clew-chat-modal .clew-chat-open {
+.vicher-chat-modal .vicher-chat-open {
   flex: 1;
   gap: 8px;
   min-width: 0;
   padding: 6px 14px 6px 8px;
 }
 
-.clew-chat-open .clew-agent-icon {
+.vicher-chat-open .vicher-agent-icon {
   flex: none;
   width: 14px;
   height: 14px;
 }
 
-.clew-chat-text {
+.vicher-chat-text {
   flex: 1;
   min-width: 0;
 }
 
-.clew-chat-title,
-.clew-chat-confirm-text {
+.vicher-chat-title,
+.vicher-chat-confirm-text {
   line-height: 20px;
 }
 
-.clew-chat-title,
-.clew-chat-snippet {
+.vicher-chat-title,
+.vicher-chat-snippet {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.clew-chat-snippet {
+.vicher-chat-snippet {
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
 }
 
-.clew-chat-when {
+.vicher-chat-when {
   flex: none;
   width: 56px;
   color: var(--text-faint);
@@ -2506,7 +2506,7 @@
   transition: opacity 120ms ease;
 }
 
-.clew-chat-delete {
+.vicher-chat-delete {
   position: absolute;
   top: 50%;
   right: 12px;
@@ -2516,42 +2516,42 @@
   transition: opacity 120ms ease, transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.clew-chat-row:is(:hover, :has(.clew-chat-delete:focus-visible)) .clew-chat-when {
+.vicher-chat-row:is(:hover, :has(.vicher-chat-delete:focus-visible)) .vicher-chat-when {
   opacity: 0;
 }
 
-.clew-chat-row:is(:hover, :has(.clew-chat-delete:focus-visible)) .clew-chat-delete {
+.vicher-chat-row:is(:hover, :has(.vicher-chat-delete:focus-visible)) .vicher-chat-delete {
   transform: translateY(-50%);
   opacity: 1;
 }
 
-.clew-chat-delete:hover {
+.vicher-chat-delete:hover {
   color: var(--text-error);
 }
 
-.clew-chat-row.is-confirming {
+.vicher-chat-row.is-confirming {
   background: color-mix(in srgb, var(--text-error) 10%, transparent);
-  animation: clew-confirm-bg 160ms ease-out;
+  animation: vicher-confirm-bg 160ms ease-out;
 }
 
-.is-confirming :is(.clew-chat-confirm-text, .clew-chat-confirm) {
-  animation: clew-confirm-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+.is-confirming :is(.vicher-chat-confirm-text, .vicher-chat-confirm) {
+  animation: vicher-confirm-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-@keyframes clew-confirm-bg {
+@keyframes vicher-confirm-bg {
   from {
     background-color: transparent;
   }
 }
 
-@keyframes clew-confirm-in {
+@keyframes vicher-confirm-in {
   from {
     opacity: 0;
     transform: translateX(6px);
   }
 }
 
-.clew-chat-confirm-text {
+.vicher-chat-confirm-text {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -2560,65 +2560,65 @@
   white-space: nowrap;
 }
 
-.clew-chat-confirm {
+.vicher-chat-confirm {
   display: flex;
   flex: none;
   gap: 4px;
   padding-right: 10px;
 }
 
-.clew-chat-confirm button {
+.vicher-chat-confirm button {
   height: auto;
   padding: 3px 10px;
   font-size: var(--font-ui-smaller);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .clew-chat-row.is-confirming,
-  .is-confirming :is(.clew-chat-confirm-text, .clew-chat-confirm) {
+  .vicher-chat-row.is-confirming,
+  .is-confirming :is(.vicher-chat-confirm-text, .vicher-chat-confirm) {
     animation-duration: 1ms;
   }
 
-  .clew-chat-delete,
-  .clew-chat-when {
+  .vicher-chat-delete,
+  .vicher-chat-when {
     transition-duration: 1ms;
   }
 }
 
-.clew-context-meter {
-  --clew-context-share: 0%;
+.vicher-context-meter {
+  --vicher-context-share: 0%;
   flex-shrink: 0;
   width: 14px;
   height: 14px;
   margin-left: 4px;
   border-radius: 50%;
-  background: conic-gradient(var(--text-muted) var(--clew-context-share), var(--background-modifier-border) 0);
+  background: conic-gradient(var(--text-muted) var(--vicher-context-share), var(--background-modifier-border) 0);
   mask: radial-gradient(circle, transparent 3px, #000 3.5px);
 }
 
-.clew-context-meter[data-high='true'] {
-  background: conic-gradient(var(--text-error) var(--clew-context-share), var(--background-modifier-border) 0);
+.vicher-context-meter[data-high='true'] {
+  background: conic-gradient(var(--text-error) var(--vicher-context-share), var(--background-modifier-border) 0);
 }
 
-.clew-context-meter.is-empty {
+.vicher-context-meter.is-empty {
   display: none;
 }
 
-.clew-highlight,
-::highlight(clew-highlight) {
+.vicher-highlight,
+::highlight(vicher-highlight) {
   background-color: color-mix(in srgb, var(--interactive-accent) 30%, transparent);
 }
 
-.clew-highlight {
+.vicher-highlight {
   border-radius: 2px;
 }
 
-.clew-tour,
-.clew-walkthrough {
-  --clew-accent: var(--color-purple, #8b5cf6);
+.vicher-tour,
+.vicher-walkthrough {
+  --vicher-accent: var(--color-purple, #8b5cf6);
 }
 
-.clew-tour {
+.vicher-tour {
   position: fixed;
   inset: 0;
   z-index: var(--layer-popover, 30);
@@ -2626,34 +2626,34 @@
   pointer-events: none;
 }
 
-.clew-tour.is-active {
+.vicher-tour.is-active {
   display: block;
 }
 
-.clew-tour.is-hidden > * {
+.vicher-tour.is-hidden > * {
   opacity: 0;
   pointer-events: none;
 }
 
-.clew-tour-cursor,
-.clew-tour-card {
+.vicher-tour-cursor,
+.vicher-tour-card {
   position: absolute;
   top: 0;
   left: 0;
   transition: opacity 120ms ease;
 }
 
-.clew-tour.is-gliding > .clew-tour-cursor,
-.clew-tour.is-gliding > .clew-tour-card {
+.vicher-tour.is-gliding > .vicher-tour-cursor,
+.vicher-tour.is-gliding > .vicher-tour-card {
   transition: opacity 120ms ease, transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.clew-tour-cursor svg {
+.vicher-tour-cursor svg {
   display: block;
   /* The tip is the svg's top-left corner, drawn two units in; this puts it on the point. */
   margin: -2px 0 0 -2px;
   overflow: visible;
-  fill: var(--clew-accent);
+  fill: var(--vicher-accent);
   stroke: #fff;
   stroke-width: 2;
   stroke-linejoin: round;
@@ -2661,12 +2661,12 @@
   filter: drop-shadow(0 0 1.5px rgb(0 0 0 / 0.5)) drop-shadow(0 2px 5px rgb(0 0 0 / 0.35));
 }
 
-.clew-tour-card {
+.vicher-tour-card {
   max-width: 300px;
   padding: 8px 12px;
   overflow: hidden;
   pointer-events: auto;
-  border: 1px solid var(--clew-accent);
+  border: 1px solid var(--vicher-accent);
   border-radius: var(--radius-m);
   background: var(--background-secondary);
   color: var(--text-normal);
@@ -2675,41 +2675,41 @@
   box-shadow: 0 4px 14px rgb(0 0 0 / 0.35);
 }
 
-.clew-tour-card.is-empty {
+.vicher-tour-card.is-empty {
   display: none;
 }
 
 /* How long the step has left; it drains slowly and freezes under the pointer. */
-.clew-tour-bar {
+.vicher-tour-bar {
   position: absolute;
   right: 0;
   bottom: 0;
   left: 0;
   height: 2px;
-  background: color-mix(in srgb, var(--clew-accent) 30%, transparent);
+  background: color-mix(in srgb, var(--vicher-accent) 30%, transparent);
   transform-origin: left;
 }
 
-.clew-tour-bar.is-timing {
-  animation: clew-tour-drain var(--clew-tour-ms) linear forwards;
+.vicher-tour-bar.is-timing {
+  animation: vicher-tour-drain var(--vicher-tour-ms) linear forwards;
 }
 
-.clew-tour-card:hover .clew-tour-bar,
-.clew-tour-card:focus-within .clew-tour-bar {
+.vicher-tour-card:hover .vicher-tour-bar,
+.vicher-tour-card:focus-within .vicher-tour-bar {
   animation-play-state: paused;
 }
 
-@keyframes clew-tour-drain {
+@keyframes vicher-tour-drain {
   to {
     transform: scaleX(0);
   }
 }
 
-.clew-tour-card.is-in {
-  animation: clew-tour-card-in 220ms ease-out;
+.vicher-tour-card.is-in {
+  animation: vicher-tour-card-in 220ms ease-out;
 }
 
-@keyframes clew-tour-card-in {
+@keyframes vicher-tour-card-in {
   from {
     opacity: 0;
     margin-top: 4px;
@@ -2717,26 +2717,26 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .clew-tour.is-gliding > .clew-tour-cursor,
-  .clew-tour.is-gliding > .clew-tour-card {
+  .vicher-tour.is-gliding > .vicher-tour-cursor,
+  .vicher-tour.is-gliding > .vicher-tour-card {
     transition: none;
   }
 
-  .clew-tour-card.is-in {
+  .vicher-tour-card.is-in {
     animation: none;
   }
 
-  .clew-tour-bar {
+  .vicher-tour-bar {
     display: none;
   }
 }
 
 /* The tour's stepper keeps the tour's purple, and its dots sit inside each row's padding. */
-.clew-walkthrough {
-  --clew-step-accent: var(--clew-accent);
-  --clew-step-accent-text: var(--clew-accent);
-  --clew-step-x: 8px;
-  --clew-step-y: 7px;
+.vicher-walkthrough {
+  --vicher-step-accent: var(--vicher-accent);
+  --vicher-step-accent-text: var(--vicher-accent);
+  --vicher-step-x: 8px;
+  --vicher-step-y: 7px;
   display: flex;
   flex-direction: column;
   margin: 8px 0;
@@ -2747,7 +2747,7 @@
 }
 
 /* Doubled up so Obsidian's own button styles (background, shadow, height) do not win. */
-.clew-walkthrough .clew-walk-step {
+.vicher-walkthrough .vicher-walk-step {
   position: relative;
   display: flex;
   align-items: flex-start;
@@ -2765,18 +2765,18 @@
   transition: background-color 120ms ease;
 }
 
-.clew-walkthrough .clew-walk-step:hover,
-.clew-walkthrough .clew-walk-step:focus-visible {
+.vicher-walkthrough .vicher-walk-step:hover,
+.vicher-walkthrough .vicher-walk-step:focus-visible {
   background: var(--background-modifier-hover);
 }
 
-.clew-walkthrough .clew-walk-step:focus-visible {
-  outline: 2px solid var(--clew-accent);
+.vicher-walkthrough .vicher-walk-step:focus-visible {
+  outline: 2px solid var(--vicher-accent);
   outline-offset: -2px;
 }
 
 /* A play mark on hover says a click starts the tour here. */
-.clew-walkthrough .clew-walk-step::after {
+.vicher-walkthrough .vicher-walk-step::after {
   content: '';
   align-self: center;
   flex: none;
@@ -2785,17 +2785,17 @@
   margin-left: auto;
   border-top: 5px solid transparent;
   border-bottom: 5px solid transparent;
-  border-left: 8px solid var(--clew-accent);
+  border-left: 8px solid var(--vicher-accent);
   opacity: 0;
   transition: opacity 120ms ease;
 }
 
-.clew-walkthrough .clew-walk-step:hover::after,
-.clew-walkthrough .clew-walk-step:focus-visible::after {
+.vicher-walkthrough .vicher-walk-step:hover::after,
+.vicher-walkthrough .vicher-walk-step:focus-visible::after {
   opacity: 0.9;
 }
 
-.clew-walk-body {
+.vicher-walk-body {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -2804,12 +2804,12 @@
   padding-top: 2px;
 }
 
-.clew-walk-comment {
+.vicher-walk-comment {
   font-size: var(--font-ui-small);
   line-height: 1.4;
 }
 
-.clew-walk-quote {
+.vicher-walk-quote {
   overflow: hidden;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
@@ -2817,15 +2817,15 @@
   white-space: nowrap;
 }
 
-.clew-walk-quote::before {
+.vicher-walk-quote::before {
   content: '\201C';
 }
 
-.clew-walk-quote::after {
+.vicher-walk-quote::after {
   content: '\201D';
 }
 
-.clew-walk-note {
+.vicher-walk-note {
   align-self: flex-start;
   margin-top: 3px;
   padding: 0 7px;
@@ -2835,60 +2835,60 @@
   font-size: var(--font-ui-smaller);
 }
 
-.clew-walkthrough .clew-walk-step.is-current {
-  background: color-mix(in srgb, var(--clew-accent) 13%, transparent);
+.vicher-walkthrough .vicher-walk-step.is-current {
+  background: color-mix(in srgb, var(--vicher-accent) 13%, transparent);
 }
 
-.clew-walkthrough .clew-walk-step.is-missed {
+.vicher-walkthrough .vicher-walk-step.is-missed {
   opacity: 0.55;
 }
 
-.clew-walkthrough .clew-walk-step.is-missed .clew-step-dot {
+.vicher-walkthrough .vicher-walk-step.is-missed .vicher-step-dot {
   border-style: dashed;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .clew-walkthrough .clew-walk-step,
-  .clew-walkthrough .clew-walk-step::after {
+  .vicher-walkthrough .vicher-walk-step,
+  .vicher-walkthrough .vicher-walk-step::after {
     transition: none;
   }
 }
 
-.clew-env-setting {
+.vicher-env-setting {
   flex-direction: column;
   align-items: stretch;
   gap: var(--size-4-2);
 }
 
-.clew-env-setting textarea {
+.vicher-env-setting textarea {
   width: 100%;
   font-family: var(--font-monospace);
   font-size: var(--font-ui-small);
 }
 
-.clew-env-problems {
+.vicher-env-problems {
   color: var(--text-error);
   font-size: var(--font-ui-smaller);
 }
 
 /* Figures: model-written programs drawn with the host's own layout. Tag colours are per surface, never one rule for every [data-tag]. */
-.clew-figure {
-  --clew-figure-tex-size: 1.3em;
-  --clew-figure-ink: color-mix(in srgb, var(--text-normal) 80%, var(--background-primary));
-  --clew-figure-tag-active: var(--interactive-accent);
-  --clew-figure-tag-done: var(--text-muted);
-  --clew-figure-tag-match: var(--color-cyan);
-  --clew-figure-tag-new: var(--color-yellow);
-  --clew-figure-tag-dim: var(--text-faint);
-  --clew-figure-tag-good: var(--color-green);
-  --clew-figure-tag-bad: var(--color-red);
-  --clew-figure-fill-active: color-mix(in srgb, var(--interactive-accent) 22%, var(--background-primary));
-  --clew-figure-fill-done: var(--background-secondary);
-  --clew-figure-fill-match: color-mix(in srgb, var(--color-cyan) 24%, var(--background-primary));
-  --clew-figure-fill-new: color-mix(in srgb, var(--color-yellow) 30%, var(--background-primary));
-  --clew-figure-fill-dim: var(--background-secondary);
-  --clew-figure-fill-good: color-mix(in srgb, var(--color-green) 22%, var(--background-primary));
-  --clew-figure-fill-bad: color-mix(in srgb, var(--color-red) 22%, var(--background-primary));
+.vicher-figure {
+  --vicher-figure-tex-size: 1.3em;
+  --vicher-figure-ink: color-mix(in srgb, var(--text-normal) 80%, var(--background-primary));
+  --vicher-figure-tag-active: var(--interactive-accent);
+  --vicher-figure-tag-done: var(--text-muted);
+  --vicher-figure-tag-match: var(--color-cyan);
+  --vicher-figure-tag-new: var(--color-yellow);
+  --vicher-figure-tag-dim: var(--text-faint);
+  --vicher-figure-tag-good: var(--color-green);
+  --vicher-figure-tag-bad: var(--color-red);
+  --vicher-figure-fill-active: color-mix(in srgb, var(--interactive-accent) 22%, var(--background-primary));
+  --vicher-figure-fill-done: var(--background-secondary);
+  --vicher-figure-fill-match: color-mix(in srgb, var(--color-cyan) 24%, var(--background-primary));
+  --vicher-figure-fill-new: color-mix(in srgb, var(--color-yellow) 30%, var(--background-primary));
+  --vicher-figure-fill-dim: var(--background-secondary);
+  --vicher-figure-fill-good: color-mix(in srgb, var(--color-green) 22%, var(--background-primary));
+  --vicher-figure-fill-bad: color-mix(in srgb, var(--color-red) 22%, var(--background-primary));
   position: relative;
   display: flex;
   flex-direction: column;
@@ -2899,33 +2899,33 @@
   font-size: var(--font-ui-small);
 }
 
-.clew-figure-title {
+.vicher-figure-title {
   font-weight: var(--font-semibold);
 }
 
-.clew-figure-params {
+.vicher-figure-params {
   display: flex;
   flex-wrap: wrap;
   gap: var(--size-4-2) var(--size-4-4);
 }
 
-.clew-figure-param-error:empty {
+.vicher-figure-param-error:empty {
   display: none;
 }
 
-.clew-figure-param-error,
-.clew-figure-error-message {
+.vicher-figure-param-error,
+.vicher-figure-error-message {
   color: var(--text-error);
   overflow-wrap: anywhere;
 }
 
-.clew-figure-error pre {
+.vicher-figure-error pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
 /* On screen but invisible: Chromium starves the process of a display:none cross-origin frame, and its workers with it. */
-.clew-figure-sandbox {
+.vicher-figure-sandbox {
   position: fixed;
   right: 0;
   bottom: 0;
@@ -2937,13 +2937,13 @@
 }
 
 /* A redraw lays out hidden over the drawing on screen until it can take its place. */
-.clew-figure-body.is-pending {
+.vicher-figure-body.is-pending {
   position: absolute;
   inset-inline: 0;
   visibility: hidden;
 }
 
-.clew-figure-body {
+.vicher-figure-body {
   display: flex;
   flex-direction: column;
   gap: var(--size-4-2);
@@ -2951,7 +2951,7 @@
 }
 
 /* The caption sits beside a drawing narrow enough to leave it room, and wraps under one that is not. */
-.clew-figure-main {
+.vicher-figure-main {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -2959,7 +2959,7 @@
 }
 
 /* The side column takes nearly all the spare width on a shared line, so the drawing stays its own size there; alone on its line after a wrap, the drawing takes the full width. */
-.clew-figure-side {
+.vicher-figure-side {
   display: flex;
   flex: 1000 1 18em;
   flex-direction: column;
@@ -2967,19 +2967,19 @@
   font-size: calc(var(--font-ui-medium) - 1px);
 }
 
-.clew-figure-side:not(:has(> :not([hidden]))) {
+.vicher-figure-side:not(:has(> :not([hidden]))) {
   display: none;
 }
 
 /* With the full player, the caption and player always sit under the figure, centred, and the player is wide enough to scrub. */
-.clew-figure-side:is(.is-player, .is-under) {
+.vicher-figure-side:is(.is-player, .is-under) {
   flex-basis: 100%;
   min-width: 0;
   align-items: center;
 }
 
 /* The full player is its own card, like the figure's, so its controls and track read as one object. */
-.clew-player:not(.is-play-only) {
+.vicher-player:not(.is-play-only) {
   width: min(100%, 32em);
   padding: var(--size-4-1) var(--size-4-3) var(--size-4-1) var(--size-4-1);
   border: 1px solid var(--background-modifier-border);
@@ -2987,12 +2987,12 @@
   background: var(--background-primary);
 }
 
-.clew-player.is-play-only :is(input[type='range'], .clew-player-count, .is-back, .is-next) {
+.vicher-player.is-play-only :is(input[type='range'], .vicher-player-count, .is-back, .is-next) {
   display: none;
 }
 
 /* Play sits in the stepper's column, drawn like one of its dots. */
-.clew-player.is-play-only .clew-player-button {
+.vicher-player.is-play-only .vicher-player-button {
   width: 24px;
   height: 24px;
   min-height: 0;
@@ -3001,51 +3001,51 @@
   color: var(--text-muted);
 }
 
-.clew-player.is-play-only .clew-player-button:hover {
+.vicher-player.is-play-only .vicher-player-button:hover {
   border-color: var(--interactive-accent);
   background: none;
   color: var(--text-accent);
 }
 
-.clew-player.is-play-only .clew-player-button svg {
+.vicher-player.is-play-only .vicher-player-button svg {
   width: 12px;
   height: 12px;
 }
 
 /* A vertical stepper, for a figure's steps and a tour's stops: numbered dots joined by a line that fills in as the steps pass. */
-.clew-steps {
-  --clew-step-accent: var(--interactive-accent);
-  --clew-step-accent-text: var(--text-accent);
+.vicher-steps {
+  --vicher-step-accent: var(--interactive-accent);
+  --vicher-step-accent-text: var(--text-accent);
 }
 
-:is(.clew-steps, .clew-walkthrough) {
-  --clew-step-done: color-mix(in srgb, var(--clew-step-accent) 50%, var(--background-primary));
+:is(.vicher-steps, .vicher-walkthrough) {
+  --vicher-step-done: color-mix(in srgb, var(--vicher-step-accent) 50%, var(--background-primary));
 }
 
-.clew-step {
+.vicher-step {
   position: relative;
 }
 
 /* From each dot's bottom edge to the next one's top, so it never shows through a faded dot. It sits above the next row's
    background, which would hide its end. */
-.clew-step:not(:last-child)::before {
+.vicher-step:not(:last-child)::before {
   content: '';
   position: absolute;
   z-index: 1;
-  top: calc(var(--clew-step-y, 0px) + 24px);
-  bottom: calc(-1 * var(--clew-step-y, 0px));
-  left: calc(var(--clew-step-x, 0px) + 11.5px);
+  top: calc(var(--vicher-step-y, 0px) + 24px);
+  bottom: calc(-1 * var(--vicher-step-y, 0px));
+  left: calc(var(--vicher-step-x, 0px) + 11.5px);
   width: 1px;
   background: var(--background-modifier-border);
   transition: background-color 0.25s ease;
 }
 
-.clew-step.is-done::before {
-  background: var(--clew-step-done);
+.vicher-step.is-done::before {
+  background: var(--vicher-step-done);
 }
 
 /* Doubled up so Obsidian's own button styles (background, shadow, height) do not win. */
-.clew-steps .clew-step-button {
+.vicher-steps .vicher-step-button {
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
@@ -3064,28 +3064,28 @@
   transition: color 0.25s ease;
 }
 
-.clew-step:last-child .clew-step-button {
+.vicher-step:last-child .vicher-step-button {
   padding-bottom: 0;
 }
 
-.clew-steps .clew-step-button:hover {
+.vicher-steps .vicher-step-button:hover {
   color: var(--text-muted);
 }
 
-.clew-step.is-current .clew-step-button {
+.vicher-step.is-current .vicher-step-button {
   color: var(--text-normal);
 }
 
-.clew-steps .clew-step-button:focus-visible {
+.vicher-steps .vicher-step-button:focus-visible {
   outline: none;
 }
 
-.clew-steps .clew-step-button:focus-visible .clew-step-dot {
+.vicher-steps .vicher-step-button:focus-visible .vicher-step-dot {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 2px;
 }
 
-.clew-step-dot {
+.vicher-step-dot {
   position: relative;
   z-index: 1;
   display: inline-flex;
@@ -3105,20 +3105,20 @@
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
 
-.clew-step.is-done .clew-step-dot {
-  border-color: var(--clew-step-done);
-  color: var(--clew-step-done);
+.vicher-step.is-done .vicher-step-dot {
+  border-color: var(--vicher-step-done);
+  color: var(--vicher-step-done);
 }
 
-.clew-step.is-current .clew-step-dot {
-  border-color: var(--clew-step-accent);
-  background: color-mix(in srgb, var(--clew-step-accent) 10%, var(--background-primary));
-  color: var(--clew-step-accent-text);
+.vicher-step.is-current .vicher-step-dot {
+  border-color: var(--vicher-step-accent);
+  background: color-mix(in srgb, var(--vicher-step-accent) 10%, var(--background-primary));
+  color: var(--vicher-step-accent-text);
   font-weight: var(--font-semibold);
 }
 
 /* Lifted so the lowercase text, not its line box, centres on the dot. */
-.clew-step-text {
+.vicher-step-text {
   flex: 1;
   min-width: 0;
   margin-top: -1px;
@@ -3127,94 +3127,94 @@
 }
 
 /* Obsidian colours bold and italic text itself; here they follow the step's dimming. */
-.clew-figure .clew-step-text :is(strong, b, em, i) {
+.vicher-figure .vicher-step-text :is(strong, b, em, i) {
   color: inherit;
 }
 
-:is(.clew-step-heading, .clew-step-caption) > * {
+:is(.vicher-step-heading, .vicher-step-caption) > * {
   margin: 0;
 }
 
 /* With a heading, the caption is the detail under it: smaller, and muted while its step is current. */
-.clew-step-heading {
+.vicher-step-heading {
   font-weight: var(--font-semibold);
 }
 
-.clew-step-heading + .clew-step-caption {
+.vicher-step-heading + .vicher-step-caption {
   margin-top: 2px;
   font-size: calc(var(--font-ui-medium) - 3px);
   line-height: 1.5;
 }
 
-.clew-step.is-current .clew-step-heading + .clew-step-caption {
+.vicher-step.is-current .vicher-step-heading + .vicher-step-caption {
   color: var(--text-muted);
 }
 
 /* One caption at a time: every step in one grid cell, so the tallest keeps its height, and only the current one shows. */
-.clew-steps.is-single > .clew-steps-list {
+.vicher-steps.is-single > .vicher-steps-list {
   display: grid;
 }
 
-.clew-steps.is-single .clew-step {
+.vicher-steps.is-single .vicher-step {
   grid-area: 1 / 1;
   min-width: 0;
   visibility: hidden;
 }
 
-.clew-steps.is-single .clew-step.is-current {
+.vicher-steps.is-single .vicher-step.is-current {
   visibility: visible;
 }
 
-.clew-steps.is-single .clew-step::before {
+.vicher-steps.is-single .vicher-step::before {
   display: none;
 }
 
 /* A step shown here was hidden a moment ago, so it must not fade in from the dimmed colours of a step not yet reached. */
-.clew-steps.is-single :is(.clew-step-button, .clew-step-dot) {
+.vicher-steps.is-single :is(.vicher-step-button, .vicher-step-dot) {
   transition: none;
 }
 
-.clew-steps.is-single .clew-step-button {
+.vicher-steps.is-single .vicher-step-button {
   padding-bottom: 0;
   pointer-events: none;
 }
 
-.clew-steps.is-single .clew-step:not(:only-child) > .clew-step-button {
+.vicher-steps.is-single .vicher-step:not(:only-child) > .vicher-step-button {
   justify-content: center;
 }
 
-.clew-steps.is-single .clew-step-text {
+.vicher-steps.is-single .vicher-step-text {
   flex: 0 1 auto;
 }
 
 /* A one-step figure has nothing to count. */
-.clew-steps .clew-step:only-child .clew-step-dot {
+.vicher-steps .vicher-step:only-child .vicher-step-dot {
   display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .clew-step::before,
-  .clew-steps .clew-step-button,
-  .clew-step-dot {
+  .vicher-step::before,
+  .vicher-steps .vicher-step-button,
+  .vicher-step-dot {
     transition: none;
   }
 }
 
-.clew-figure-scroll {
+.vicher-figure-scroll {
   flex: 1 1 auto;
   min-width: 0;
   overflow-x: auto;
   max-width: 100%;
 }
 
-.clew-figure-stack {
+.vicher-figure-stack {
   display: grid;
   width: 100%;
 }
 
 /* Whatever a step draws is centred, so what is left of the pane's width falls on both sides. `safe` starts one wider than the
    pane at its left edge, where it can scroll, instead of spilling past it. */
-.clew-figure-step {
+.vicher-figure-step {
   grid-area: 1 / 1;
   position: relative;
   display: flex;
@@ -3224,77 +3224,77 @@
   padding: 4px 0 8px;
 }
 
-.clew-figure-step.is-current {
+.vicher-figure-step.is-current {
   visibility: visible;
 }
 
-.clew-figure-row {
+.vicher-figure-row {
   display: flex;
   flex-flow: row wrap;
 }
 
-.clew-figure-column {
+.vicher-figure-column {
   display: flex;
   flex-direction: column;
 }
 
-.clew-figure-row > .clew-figure-node {
+.vicher-figure-row > .vicher-figure-node {
   align-self: stretch;
 }
 
 /* A Quiz is read, not looked at: it keeps the step's full width. */
-.clew-figure-step > .clew-figure-quiz {
+.vicher-figure-step > .vicher-figure-quiz {
   align-self: stretch;
 }
 
 /* A root Row wide enough to wrap fills the step, so its own lines are centred as well. */
-.clew-figure-step > .clew-figure-row {
+.vicher-figure-step > .vicher-figure-row {
   justify-content: safe center;
 }
 
 /* A formula in a column is centred too; auto margins fall back to the left edge when it overflows. */
-.clew-figure-column > .clew-figure-tex {
+.vicher-figure-column > .vicher-figure-tex {
   margin-inline: auto;
 }
 
-.clew-figure-tex {
+.vicher-figure-tex {
   width: fit-content;
 }
 
 /* A column of cards takes the widest card's width. */
-.clew-figure .clew-figure-column:not(:has(> :not(.clew-figure-node))) {
+.vicher-figure .vicher-figure-column:not(:has(> :not(.vicher-figure-node))) {
   align-items: stretch;
 }
 
-.clew-figure .is-gap-sm { gap: 6px; }
-.clew-figure .is-gap-md { gap: 14px; }
-.clew-figure .is-gap-lg { gap: 28px; }
-.clew-figure .is-align-start { align-items: flex-start; }
-.clew-figure .is-align-center { align-items: center; }
-.clew-figure .is-align-end { align-items: flex-end; }
+.vicher-figure .is-gap-sm { gap: 6px; }
+.vicher-figure .is-gap-md { gap: 14px; }
+.vicher-figure .is-gap-lg { gap: 28px; }
+.vicher-figure .is-align-start { align-items: flex-start; }
+.vicher-figure .is-align-center { align-items: center; }
+.vicher-figure .is-align-end { align-items: flex-end; }
 
-.clew-figure-panel {
+.vicher-figure-panel {
   padding: 8px 10px;
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-m);
   background: var(--background-secondary);
 }
 
-.clew-figure-panel-title,
-.clew-figure-title:not(:first-child),
-.clew-figure-table > .clew-figure-title,
-.clew-figure-seq > .clew-figure-title {
+.vicher-figure-panel-title,
+.vicher-figure-title:not(:first-child),
+.vicher-figure-table > .vicher-figure-title,
+.vicher-figure-seq > .vicher-figure-title {
   margin-bottom: 6px;
   color: var(--text-muted);
   font-weight: var(--font-semibold);
 }
 
-.clew-figure p {
+.vicher-figure p {
   margin: 0;
 }
 
 /* The frame is the table's own and the lines are the cells', by class: Obsidian and vault table rules on bare cells cannot reach them. */
-.clew-figure .clew-figure-table table {
+.vicher-figure .vicher-figure-table table {
   border-collapse: separate;
   border-spacing: 0;
   border: 1px solid var(--background-modifier-border);
@@ -3305,7 +3305,7 @@
 }
 
 /* A vault snippet may size every Markdown table cell with !important; a figure's table keeps the figure's size. */
-.clew-figure .clew-figure-table .clew-figure-cell {
+.vicher-figure .vicher-figure-table .vicher-figure-cell {
   padding: 4px 10px !important;
   font-size: var(--font-ui-small) !important;
   line-height: 1.5 !important;
@@ -3316,35 +3316,35 @@
   white-space: nowrap;
 }
 
-.clew-figure .clew-figure-table .clew-figure-cell:first-child {
+.vicher-figure .vicher-figure-table .vicher-figure-cell:first-child {
   border-left-width: 0;
 }
 
-.clew-figure .clew-figure-table thead .clew-figure-cell {
+.vicher-figure .vicher-figure-table thead .vicher-figure-cell {
   border-top-width: 0;
   color: var(--text-muted);
   font-weight: var(--font-semibold);
   background: var(--background-secondary-alt, var(--background-secondary));
 }
 
-.clew-figure-seq-items {
+.vicher-figure-seq-items {
   display: flex;
 }
 
-.clew-figure-seq-item {
+.vicher-figure-seq-item {
   display: flex;
   flex-direction: column;
   align-items: stretch;
 }
 
-.clew-figure-seq-index {
+.vicher-figure-seq-index {
   height: 16px;
   color: var(--text-muted);
   font-size: 11px;
   text-align: center;
 }
 
-.clew-figure-seq-cell {
+.vicher-figure-seq-cell {
   min-width: 32px;
   margin-left: -1px;
   padding: 6px 8px;
@@ -3354,7 +3354,7 @@
   background: var(--background-primary);
 }
 
-.clew-figure-node {
+.vicher-figure-node {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
@@ -3367,13 +3367,13 @@
   background: var(--background-primary);
 }
 
-.clew-figure-node.is-circle {
+.vicher-figure-node.is-circle {
   min-height: 48px;
   border-radius: 999px;
 }
 
-.clew-figure-node-sub,
-.clew-network-node-sub {
+.vicher-figure-node-sub,
+.vicher-network-node-sub {
   color: var(--text-muted);
   font-size: 12px;
 }
@@ -3381,35 +3381,35 @@
 /* A Tex element is often the figure itself (a matrix, a derivation), so it is set larger than the figure's UI text. Its
    formula sits between an empty column and its pointers' column, which share the spare width equally, so the formula stays
    centred; short of room, the formula keeps its width first and the pointer names wrap, down to their longest word. */
-.clew-figure-tex {
+.vicher-figure-tex {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(min-content, 1fr);
-  font-size: var(--clew-figure-tex-size);
+  font-size: var(--vicher-figure-tex-size);
 }
 
-.clew-figure-tex-math {
+.vicher-figure-tex-math {
   grid-column: 2;
   min-width: 0;
 }
 
 /* Doubled up to outrank MathJax's own spacing around display maths. */
-.clew-figure .clew-figure-tex mjx-container[display='true'] {
+.vicher-figure .vicher-figure-tex mjx-container[display='true'] {
   margin: 0;
 }
 
-.clew-figure-tex-lane {
+.vicher-figure-tex-lane {
   position: relative;
   grid-column: 3;
 }
 
 /* Every step's pointer names, laid over each other unseen, so the column takes the widest in any step and keeps it. */
-.clew-figure-tex-sizes {
+.vicher-figure-tex-sizes {
   display: grid;
   height: 0;
   visibility: hidden;
 }
 
-.clew-figure-tex-sizes > .clew-figure-pointer {
+.vicher-figure-tex-sizes > .vicher-figure-pointer {
   grid-area: 1 / 1;
   position: static;
   justify-self: start;
@@ -3417,22 +3417,22 @@
   transform: none;
 }
 
-.clew-figure-tex-lane > .clew-figure-pointer {
+.vicher-figure-tex-lane > .vicher-figure-pointer {
   left: 8px;
   transform: translateY(-50%);
 }
 
 /* A formula's pointers are larger than other pointers, as the formula is, but smaller than the formula itself. */
-.clew-figure-tex .clew-figure-pointer {
+.vicher-figure-tex .vicher-figure-pointer {
   font-size: var(--font-ui-medium);
   white-space: normal;
 }
 
-.clew-figure-text {
+.vicher-figure-text {
   max-width: 60ch;
 }
 
-.clew-figure-graph {
+.vicher-figure-graph {
   position: relative;
   flex: none;
   isolation: isolate;
@@ -3440,46 +3440,46 @@
   line-height: 18px;
 }
 
-.clew-figure-graph .clew-network-node {
+.vicher-figure-graph .vicher-network-node {
   flex-direction: column;
   padding: 4px 8px;
 }
 
-.clew-figure-plot {
+.vicher-figure-plot {
   max-width: 100%;
 }
 
-.clew-figure-diagram {
+.vicher-figure-diagram {
   position: relative;
   max-width: 100%;
 }
 
-.clew-figure-diagram svg {
+.vicher-figure-diagram svg {
   display: block;
 }
 
-.clew-figure-mark {
-  color: var(--clew-figure-ink);
+.vicher-figure-mark {
+  color: var(--vicher-figure-ink);
   stroke: currentColor;
   stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.clew-figure-mark.is-closed {
+.vicher-figure-mark.is-closed {
   fill: color-mix(in srgb, currentColor 10%, transparent);
 }
 
-.clew-figure-mark.is-point {
+.vicher-figure-mark.is-point {
   fill: currentColor;
   stroke: none;
 }
 
-.clew-figure-mark.is-dimension {
+.vicher-figure-mark.is-dimension {
   stroke-width: 1;
 }
 
-.clew-figure-diagram-label {
+.vicher-figure-diagram-label {
   position: absolute;
   padding: 0 4px;
   border-radius: var(--radius-s);
@@ -3489,31 +3489,31 @@
   white-space: nowrap;
 }
 
-.clew-figure-diagram-label.is-inside {
+.vicher-figure-diagram-label.is-inside {
   background: none;
 }
 
-.clew-figure-links,
-.clew-plot-rich {
+.vicher-figure-links,
+.vicher-plot-rich {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-.clew-figure-links-svg {
+.vicher-figure-links-svg {
   position: absolute;
   top: 0;
   left: 0;
   overflow: visible;
 }
 
-.clew-figure-link {
+.vicher-figure-link {
   fill: none;
   stroke: var(--text-muted);
   stroke-width: 1.5;
 }
 
-.clew-figure-link-label {
+.vicher-figure-link-label {
   position: absolute;
   padding: 0 4px;
   border-radius: var(--radius-s);
@@ -3523,8 +3523,8 @@
   transform: translate(-50%, -100%);
 }
 
-.clew-figure-pointer {
-  --clew-figure-pointer-ink: var(--clew-figure-tag-active);
+.vicher-figure-pointer {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-active);
   position: absolute;
   display: inline-flex;
   align-items: center;
@@ -3540,22 +3540,22 @@
   transform: translateX(-50%);
 }
 
-.clew-figure-pointer-mark {
-  color: var(--clew-figure-pointer-ink);
+.vicher-figure-pointer-mark {
+  color: var(--vicher-figure-pointer-ink);
   font-weight: var(--font-semibold);
 }
 
-.clew-figure-pointer p,
-.clew-figure-link-label p {
+.vicher-figure-pointer p,
+.vicher-figure-link-label p {
   display: inline;
 }
 
-.clew-figure-pointer.is-left {
+.vicher-figure-pointer.is-left {
   transform: translate(-100%, -50%);
 }
 
 /* Under the drawing whose marks it explains. `contain` keeps a long key from widening the drawing's column; it wraps instead. */
-.clew-figure-key {
+.vicher-figure-key {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -3565,13 +3565,13 @@
   font-size: 12px;
 }
 
-.clew-figure-key-item {
+.vicher-figure-key-item {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
-.clew-figure-key-mark {
+.vicher-figure-key-mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3583,130 +3583,130 @@
   background: var(--background-primary);
 }
 
-.clew-figure-probe {
+.vicher-figure-probe {
   position: absolute;
   visibility: hidden;
 }
 
 
 /* Tags, one rule per surface: boxes (nodes, cells, key marks), lines (edges, links) and text (edge labels, pointers). A table cell's rule outranks Obsidian's striped columns. */
-:is(.clew-figure-node, .clew-network-node, .clew-figure-panel, .clew-figure-cell, .clew-figure-seq-cell, .clew-figure-key-mark)[data-tag='active'] {
-  outline: 2px solid var(--clew-figure-tag-active);
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='active'] {
+  outline: 2px solid var(--vicher-figure-tag-active);
   outline-offset: -2px;
   font-weight: var(--font-semibold);
 }
-.clew-figure-table tr[data-tag='active'] > td.clew-figure-cell,
-.clew-figure-table td.clew-figure-cell[data-tag='active'] {
+.vicher-figure-table tr[data-tag='active'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-tag='active'] {
   font-weight: var(--font-semibold);
-  background: var(--clew-figure-fill-active);
+  background: var(--vicher-figure-fill-active);
 }
-:is(.clew-network-edge, .clew-figure-link)[data-tag='active'] {
-  stroke: var(--clew-figure-tag-active);
+:is(.vicher-network-edge, .vicher-figure-link)[data-tag='active'] {
+  stroke: var(--vicher-figure-tag-active);
   stroke-width: 3;
 }
-.clew-network-edge-label[data-tag='active'] {
-  color: var(--clew-figure-tag-active);
+.vicher-network-edge-label[data-tag='active'] {
+  color: var(--vicher-figure-tag-active);
 }
-.clew-figure-pointer[data-tag='active'] {
-  --clew-figure-pointer-ink: var(--clew-figure-tag-active);
+.vicher-figure-pointer[data-tag='active'] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-active);
 }
 
-:is(.clew-figure-node, .clew-network-node, .clew-figure-panel, .clew-figure-cell, .clew-figure-seq-cell, .clew-figure-key-mark)[data-tag='done'],
-.clew-figure-table tr[data-tag='done'] > td.clew-figure-cell,
-.clew-figure-table td.clew-figure-cell[data-tag='done'] {
-  color: var(--clew-figure-tag-done);
-  background: var(--clew-figure-fill-done);
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='done'],
+.vicher-figure-table tr[data-tag='done'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-tag='done'] {
+  color: var(--vicher-figure-tag-done);
+  background: var(--vicher-figure-fill-done);
 }
-:is(.clew-network-edge, .clew-figure-link)[data-tag='done'] {
-  stroke: var(--clew-figure-tag-done);
+:is(.vicher-network-edge, .vicher-figure-link)[data-tag='done'] {
+  stroke: var(--vicher-figure-tag-done);
   stroke-dasharray: 7 4;
 }
-.clew-network-edge-label[data-tag='done'] {
-  color: var(--clew-figure-tag-done);
+.vicher-network-edge-label[data-tag='done'] {
+  color: var(--vicher-figure-tag-done);
 }
-.clew-figure-pointer[data-tag='done'] {
-  --clew-figure-pointer-ink: var(--clew-figure-tag-done);
-}
-
-:is(.clew-figure-node, .clew-network-node, .clew-figure-panel, .clew-figure-cell, .clew-figure-seq-cell, .clew-figure-key-mark)[data-tag='match'],
-.clew-figure-table tr[data-tag='match'] > td.clew-figure-cell,
-.clew-figure-table td.clew-figure-cell[data-tag='match'] {
-  background: var(--clew-figure-fill-match);
-}
-:is(.clew-network-edge, .clew-figure-link)[data-tag='match'] {
-  stroke: var(--clew-figure-tag-match);
-  stroke-width: 3;
-}
-.clew-network-edge-label[data-tag='match'] {
-  color: var(--clew-figure-tag-match);
-}
-.clew-figure-pointer[data-tag='match'] {
-  --clew-figure-pointer-ink: var(--clew-figure-tag-match);
+.vicher-figure-pointer[data-tag='done'] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-done);
 }
 
-:is(.clew-figure-node, .clew-network-node, .clew-figure-panel, .clew-figure-cell, .clew-figure-seq-cell, .clew-figure-key-mark)[data-tag='new'],
-.clew-figure-table tr[data-tag='new'] > td.clew-figure-cell,
-.clew-figure-table td.clew-figure-cell[data-tag='new'] {
-  background: var(--clew-figure-fill-new);
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='match'],
+.vicher-figure-table tr[data-tag='match'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-tag='match'] {
+  background: var(--vicher-figure-fill-match);
 }
-:is(.clew-network-edge, .clew-figure-link)[data-tag='new'] {
-  stroke: var(--clew-figure-tag-new);
+:is(.vicher-network-edge, .vicher-figure-link)[data-tag='match'] {
+  stroke: var(--vicher-figure-tag-match);
   stroke-width: 3;
 }
-.clew-network-edge-label[data-tag='new'] {
+.vicher-network-edge-label[data-tag='match'] {
+  color: var(--vicher-figure-tag-match);
+}
+.vicher-figure-pointer[data-tag='match'] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-match);
+}
+
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='new'],
+.vicher-figure-table tr[data-tag='new'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-tag='new'] {
+  background: var(--vicher-figure-fill-new);
+}
+:is(.vicher-network-edge, .vicher-figure-link)[data-tag='new'] {
+  stroke: var(--vicher-figure-tag-new);
+  stroke-width: 3;
+}
+.vicher-network-edge-label[data-tag='new'] {
   color: var(--text-normal);
 }
-.clew-figure-pointer[data-tag='new'] {
-  --clew-figure-pointer-ink: var(--clew-figure-tag-new);
+.vicher-figure-pointer[data-tag='new'] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-new);
 }
 
-:is(.clew-figure-node, .clew-network-node, .clew-figure-panel, .clew-figure-cell, .clew-figure-seq-cell, .clew-figure-key-mark)[data-tag='dim'],
-.clew-figure-table tr[data-tag='dim'] > td.clew-figure-cell,
-.clew-figure-table td.clew-figure-cell[data-tag='dim'] {
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='dim'],
+.vicher-figure-table tr[data-tag='dim'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-tag='dim'] {
   opacity: 0.45;
 }
-:is(.clew-network-edge, .clew-figure-link)[data-tag='dim'] {
+:is(.vicher-network-edge, .vicher-figure-link)[data-tag='dim'] {
   opacity: 0.35;
 }
-.clew-network-edge-label[data-tag='dim'] {
-  color: var(--clew-figure-tag-dim);
+.vicher-network-edge-label[data-tag='dim'] {
+  color: var(--vicher-figure-tag-dim);
 }
-.clew-figure-pointer[data-tag='dim'] {
-  --clew-figure-pointer-ink: var(--clew-figure-tag-dim);
-}
-
-:is(.clew-figure-node, .clew-network-node, .clew-figure-panel, .clew-figure-cell, .clew-figure-seq-cell, .clew-figure-key-mark)[data-tag='good'],
-.clew-figure-table tr[data-tag='good'] > td.clew-figure-cell,
-.clew-figure-table td.clew-figure-cell[data-tag='good'] {
-  color: var(--clew-figure-tag-good);
-  outline: 1.5px solid var(--clew-figure-tag-good);
-  outline-offset: -2px;
-}
-:is(.clew-network-edge, .clew-figure-link)[data-tag='good'] {
-  stroke: var(--clew-figure-tag-good);
-  stroke-width: 3;
-}
-.clew-network-edge-label[data-tag='good'] {
-  color: var(--clew-figure-tag-good);
-}
-.clew-figure-pointer[data-tag='good'] {
-  --clew-figure-pointer-ink: var(--clew-figure-tag-good);
+.vicher-figure-pointer[data-tag='dim'] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-dim);
 }
 
-:is(.clew-figure-node, .clew-network-node, .clew-figure-panel, .clew-figure-cell, .clew-figure-seq-cell, .clew-figure-key-mark)[data-tag='bad'],
-.clew-figure-table tr[data-tag='bad'] > td.clew-figure-cell,
-.clew-figure-table td.clew-figure-cell[data-tag='bad'] {
-  color: var(--clew-figure-tag-bad);
-  outline: 1.5px solid var(--clew-figure-tag-bad);
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='good'],
+.vicher-figure-table tr[data-tag='good'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-tag='good'] {
+  color: var(--vicher-figure-tag-good);
+  outline: 1.5px solid var(--vicher-figure-tag-good);
   outline-offset: -2px;
 }
-:is(.clew-network-edge, .clew-figure-link)[data-tag='bad'] {
-  stroke: var(--clew-figure-tag-bad);
+:is(.vicher-network-edge, .vicher-figure-link)[data-tag='good'] {
+  stroke: var(--vicher-figure-tag-good);
   stroke-width: 3;
 }
-.clew-network-edge-label[data-tag='bad'] {
-  color: var(--clew-figure-tag-bad);
+.vicher-network-edge-label[data-tag='good'] {
+  color: var(--vicher-figure-tag-good);
 }
-.clew-figure-pointer[data-tag='bad'] {
-  --clew-figure-pointer-ink: var(--clew-figure-tag-bad);
+.vicher-figure-pointer[data-tag='good'] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-good);
+}
+
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='bad'],
+.vicher-figure-table tr[data-tag='bad'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-tag='bad'] {
+  color: var(--vicher-figure-tag-bad);
+  outline: 1.5px solid var(--vicher-figure-tag-bad);
+  outline-offset: -2px;
+}
+:is(.vicher-network-edge, .vicher-figure-link)[data-tag='bad'] {
+  stroke: var(--vicher-figure-tag-bad);
+  stroke-width: 3;
+}
+.vicher-network-edge-label[data-tag='bad'] {
+  color: var(--vicher-figure-tag-bad);
+}
+.vicher-figure-pointer[data-tag='bad'] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-bad);
 }

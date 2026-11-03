@@ -24,14 +24,14 @@ import { runFigureWorker } from '../runFigureWorker';
 const SYSTEM_PROMPT = 'You are a live tutor. Reply with JSON Lines only: one {"type":"say","text":"..."} object per line, no prose, no code fences.';
 const adapters = createAgents(() => ({}));
 const AGENTS: Array<{ agent: AgentAdapter; model: string }> = [
-  { agent: adapters.claude, model: process.env.CLEW_LIVE_CLAUDE_MODEL ?? 'haiku' },
-  { agent: adapters.codex, model: process.env.CLEW_LIVE_CODEX_MODEL ?? 'gpt-6-luna' },
+  { agent: adapters.claude, model: process.env.VICHER_LIVE_CLAUDE_MODEL ?? 'haiku' },
+  { agent: adapters.codex, model: process.env.VICHER_LIVE_CODEX_MODEL ?? 'gpt-6-luna' },
 ];
-const only = process.env.CLEW_LIVE_AGENT;
+const only = process.env.VICHER_LIVE_AGENT;
 // Per test: a suite-wide limit grows wrong as tests are added.
 const LIMIT = { timeout: 120_000 };
 
-// Clew supplies no tool today; the contract still carries them, so a stub checks the wiring.
+// Vicher supplies no tool today; the contract still carries them, so a stub checks the wiring.
 const stubTool: AgentTool = { name: 'load_pack', description: 'Loads a pack by name.', argument: { name: 'name', values: ['plot'] }, run: () => 'ok', title: (name) => `Loaded ${name}` };
 
 let cwd: string;
@@ -59,7 +59,7 @@ before(() => {
   for (const key of Object.keys(process.env)) {
     if (/^CLAUDE(CODE$|_CODE_ENTRYPOINT$|_CODE_SESSION|_CODE_CHILD|_CODE_MESSAGING|_CODE_BRIDGE|_PID$)/.test(key)) delete process.env[key];
   }
-  cwd = mkdtempSync(path.join(tmpdir(), 'clew-live-'));
+  cwd = mkdtempSync(path.join(tmpdir(), 'vicher-live-'));
   writeFileSync(path.join(cwd, 'notes.md'), 'The pin count tracks active users of a page.\n');
   writeFileSync(path.join(cwd, 'optics.md'), '# Optics\n\nSunlight meets air. **Rayleigh scattering** sends short wavelengths in every direction, and blue light is scattered far more than red.\n\n- Sunsets look red because the light crosses more air.\n- Clouds look white because their drops scatter every color alike.\n');
   writeFileSync(path.join(cwd, 'swatch.png'), solidPng(64, [0, 0, 255]));
@@ -94,7 +94,7 @@ for (const { agent, model } of AGENTS.filter(({ agent }) => !only || agent.id ==
 
     it('relays a native permission prompt and honors decline and approve', LIMIT, async () => {
       const directory = mkdtempSync(path.join(process.cwd(), '.context', 'permission-live-'));
-      const permissionCwd = mkdtempSync(path.join(tmpdir(), 'clew-permission-cwd-'));
+      const permissionCwd = mkdtempSync(path.join(tmpdir(), 'vicher-permission-cwd-'));
       const target = path.join(directory, 'permission.txt');
       mkdirSync(path.join(permissionCwd, '.claude'));
       const settingsPath = path.join(permissionCwd, '.claude', 'settings.local.json');
@@ -183,7 +183,7 @@ for (const { agent, model } of AGENTS.filter(({ agent }) => !only || agent.id ==
     });
 
     it('has the text of an attached file with no tool call, however its CLI loads it', LIMIT, async () => {
-      const outside = mkdtempSync(path.join(tmpdir(), 'clew-mention-'));
+      const outside = mkdtempSync(path.join(tmpdir(), 'vicher-mention-'));
       const file = path.join(outside, 'My Handout.txt');
       writeFileSync(file, 'The secret word is MARMALADE.\n');
       const files = turnFiles([{ kind: 'file', path: file, name: 'My Handout.txt' }], cwd, agent.fileMention);
@@ -207,7 +207,7 @@ for (const { agent, model } of AGENTS.filter(({ agent }) => !only || agent.id ==
     });
 
     it('reads a file outside the working folder that a turn names by full path', LIMIT, async () => {
-      const outside = mkdtempSync(path.join(tmpdir(), 'clew-outside-'));
+      const outside = mkdtempSync(path.join(tmpdir(), 'vicher-outside-'));
       const file = path.join(outside, 'handout.txt');
       writeFileSync(file, 'The secret word is MARMALADE.\n');
       const session = await agent.openSession({ ...options(), systemPrompt: buildSystemPrompt() });
@@ -264,7 +264,7 @@ for (const { agent, model } of AGENTS.filter(({ agent }) => !only || agent.id ==
       }
     });
 
-    it('runs a Clew tool the agent calls and reports it done', LIMIT, async () => {
+    it('runs a Vicher tool the agent calls and reports it done', LIMIT, async () => {
       const session = await agent.openSession({ ...options(), tools: [stubTool] });
       try {
         const events = await collect(session.send(`Call the ${stubTool.name} tool with the plot pack, then reply with one say line.`));

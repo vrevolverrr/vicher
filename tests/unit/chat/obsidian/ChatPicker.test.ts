@@ -48,15 +48,15 @@ function open(list: ChatSummary[], actions: Partial<ChatPickerActions> = {}) {
   const el = picker.modalEl;
   document.body.appendChild(el);
   const input = el.querySelector<HTMLInputElement>('.prompt-input')!;
-  const listEl = el.querySelector<HTMLElement>('.clew-chat-list')!;
+  const listEl = el.querySelector<HTMLElement>('.vicher-chat-list')!;
   return {
     picker,
     actions: full,
     input,
     listEl,
-    titles: () => [...el.querySelectorAll('.clew-chat-row .clew-chat-title')].map((t) => t.textContent),
-    rows: () => el.querySelectorAll('.clew-chat-row').length,
-    headings: () => [...el.querySelectorAll('.clew-chat-group')].map((h) => h.textContent),
+    titles: () => [...el.querySelectorAll('.vicher-chat-row .vicher-chat-title')].map((t) => t.textContent),
+    rows: () => el.querySelectorAll('.vicher-chat-row').length,
+    headings: () => [...el.querySelectorAll('.vicher-chat-group')].map((h) => h.textContent),
     search: (query: string) => {
       input.value = query;
       input.dispatchEvent(new Event('input'));
@@ -139,21 +139,21 @@ describe('ChatPicker', () => {
 
     view.search('nested');
 
-    expect(view.listEl.querySelector('.clew-chat-snippet')?.textContent).toContain('hash joins with nested loops');
+    expect(view.listEl.querySelector('.vicher-chat-snippet')?.textContent).toContain('hash joins with nested loops');
   });
 
   it('says so when nothing matches', () => {
     const view = open(chats(3));
     view.search('zzz');
-    expect(view.listEl.querySelector('.clew-chat-empty')?.textContent).toBe('No chats match.');
+    expect(view.listEl.querySelector('.vicher-chat-empty')?.textContent).toBe('No chats match.');
   });
 
   it('asks before deleting, and keeps the rows that were showing after the delete', async () => {
     const view = open(chats(120));
     view.listEl.dispatchEvent(new Event('scroll'));
 
-    view.listEl.querySelector<HTMLElement>('.clew-chat-delete')!.click();
-    expect(view.listEl.querySelector('.clew-chat-confirm-text')?.textContent).toBe('Delete “Chat 0”?');
+    view.listEl.querySelector<HTMLElement>('.vicher-chat-delete')!.click();
+    expect(view.listEl.querySelector('.vicher-chat-confirm-text')?.textContent).toBe('Delete “Chat 0”?');
     expect(view.actions.remove).not.toHaveBeenCalled();
 
     view.listEl.querySelector<HTMLElement>('.is-confirming .mod-warning')!.click();
@@ -167,7 +167,7 @@ describe('ChatPicker', () => {
   it('keeps the chat and the row when the delete fails', async () => {
     const view = open(chats(3), { remove: jest.fn(async () => Promise.reject(new Error('locked'))) });
 
-    view.listEl.querySelector<HTMLElement>('.clew-chat-delete')!.click();
+    view.listEl.querySelector<HTMLElement>('.vicher-chat-delete')!.click();
     view.listEl.querySelector<HTMLElement>('.is-confirming .mod-warning')!.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -176,11 +176,11 @@ describe('ChatPicker', () => {
 
   it('cancels a pending delete with Cancel or an arrow key', () => {
     const view = open(chats(3));
-    view.listEl.querySelector<HTMLElement>('.clew-chat-delete')!.click();
+    view.listEl.querySelector<HTMLElement>('.vicher-chat-delete')!.click();
     view.listEl.querySelector<HTMLElement>('.is-confirming button:not(.mod-warning)')!.click();
     expect(view.listEl.querySelector('.is-confirming')).toBeNull();
 
-    view.listEl.querySelector<HTMLElement>('.clew-chat-delete')!.click();
+    view.listEl.querySelector<HTMLElement>('.vicher-chat-delete')!.click();
     view.key('ArrowDown');
     expect(view.listEl.querySelector('.is-confirming')).toBeNull();
   });

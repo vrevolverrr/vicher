@@ -4,7 +4,7 @@ import { Decoration, type DecorationSet, EditorView } from '@codemirror/view';
 export const addMark = StateEffect.define<{ from: number; to: number }>();
 export const clearMarks = StateEffect.define<null>();
 
-const mark = Decoration.mark({ class: 'clew-highlight' });
+const mark = Decoration.mark({ class: 'vicher-highlight' });
 
 /** The agent's marks in an editor. They move with the text as the student types, and go when their text is deleted. */
 export const highlightMarks = StateField.define<DecorationSet>({

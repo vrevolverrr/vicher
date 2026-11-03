@@ -5,7 +5,7 @@ import { TAGS } from '@/renderer/figure/FigureData';
 
 const css = readFileSync(path.join(__dirname, '../../../../styles.css'), 'utf8');
 const selectors = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{/g)].map((match) => match[1].trim());
-const SURFACES = ['clew-figure-node', 'clew-network-node', 'clew-figure-cell', 'clew-figure-seq-cell', 'clew-network-edge', 'clew-network-edge-label', 'clew-figure-link', 'clew-figure-pointer', 'clew-figure-key-mark'];
+const SURFACES = ['vicher-figure-node', 'vicher-network-node', 'vicher-figure-cell', 'vicher-figure-seq-cell', 'vicher-network-edge', 'vicher-network-edge-label', 'vicher-figure-link', 'vicher-figure-pointer', 'vicher-figure-key-mark'];
 
 describe('figure tag styles', () => {
   it.each(TAGS.flatMap((tag) => SURFACES.map((surface) => [tag, surface] as const)))('styles %s on %s', (tag, surface) => {

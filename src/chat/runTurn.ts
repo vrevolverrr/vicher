@@ -95,7 +95,7 @@ export async function runTurn(
       }
       if (event.type === 'done') show(filter.flush());
       // Diagnosis only: kept out of the saved chat and the reply, which show the short error.
-      if (event.type === 'done' && event.detail) console.error(`Clew: ${event.error ?? 'the agent failed'}\n${event.detail}`);
+      if (event.type === 'done' && event.detail) console.error(`Vicher: ${event.error ?? 'the agent failed'}\n${event.detail}`);
       turn = recordEvent(turn, event);
       switch (event.type) {
         case 'tool':

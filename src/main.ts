@@ -7,7 +7,7 @@ import { ChatDefaults } from '@/chat/ChatDefaults';
 import { type ChatRecord, newChat } from '@/chat/ChatRecord';
 import { ChatPicker } from '@/chat/obsidian/ChatPicker';
 import { ChatStore } from '@/chat/ChatStore';
-import { ClewSettingTab, obsidianUserEnv } from '@/settings/obsidian/ClewSettingTab';
+import { VicherSettingTab, obsidianUserEnv } from '@/settings/obsidian/VicherSettingTab';
 import { highlightMarks } from '@/tour/obsidian/highlightMarks';
 import { playLayoutDemo } from '@/chat/obsidian/playLayoutDemo';
 import { playVisualsDemo } from '@/chat/obsidian/playVisualsDemo';
@@ -27,7 +27,7 @@ const AUTH_LABELS: Record<AuthState, string> = {
   missing: 'not installed',
 };
 
-export default class ClewPlugin extends Plugin {
+export default class VicherPlugin extends Plugin {
   private defaults!: ChatDefaults;
   private agents!: Record<AgentId, AgentAdapter>;
   private models!: Record<AgentId, Promise<ModelOption[]>>;
@@ -42,7 +42,7 @@ export default class ClewPlugin extends Plugin {
     this.agents = createAgents(() => userEnv.resolve());
     this.models = this.discoverModels(this.agents);
     this.defaults = new ChatDefaults(await this.loadData(), (data) => this.saveData(data));
-    this.addSettingTab(new ClewSettingTab(this.app, this, userEnv));
+    this.addSettingTab(new VicherSettingTab(this.app, this, userEnv));
     const pluginDir = this.manifest.dir ?? `${this.app.vault.configDir}/plugins/${this.manifest.id}`;
     this.chats = new ChatStore(vaultChatFiles(this.app.vault.adapter, `${pluginDir}/chats`));
 
@@ -58,7 +58,7 @@ export default class ClewPlugin extends Plugin {
     this.app.workspace.onLayoutReady(() => void this.chats.chatIds().then((ids) => this.images.sweep(new Set(ids))).catch(() => undefined));
 
     this.registerView(VIEW_TYPE_CHAT, (leaf) => new ChatView(leaf, this, this.chats));
-    this.addRibbonIcon('messages-square', 'Open Clew chat', () => void this.openChat());
+    this.addRibbonIcon('messages-square', 'Open Vicher chat', () => void this.openChat());
     this.addCommand({ id: 'open-chat', name: 'Open chat', callback: () => void this.openChat() });
     this.addCommand({ id: 'new-chat', name: 'New chat', callback: () => void this.openChat({ fresh: true }) });
     this.addCommand({ id: 'open-previous-chat', name: 'Open previous chat', callback: () => void this.pickChat() });
@@ -107,7 +107,7 @@ export default class ClewPlugin extends Plugin {
     const models = (id: AgentId): Promise<ModelOption[]> => ready
       .then(() => agents[id].models())
       .catch((error: unknown) => {
-        console.error(`Clew: could not list ${PROVIDERS[id].name} models`, error);
+        console.error(`Vicher: could not list ${PROVIDERS[id].name} models`, error);
         return [];
       });
     return Object.fromEntries(AGENT_IDS.map((id) => [id, models(id)])) as Record<AgentId, Promise<ModelOption[]>>;
@@ -121,7 +121,7 @@ export default class ClewPlugin extends Plugin {
     }, events);
   }
 
-  /** Opens a fresh chat for a scripted demo in the existing Clew pane. */
+  /** Opens a fresh chat for a scripted demo in the existing Vicher pane. */
   private async openFreshChat(): Promise<ChatView | null> {
     await this.openChat({ fresh: true });
     const view = this.app.workspace.getLeavesOfType(VIEW_TYPE_CHAT)[0]?.view;

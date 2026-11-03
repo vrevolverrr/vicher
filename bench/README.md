@@ -1,12 +1,12 @@
 # Benchmarks
 
-Measurement scripts for Clew. Nothing here is bundled into the plugin. Every run that calls a model goes through your own installed agent CLI and its login, so it is billed to your own subscription.
+Measurement scripts for Vicher. Nothing here is bundled into the plugin. Every run that calls a model goes through your own installed agent CLI and its login, so it is billed to your own subscription.
 
 ## Figure bench (`figure/`)
 
 Two parts that stress-test figures from both ends: what models write, and how the renderer draws it.
 
-**Bench B, the figure eval** asks each case in `cases.ts` as a real Clew chat turn (about fifty visuals across maths, physics, statistics, business, accounting and engineering). It checks which visual the reply chose, that each figure runs and validates, and that a 3D case draws a 3D `Plot`. Every reply is saved to `fixtures/generated/<model>/<case>.md`, where Bench A picks it up.
+**Bench B, the figure eval** asks each case in `cases.ts` as a real Vicher chat turn (about fifty visuals across maths, physics, statistics, business, accounting and engineering). It checks which visual the reply chose, that each figure runs and validates, and that a 3D case draws a 3D `Plot`. Every reply is saved to `fixtures/generated/<model>/<case>.md`, where Bench A picks it up.
 
 ```bash
 npm run eval:figures -- --models=haiku,luna [--only=text] [--repeat=1]
@@ -31,9 +31,9 @@ It needs Obsidian running with its command line interface on (Settings → Gener
 | `page.ts` | Runs inside the bench window: plays a fixture, measures it, turns its 3D plots |
 | `benchVault.ts`, `obsidianCli.ts` | The throwaway vault and the Obsidian CLI calls |
 
-The demo fixtures are the figures of Clew's scripted demos (`src/chat/obsidian/playVisualsDemo.ts`, `playLayoutDemo.ts`).
+The demo fixtures are the figures of Vicher's scripted demos (`src/chat/obsidian/playVisualsDemo.ts`, `playLayoutDemo.ts`).
 
-Figure programs are code a model wrote, so outside the window each runs in its own Node process with no environment variables and Node's permission model on (`--permission`): it cannot read or write files or start processes. Node 22 does not restrict the network. Inside the window, programs run in Clew's own sandboxed worker, as in the plugin. Review changes to `fixtures/` as you would review code.
+Figure programs are code a model wrote, so outside the window each runs in its own Node process with no environment variables and Node's permission model on (`--permission`): it cannot read or write files or start processes. Node 22 does not restrict the network. Inside the window, programs run in Vicher's own sandboxed worker, as in the plugin. Review changes to `fixtures/` as you would review code.
 
 ## Latency bench (`latency/`)
 

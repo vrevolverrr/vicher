@@ -2,7 +2,7 @@ import { loadPrism } from 'obsidian';
 
 import { transformMarkdownSegments } from '@/renderer/markdown/markdownSegments';
 
-const PLACEHOLDER_LANGUAGE_PREFIX = 'clew-display-only-fence-';
+const PLACEHOLDER_LANGUAGE_PREFIX = 'vicher-display-only-fence-';
 
 interface PrismHighlighter {
   highlightElement(element: Element): void;
