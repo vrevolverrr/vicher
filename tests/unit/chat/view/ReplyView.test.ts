@@ -215,16 +215,32 @@ describe('ReplyView', () => {
     expect(blocks(el)).toEqual(['vicher-reply-text: Let me check.']);
   });
 
-  it('follows a run of calls with a working line, which the next call replaces in the same run', () => {
-    tool('a', 'Read', 'running');
-    reply.thinking();
-    expect(el.children).toHaveLength(1);
+  it('keeps a run that just ended active, so a call that follows at once joins it with no working line between', () => {
+    jest.useFakeTimers();
+    try {
+      reply = new ReplyView(el = document.createElement('div'), markdown, host, undefined, true);
+      tool('a', 'Read', 'running');
+      reply.thinking();
+      expect(el.children).toHaveLength(1);
 
-    tool('a', 'Read', 'done');
-    expect(blocks(el)).toEqual(['vicher-tools: Used 1 Read', expect.stringMatching(/^vicher-tools: \w.+\w$/)]);
+      tool('a', 'Read', 'done');
+      expect(blocks(el)).toEqual(['vicher-tools: Using Read']);
+      tool('b', 'Grep', 'running');
+      expect(blocks(el)).toEqual(['vicher-tools: Using Grep']);
 
-    tool('b', 'Grep', 'running');
-    expect(blocks(el)).toEqual(['vicher-tools: Using Grep']);
+      tool('b', 'Grep', 'done');
+      jest.advanceTimersByTime(600);
+      expect(blocks(el)).toEqual(['vicher-tools: Used 1 Read and 1 Grep', expect.stringMatching(/^vicher-tools: \w.+\w$/)]);
+      tool('c', 'Read', 'running');
+      expect(blocks(el)).toEqual(['vicher-tools: Using Read']);
+
+      // The first words end the held run at once, without waiting out the hold.
+      tool('c', 'Read', 'done');
+      reply.appendText('Found it.');
+      expect(el.querySelector('.vicher-tools')?.classList.contains('is-running')).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('drops the working line when the turn ends before any event', () => {

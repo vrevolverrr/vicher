@@ -1703,6 +1703,28 @@
   margin-top: 0 !important;
 }
 
+.vicher-tools.is-entering {
+  animation: vicher-tools-enter 260ms cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+
+/* The working line that opens with a send follows the bubble rather than arriving with it. */
+.vicher-turn.is-waiting .vicher-tools.is-entering {
+  animation-delay: 120ms;
+}
+
+@keyframes vicher-tools-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vicher-tools.is-entering {
+    animation: none;
+  }
+}
+
 /* As tall as a line of reply text, so a line that replaces another lands in the same spot. */
 .vicher-tools .vicher-tools-header {
   display: flex;
@@ -1716,7 +1738,7 @@
   background: transparent;
   box-shadow: none;
   color: inherit;
-  transition: color 150ms ease;
+  transition: color 240ms cubic-bezier(0.4, 0, 0.2, 1);
   font-size: inherit;
   text-align: left;
   cursor: pointer;
@@ -1750,7 +1772,7 @@
 }
 
 .vicher-tools.is-running .vicher-tools-summary,
-.vicher-tool[data-status='running'],
+.vicher-tools.is-open .vicher-tool[data-status='running'],
 .vicher-task.is-running:not(.is-folded) .vicher-task-description,
 .vicher-diagram-card-label {
   background: linear-gradient(90deg, var(--text-muted) 40%, var(--text-normal) 50%, var(--text-muted) 60%) 0 0 / 250% 100%;
@@ -1826,7 +1848,7 @@
 .vicher-tools-time {
   flex-shrink: 0;
   color: var(--text-faint);
-  transition: color 150ms ease;
+  transition: color 240ms cubic-bezier(0.4, 0, 0.2, 1);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1841,7 +1863,7 @@
 .vicher-tools-chevron {
   display: inline-flex;
   flex-shrink: 0;
-  transition: transform 150ms ease;
+  transition: transform 220ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 .vicher-tools.is-empty .vicher-tools-chevron {
@@ -1857,17 +1879,37 @@
   transform: rotate(90deg);
 }
 
+.vicher-tools-drawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.vicher-tools.is-open .vicher-tools-drawer {
+  grid-template-rows: 1fr;
+}
+
+/* The space above the rows is the first row's margin, inside the clip: padding or a margin on the list itself would keep
+   the closed drawer from reaching zero height. */
 .vicher-tools-list {
-  display: none;
+  display: flex;
   flex-direction: column;
   gap: var(--size-2-2);
-  margin-top: var(--size-2-3);
+  min-height: 0;
   padding-left: var(--size-4-3);
+  overflow: hidden;
   border-left: 1px solid var(--background-modifier-border);
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.vicher-tools-list > :first-child {
+  margin-top: var(--size-2-3);
 }
 
 .vicher-tools.is-open .vicher-tools-list {
-  display: flex;
+  opacity: 1;
+  transition: opacity 180ms ease-out 60ms;
 }
 
 .vicher-tool[data-status='failed'] {

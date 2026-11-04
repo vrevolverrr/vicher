@@ -12,6 +12,9 @@ export interface ReplyFeedback {
   rate: (rating: Rating | undefined) => void;
 }
 
+/** How long a run of calls that just ended stays active before a working line takes over. */
+const NEXT_CALL_MS = 600;
+
 /**
  * One assistant reply, in the order the agent produced it: text, then a group for each run of tool calls,
  * then more text. Text after a tool call starts a new block, so a preamble never runs into the answer. A stop the
@@ -23,6 +26,8 @@ export class ReplyView {
   /** Every stop of the reply, across its runs. */
   private readonly steps: TourStep[] = [];
   private copyable = false;
+  /** The run of calls that just ended, held active for a moment in case the next call follows. */
+  private held: { group: ToolGroup; timer: number } | null = null;
   private readonly figures: ReplyFigures;
 
   /**
@@ -34,13 +39,14 @@ export class ReplyView {
     private readonly markdown: MarkdownTarget,
     private readonly walkthrough: WalkthroughHost,
     ask?: (message: string) => boolean,
-    live = false,
+    private readonly live = false,
   ) {
     this.figures = new ReplyFigures(live, ask);
     this.follow();
   }
 
   appendText(delta: string): void {
+    if (delta.trim() !== '') this.release();
     let block = this.blocks.at(-1);
     if (!(block instanceof TextBlock)) {
       // Whitespace between two tool calls must not split their group.
@@ -59,6 +65,7 @@ export class ReplyView {
   }
 
   highlight(step: TourStep): void {
+    this.release();
     const last = this.blocks.at(-1);
     if (last instanceof ToolGroup && last.isEmpty()) this.discard(last);
     this.steps.push(step);
@@ -75,6 +82,7 @@ export class ReplyView {
   }
 
   tool(event: ToolPart): void {
+    this.release();
     let group = this.blocks.find((block): block is ToolGroup => block instanceof ToolGroup && block.has(event.id));
     if (!group) {
       const [previous, last] = this.blocks.slice(-2);
@@ -84,12 +92,31 @@ export class ReplyView {
       group = block instanceof ToolGroup ? block : this.follow();
     }
     group.set(event);
-    // Every call in the run has ended, so the agent is working on its next step.
-    if (group === this.blocks.at(-1) && !group.isRunning()) this.follow();
+    // Every call in the run has ended. Calls often follow one another at once, so the run stays active for a moment;
+    // only a real pause hands over to a working line, which would otherwise blink in and out between calls.
+    if (group === this.blocks.at(-1) && !group.isRunning() && this.live) {
+      group.hold(true);
+      const timer = window.setTimeout(() => {
+        this.release();
+        if (this.blocks.at(-1) === group) this.follow();
+      }, NEXT_CALL_MS);
+      this.held = { group, timer };
+    }
   }
 
-  /** `at` is when the turn ended; it shows beside the copy button, with a thumb pair when `feedback` is given. */
-  finish(at?: number, feedback?: ReplyFeedback): void {
+  private release(): void {
+    if (!this.held) return;
+    window.clearTimeout(this.held.timer);
+    this.held.group.hold(false);
+    this.held = null;
+  }
+
+  /**
+   * `at` is when the turn ended; it shows beside the copy button, with a thumb pair when `feedback` is given. `copy` is
+   * what the button copies, this reply's text unless the reply ends a run of several.
+   */
+  finish(at?: number, feedback?: ReplyFeedback, copy: () => string = () => this.text()): void {
+    this.release();
     const last = this.blocks.at(-1);
     if (last instanceof ToolGroup && last.isEmpty()) this.discard(last);
     for (const block of this.blocks) if (block instanceof TextBlock || block instanceof ToolGroup) block.finish();
@@ -97,19 +124,20 @@ export class ReplyView {
     this.figures.settled = true;
     for (const failure of this.figures.held.values()) failure.showError();
     this.figures.held.clear();
-    if (this.copyable || !this.text()) return;
+    if (this.copyable || !copy()) return;
     this.copyable = true;
     const footer = this.el.createDiv({ cls: 'vicher-reply-footer' });
     if (at !== undefined) footer.createSpan({ cls: 'vicher-reply-time', text: formatWhen(at, Date.now()) });
-    createCopyButton(footer, 'Copy response', () => this.text(), 'vicher-reply-copy');
+    createCopyButton(footer, 'Copy response', copy, 'vicher-reply-copy');
     if (feedback) drawRatingButtons(footer, feedback.rating, feedback.rate);
   }
 
-  private text(): string {
+  text(): string {
     return this.blocks.flatMap((block) => (block instanceof TextBlock ? [block.text.trim()] : [])).join('\n\n');
   }
 
   destroy(): void {
+    this.release();
     for (const block of this.blocks) {
       if (block instanceof TextBlock) block.destroy();
       else if (block instanceof ToolGroup) block.remove();
@@ -118,7 +146,10 @@ export class ReplyView {
   }
 
   private follow(): ToolGroup {
-    const group = new ToolGroup(this.el.createDiv({ cls: 'vicher-tools' }));
+    // A line that comes in while the agent writes eases in once, not again when its tab is shown; a saved reply draws at once.
+    const el = this.el.createDiv({ cls: this.live ? 'vicher-tools is-entering' : 'vicher-tools' });
+    el.addEventListener('animationend', () => el.removeClass('is-entering'), { once: true });
+    const group = new ToolGroup(el);
     this.blocks.push(group);
     return group;
   }
