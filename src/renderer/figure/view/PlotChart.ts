@@ -2,7 +2,8 @@ import { div, reducedMotion, svg, tagInk } from '@/renderer/figure/view/dom';
 import { isPlain } from '@/renderer/figure/figureText';
 import type { Layer, PlotModel, Point } from '@/renderer/figure/plot/PlotModel';
 import { categoriesOf, mixModel, modelDistance, type ResolvedModel, sameShape } from '@/renderer/figure/plot/mixModel';
-import { barSteps, minus, niceDomain, niceTicks, tickText, wrapLabel } from '@/renderer/figure/plot/plotMath';
+import { barSteps, minus, niceTicks, tickText, wrapLabel } from '@/renderer/figure/plot/plotMath';
+import { fitY } from '@/renderer/figure/plot/range';
 import { type LabelBox, placeLabels } from '@/renderer/figure/placeLabels';
 
 const SERIES = 6;
@@ -85,7 +86,7 @@ export class PlotChart {
 
   /** Shows `model`. A plot of the same shape as the one on screen moves to it smoothly; any other replaces it at once. */
   render(model: PlotModel): void {
-    const target: ResolvedModel = { ...model, y: model.y ?? this.yDomain(model) };
+    const target: ResolvedModel = { ...model, y: model.y ?? fitY(model) };
     const from = this.shown;
     this.target = target;
     if (!from || reducedMotion() || !sameShape(from, target) || modelDistance(from, target) < ARRIVED) {
@@ -342,30 +343,6 @@ export class PlotChart {
 
   private text(parent: Element, x: number, y: number, text: string, anchor: 'start' | 'middle' | 'end', strong: boolean): void {
     svg('text', { x, y, 'text-anchor': anchor, class: `vicher-plot-label${strong ? ' is-strong' : ''}` }, parent, text);
-  }
-
-  private yDomain(model: PlotModel): [number, number] {
-    const categories = categoriesOf(model.x) !== null;
-    let low = Infinity;
-    let high = -Infinity;
-    const see = (v: number | null | undefined) => {
-      if (v == null || !Number.isFinite(v) || Math.abs(v) > 1e9) return;
-      low = Math.min(low, v);
-      high = Math.max(high, v);
-    };
-    for (const layer of model.layers) {
-      if (layer.kind === 'line') layer.points.forEach((p) => see(p[1]));
-      else if (layer.kind === 'area') { layer.points.forEach((p) => see(p[1])); layer.lower?.forEach((p) => see(p[1])); if (!layer.lower) see(layer.base); }
-      else if (layer.kind === 'bars') { for (const step of barSteps(layer.values, layer.mode)) { see(step.from); see(step.to); } see(0); }
-      else if (layer.kind === 'dot') see(layer.y);
-      else if (layer.kind === 'rule' && layer.axis === 'y') see(layer.at);
-      else if (layer.kind === 'note' && !categories) see(layer.y);
-      else if (layer.kind === 'arrow') { see(layer.from[1]); see(layer.to[1]); }
-    }
-    if (!Number.isFinite(low)) return [0, 1];
-    const pad = (high - low) * 0.08;
-    // Data that never goes below zero keeps zero as the floor, so a baseline does not float above the axis.
-    return niceDomain(low >= 0 ? 0 : low - pad, high <= 0 ? 0 : high + pad);
   }
 
   private categoryLabels(cats: string[], band: number): { lines: string[][]; tilted: boolean } {
