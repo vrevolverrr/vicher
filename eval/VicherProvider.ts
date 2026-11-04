@@ -8,9 +8,8 @@ import { createAgents } from '@/agents/providers';
 import type { AgentId } from '@/agents/types';
 import { Chat } from '@/chat/Chat';
 import { ChatDefaults } from '@/chat/ChatDefaults';
-import { type ChatTurn, newChat } from '@/chat/ChatRecord';
+import { type AgentTurn, newChat } from '@/chat/ChatRecord';
 import { ChatStore } from '@/chat/ChatStore';
-import type { TurnView } from '@/chat/runTurn';
 import { messageOf } from '@/shared/messageOf';
 
 /** A test's `chat` var (an object, since promptfoo expands an array var into one test per item): one student turn of a conversation. */
@@ -27,14 +26,10 @@ export interface TurnVars {
 }
 
 const noop = (): void => undefined;
-const view: TurnView = {
-  sent: noop, appendText: noop, tool: noop, thinking: noop, usage: noop, act: noop, finish: noop,
-  approve: async () => false, ask: async () => undefined,
-};
 
 /** The reply as the student reads it: text and highlight lines in order, without the tool calls. */
-export function replyText(turn: ChatTurn): string {
-  return turn.parts.map((part) => {
+export function replyText(turns: readonly AgentTurn[]): string {
+  return turns.flatMap((turn) => turn.parts).map((part) => {
     if (part.type === 'text') return part.text;
     if (part.type === 'highlight') return `\n@Highlight(${JSON.stringify(part.step.quote)}, ${JSON.stringify(part.step.comment ?? '')})\n`;
     return '';
@@ -48,7 +43,7 @@ export function replyText(turn: ChatTurn): string {
 export function vicherProvider(agent: AgentId, model?: string): ApiProvider {
   const agents = createAgents(() => ({}));
   const chats = new Map<string, Promise<{ chat: Chat; vault: string; notices: string[] }>>();
-  const turns = new Map<string, Promise<ChatTurn>>();
+  const turns = new Map<string, Promise<AgentTurn[]>>();
 
   const open = (key: string, vars: TurnVars) => {
     let opened = chats.get(key);
@@ -95,7 +90,7 @@ export function vicherProvider(agent: AgentId, model?: string): ApiProvider {
     if (vault) await rm(vault, { recursive: true, force: true });
   };
 
-  const turn = (vars: TurnVars, repeat: number, count: number): Promise<ChatTurn> => {
+  const turn = (vars: TurnVars, repeat: number, count: number): Promise<AgentTurn[]> => {
     const chatKey = `${repeat}|${vars.conversation}`;
     const key = `${chatKey}|${count}`;
     let sent = turns.get(key);
@@ -103,11 +98,15 @@ export function vicherProvider(agent: AgentId, model?: string): ApiProvider {
       sent = (async () => {
         if (count > 1) await turn(vars, repeat, count - 1);
         const { chat, notices } = await open(chatKey, vars);
-        const reply = await chat.send({ message: vars.messages[count - 1], attachments: [], note: vars.note ? { path: vars.note } : undefined }, view);
-        const done = reply?.status === 'completed';
+        const reply = await chat.send({ message: vars.messages[count - 1], attachments: [], note: vars.note ? { path: vars.note } : undefined }).catch((error: unknown) => {
+          notices.push(messageOf(error));
+          return [];
+        });
+        const last = reply.at(-1);
+        const done = last?.status === 'completed';
         // A later turn needs the chat; the last one, or a failed one, leaves it nothing to do.
         if (!done || count === vars.messages.length) await shut(chatKey);
-        if (!done) throw new Error(`Turn ${count} of ${vars.conversation} did not complete: ${reply?.error || notices.join('; ') || reply?.status || 'not sent'}`);
+        if (!done) throw new Error(`Turn ${count} of ${vars.conversation} did not complete: ${last?.error || notices.join('; ') || last?.status || 'not sent'}`);
         return reply;
       })();
       turns.set(key, sent);
@@ -124,8 +123,8 @@ export function vicherProvider(agent: AgentId, model?: string): ApiProvider {
       }
       try {
         const reply = await turn(vars, context?.repeatIndex ?? 0, vars.turn);
-        const highlights = reply.parts.flatMap((part) => (part.type === 'highlight' ? [part.step] : []));
-        return { output: replyText(reply), metadata: { prompt: reply.prompt, highlights } };
+        const highlights = reply.flatMap((turn) => turn.parts).flatMap((part) => (part.type === 'highlight' ? [part.step] : []));
+        return { output: replyText(reply), metadata: { prompt: reply.at(-1)?.prompt, highlights } };
       } catch (error) {
         return { error: messageOf(error) };
       }

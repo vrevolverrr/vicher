@@ -58,9 +58,17 @@ export async function play(reply: string): Promise<VisualInfo[]> {
   view?.leaf.detach();
   view = await app.plugins.plugins.vicher.openFreshChat();
   if (!view) throw new Error('Vicher opened no chat');
+  const listeners = new Set<(event: object) => void>();
+  const emit = (event: object): void => listeners.forEach((listener) => listener(event));
   const session = {
     id: 'bench',
-    async *send() { yield { type: 'text', delta: reply }; yield { type: 'done', status: 'completed' }; },
+    subscribe: (listener: (event: object) => void) => { listeners.add(listener); return () => void listeners.delete(listener); },
+    send: ({ id }: { id: string }) => {
+      emit({ type: 'user', id });
+      emit({ type: 'text', delta: reply });
+      emit({ type: 'done', status: 'completed' });
+    },
+    interrupt: () => undefined, stopTask: async () => undefined, started: async () => undefined,
     skills: async () => [], setModel: async () => undefined, close: async () => undefined,
   };
   await view.playTurn('bench', session, '');

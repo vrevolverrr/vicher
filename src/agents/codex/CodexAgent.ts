@@ -1,12 +1,12 @@
 import * as os from 'os';
 
 import { ManagedStdioProcess } from '@/agents/process/ManagedStdioProcess';
-import { AsyncQueue } from '@/agents/shared/AsyncQueue';
+import { Listeners } from '@/agents/shared/Listeners';
 import { JSONRPCErrorResponse, JSONRPCTransport } from '@/agents/shared/JSONRPCTransport';
 import { resolveCLI } from '@/agents/process/cliBinaryLocator';
 import { cliEnv, getEnhancedPath } from '@/agents/process/env';
 import { runProcessProbe } from '@/agents/process/processProbe';
-import { type AgentAdapter, type AgentEvent, type AgentSession, type AgentSessionOptions, type AuthState, ConversationNotFoundError, type Effort, type ModelOption, type SkillOption, type TurnImage } from '@/agents/types';
+import { type AgentAdapter, type AgentEvent, type AgentMessage, type AgentSession, type AgentSessionOptions, type AuthState, type BackgroundTask, ConversationNotFoundError, type Effort, type ModelOption, type SkillOption } from '@/agents/types';
 import type { AgentApprovalContext } from '@/agents/adapters';
 
 import { findCodexBinaryPath } from './CodexBinaryLocator';
@@ -108,26 +108,42 @@ function buildEnv(cli: string, userEnv: Record<string, string>): Record<string, 
   return cliEnv(getEnhancedPath(cli), userEnv);
 }
 
-interface ActiveTurn {
-  id: string | null;
-  cancellation: AbortController;
-  events: AsyncQueue<AgentEvent>;
-  /** Text streamed so far per agent message, so a completed message only adds what never streamed. */
-  streamed: Map<string, string>;
-  /** The agent message that streamed last; a new one starts a new paragraph. */
-  lastMessageId: string | null;
-  error: string | null;
-  interruptRequested: boolean;
-  finished: boolean;
+interface TaskRun {
+  turnId: string;
+  /** The text of the run's last agent message. */
+  text: string;
 }
 
 class CodexSession implements AgentSession {
-  private turn: ActiveTurn | null = null;
+  private readonly listeners = new Listeners<AgentEvent>();
   private readonly permissions: CodexPermissionAdapter;
   private readonly modelAdapter: CodexModelAdapter;
   private readonly items = new Map<string, ThreadItem>();
-  /** Finished or abandoned turns; their late notifications and approvals must not bind a new turn. */
+  /** Finished turns; their late notifications and approvals must not bind a new turn. */
   private readonly retiredTurnIds = new Set<string>();
+  /** Sent and not yet taken in, in send order, which is the order Codex takes them in. */
+  private unsent: string[] = [];
+  /** Sent while `turn/start` has not returned its turn id, so there is nothing to steer yet. */
+  private held: AgentMessage[] = [];
+  private starting = false;
+  private interruptWhenStarted = false;
+  /** The parent thread's running turn. */
+  private turnId: string | undefined;
+  /** A `user` or output event came since the last `done`. */
+  private inTurn = false;
+  private cancellation = new AbortController();
+  /** Text streamed so far per agent message, so a completed message only adds what never streamed; null once a steer cut it. */
+  private readonly streamed = new Map<string, string | null>();
+  /** The agent message that streamed last; a new one starts a new paragraph. */
+  private lastMessageId: string | null = null;
+  private error: string | null = null;
+  /** The running turn of every other thread, keyed by thread id; a child's turn can start before its parent reports the child. */
+  private readonly runs = new Map<string, TaskRun>();
+  /** Top-level children: thread id to `agentPath`. */
+  private readonly children = new Map<string, string>();
+  /** Spawn prompts by child thread id. */
+  private readonly prompts = new Map<string, string>();
+  private ended = false;
 
   /** Sent on every turn; `turn/start` keeps an override for later turns, so returning to the default sends it explicitly. */
   private model: string | undefined;
@@ -195,57 +211,44 @@ class CodexSession implements AgentSession {
     transport.onNotification('item/completed', (params) => this.onItemCompleted(params as ItemParams));
     transport.onNotification('thread/tokenUsage/updated', (params) => this.onTokenUsage(params as TokenUsageParams));
     transport.onNotification('error', (params) => this.onError(params as ErrorParams));
+    transport.onNotification('turn/started', (params) => this.onTurnStarted(params as TurnScopedParams));
     transport.onNotification('turn/completed', (params) => this.onTurnCompleted(params as TurnScopedParams));
-    proc.onClose(() => {
-      if (this.turn) finishTurn(this.turn, failed('Codex exited before finishing the turn', proc));
-    });
+    proc.onClose(() => this.onExit());
   }
 
-  async *send(text: string, signal?: AbortSignal, images: TurnImage[] = []): AsyncGenerator<AgentEvent, void> {
-    if (this.turn) throw new Error('A turn is already running');
-    if (signal?.aborted) { yield { type: 'done', status: 'interrupted' }; return; }
-    const turn: ActiveTurn = {
-      id: null,
-      cancellation: new AbortController(),
-      events: new AsyncQueue(),
-      streamed: new Map(),
-      lastMessageId: null,
-      error: null,
-      interruptRequested: false,
-      finished: false,
-    };
-    this.turn = turn;
-    const interrupt = (): void => this.interrupt(turn);
-    signal?.addEventListener('abort', interrupt, { once: true });
-    let delivered = false;
-    try {
-      const { turn: started } = await this.transport.request<TurnStartResult>('turn/start', {
-        threadId: this.id,
-        input: [...images.map(({ path }) => ({ type: 'localImage', path })), { type: 'text', text, text_elements: [] }],
-        model: this.model,
-        effort: this.effort,
-        summary: 'none',
-        ...this.permissions.turnSettings(),
-      });
-      turn.id ??= started.id;
-      if (turn.interruptRequested) this.interrupt(turn);
-      for await (const event of turn.events) {
-        if (event.type === 'done') delivered = true;
-        yield event;
-      }
-    } catch (error) {
-      delivered = true;
-      yield failed(error instanceof Error ? error.message : String(error), this.proc);
-    } finally {
-      signal?.removeEventListener('abort', interrupt);
-      if (!delivered) {
-        this.interrupt(turn);
-      }
-      if (turn.id) this.retire(turn.id);
-      turn.cancellation.abort();
-      this.items.clear();
-      if (this.turn === turn) this.turn = null;
+  subscribe(listener: (event: AgentEvent) => void): () => void {
+    return this.listeners.add(listener);
+  }
+
+  send(message: AgentMessage): void {
+    this.unsent.push(message.id);
+    this.deliver(message);
+  }
+
+  interrupt(): void {
+    if (this.starting && !this.turnId) {
+      this.cancellation.abort();
+      this.interruptWhenStarted = true;
+      return;
     }
+    if (!this.turnId) return;
+    this.cancellation.abort();
+    this.transport.request('turn/interrupt', { threadId: this.id, turnId: this.turnId }).catch(() => undefined);
+  }
+
+  async stopTask(id: string): Promise<void> {
+    const run = this.children.has(id) ? this.runs.get(id) : undefined;
+    if (!run) return;
+    try {
+      await this.transport.request('turn/interrupt', { threadId: id, turnId: run.turnId });
+    } catch (error) {
+      // The child ended before the call reached it, which is the no-op an ended task gets.
+      if (!(error instanceof JSONRPCErrorResponse)) throw error;
+    }
+  }
+
+  started(): Promise<void> {
+    return Promise.resolve();
   }
 
   async skills(): Promise<SkillOption[]> {
@@ -262,9 +265,87 @@ class CodexSession implements AgentSession {
   }
 
   async close(): Promise<void> {
-    this.turn?.cancellation.abort();
+    this.end();
     this.transport.dispose();
     await this.proc.shutdown();
+  }
+
+  private emit(event: AgentEvent): void {
+    if (!this.ended) this.listeners.emit(event);
+  }
+
+  /** Emits an event that belongs to the running CLI turn, which it starts if none runs. */
+  private emitTurn(event: AgentEvent): void {
+    this.inTurn = true;
+    this.emit(event);
+  }
+
+  private end(): void {
+    this.ended = true;
+    this.cancellation.abort();
+  }
+
+  private deliver(message: AgentMessage): void {
+    if (this.starting) this.held.push(message);
+    else if (this.turnId) void this.steer(message, this.turnId);
+    else void this.start(message);
+  }
+
+  private async start(message: AgentMessage): Promise<void> {
+    this.starting = true;
+    let turnId: string;
+    try {
+      ({ turn: { id: turnId } } = await this.transport.request<TurnStartResult>('turn/start', {
+        threadId: this.id,
+        input: inputOf(message),
+        model: this.model,
+        effort: this.effort,
+        summary: 'none',
+        ...this.permissions.turnSettings(),
+      }));
+    } catch (error) {
+      const held = this.held;
+      this.held = [];
+      this.starting = false;
+      this.interruptWhenStarted = false;
+      // A closed transport means the process is exiting, and the exit drops every unsent message in its own order.
+      if (!this.transport.isClosed) this.drop([message.id, ...held.map(({ id }) => id)], error instanceof Error ? error.message : String(error));
+      return;
+    }
+    this.starting = false;
+    if (!this.retiredTurnIds.has(turnId)) this.turnId = turnId;
+    if (this.interruptWhenStarted) {
+      this.interruptWhenStarted = false;
+      this.interrupt();
+    }
+    const held = this.held;
+    this.held = [];
+    for (const next of held) this.deliver(next);
+  }
+
+  private async steer(message: AgentMessage, turnId: string): Promise<void> {
+    try {
+      await this.transport.request('turn/steer', { threadId: this.id, expectedTurnId: turnId, input: inputOf(message) });
+    } catch {
+      // The turn ended before the steer reached it ("no active turn to steer"), so the message starts a turn of its own.
+      if (this.transport.isClosed) return;
+      if (this.starting) this.held.push(message);
+      else void this.start(message);
+    }
+  }
+
+  private drop(ids: string[], error: string): void {
+    this.unsent = this.unsent.filter((id) => !ids.includes(id));
+    this.emit({ type: 'dropped', ids, error });
+  }
+
+  private onExit(): void {
+    if (this.ended) return;
+    if (this.inTurn) this.emit(failed('Codex exited before finishing the turn', this.proc));
+    if (this.unsent.length) this.drop([...this.unsent], 'Codex exited before taking the message in');
+    for (const task of this.background()) this.emit({ type: 'notice', task: task.id, description: task.description, status: 'stopped', text: 'The agent process exited' });
+    this.emit({ type: 'background', tasks: [] });
+    this.end();
   }
 
   private retire(turnId: string): void {
@@ -272,95 +353,155 @@ class CodexSession implements AgentSession {
     if (this.retiredTurnIds.size > RETIRED_TURN_LIMIT) this.retiredTurnIds.delete(this.retiredTurnIds.values().next().value!);
   }
 
-  private interrupt(turn: ActiveTurn): void {
-    turn.interruptRequested = true;
-    turn.cancellation.abort();
-    if (!turn.id || turn.finished) return;
-    this.transport.request('turn/interrupt', { threadId: this.id, turnId: turn.id }).catch(() => undefined);
-  }
-
-  /** The running turn that owns a server request, or undefined so the request is declined. */
+  /** The running parent turn that owns a server request, or undefined so the request is declined. */
   private approvalContext(request: TurnScopedParams): AgentApprovalContext | undefined {
-    const turn = typeof request.threadId === 'string' && typeof request.turnId === 'string' ? this.turnFor(request) : undefined;
-    return turn && !turn.finished ? { signal: turn.cancellation.signal, push: (event: AgentEvent) => turn.events.push(event) } : undefined;
+    return this.isCurrent(request) && request.turnId !== undefined
+      ? { signal: this.cancellation.signal, push: (event: AgentEvent) => this.emitTurn(event) }
+      : undefined;
   }
 
-  private turnFor(params: TurnScopedParams): ActiveTurn | null {
-    const turn = this.turn;
-    if (!turn || params.threadId !== this.id) return null;
-    const turnId = params.turnId ?? params.turn?.id;
-    if (!turnId) return turn;
-    if (this.retiredTurnIds.has(turnId)) return null;
-    turn.id ??= turnId;
-    return turn.id === turnId ? turn : null;
+  /** Whether a notification belongs to the parent thread's running turn. */
+  private isCurrent(params: TurnScopedParams): boolean {
+    return params.threadId === this.id && this.turnId !== undefined && (params.turnId ?? params.turn?.id ?? this.turnId) === this.turnId;
+  }
+
+  private background(): BackgroundTask[] {
+    return [...this.children]
+      .filter(([id]) => this.runs.has(id))
+      .map(([id, agentPath]) => ({ id, description: this.prompts.get(id) ?? agentPath }));
+  }
+
+  private emitBackground(): void {
+    this.emit({ type: 'background', tasks: this.background() });
+  }
+
+  /** Learns the parent's children from its items, outside any turn too, since a finished child is reported after the parent's turn. */
+  private trackChildren(item: ThreadItem): void {
+    if (item.type === 'subAgentActivity' && !this.children.has(item.agentThreadId)) {
+      this.children.set(item.agentThreadId, agentName(item.agentPath));
+      if (this.runs.has(item.agentThreadId)) this.emitBackground();
+    }
+    if (item.type === 'collabAgentToolCall' && item.prompt) {
+      const changed = item.receiverThreadIds.filter((id) => this.prompts.get(id) !== item.prompt);
+      for (const id of changed) this.prompts.set(id, item.prompt);
+      if (changed.some((id) => this.children.has(id) && this.runs.has(id))) this.emitBackground();
+    }
+  }
+
+  private onUserMessage(): void {
+    const id = this.unsent.shift();
+    if (id === undefined) return;
+    // A steer cuts the agent message that was streaming; Codex never completes it, and its text stays with the turn before.
+    if (this.lastMessageId !== null) this.streamed.set(this.lastMessageId, null);
+    this.lastMessageId = null;
+    this.emitTurn({ type: 'user', id });
   }
 
   private onDelta(params: AgentMessageDeltaParams): void {
-    const turn = this.turnFor(params);
-    if (!turn || turn.finished) return;
-    this.pushText(turn, params.itemId, params.delta);
+    if (this.isCurrent(params)) this.pushText(params.itemId, params.delta);
   }
 
   private onItemStarted(params: ItemParams): void {
-    const turn = this.turnFor(params);
-    if (!turn || turn.finished) return;
-    // Kept only to show an approval the item it gates.
-    if (params.item.type === 'commandExecution' || params.item.type === 'fileChange') this.items.set(params.item.id, params.item);
-    if (params.item.type === 'reasoning') {
-      turn.events.push({ type: 'thinking' });
+    const { item } = params;
+    if (params.threadId !== this.id) return;
+    this.trackChildren(item);
+    if (item.type === 'userMessage') {
+      this.onUserMessage();
       return;
     }
-    for (const event of this.tools.events({ item: params.item, phase: 'started' })) turn.events.push(event);
+    if (!this.isCurrent(params)) return;
+    // Kept only to show an approval the item it gates.
+    if (item.type === 'commandExecution' || item.type === 'fileChange') this.items.set(item.id, item);
+    if (item.type === 'reasoning') {
+      this.emitTurn({ type: 'thinking' });
+      return;
+    }
+    for (const event of this.tools.events({ item, phase: 'started' })) this.emitTurn(event);
   }
 
   private onItemCompleted(params: ItemParams): void {
-    const turn = this.turnFor(params);
     const { item } = params;
-    if (!turn || turn.finished) return;
-    if (item.type !== 'agentMessage') {
-      for (const event of this.tools.events({ item, phase: 'completed' })) turn.events.push(event);
+    if (params.threadId !== this.id) {
+      const run = this.runs.get(params.threadId ?? '');
+      if (run && item.type === 'agentMessage') run.text = item.text;
       return;
     }
-    if (!item.text) return;
-    const streamed = turn.streamed.get(item.id) ?? '';
-    const missing = item.text.startsWith(streamed) ? item.text.slice(streamed.length) : '';
-    if (missing) this.pushText(turn, item.id, missing);
+    this.trackChildren(item);
+    if (!this.isCurrent(params)) return;
+    if (item.type !== 'agentMessage') {
+      for (const event of this.tools.events({ item, phase: 'completed' })) this.emitTurn(event);
+      return;
+    }
+    const streamed = this.streamed.get(item.id);
+    if (!item.text || streamed === null) return;
+    const missing = item.text.startsWith(streamed ?? '') ? item.text.slice((streamed ?? '').length) : '';
+    if (missing) this.pushText(item.id, missing);
   }
 
-  private pushText(turn: ActiveTurn, itemId: string, delta: string): void {
-    const separator = turn.lastMessageId !== null && turn.lastMessageId !== itemId ? '\n\n' : '';
-    turn.lastMessageId = itemId;
-    turn.streamed.set(itemId, (turn.streamed.get(itemId) ?? '') + delta);
-    turn.events.push({ type: 'text', delta: separator + delta });
+  private pushText(itemId: string, delta: string): void {
+    const streamed = this.streamed.get(itemId);
+    if (streamed === null) return;
+    const separator = this.lastMessageId !== null && this.lastMessageId !== itemId ? '\n\n' : '';
+    this.lastMessageId = itemId;
+    this.streamed.set(itemId, (streamed ?? '') + delta);
+    this.emitTurn({ type: 'text', delta: separator + delta });
   }
 
   private onTokenUsage(params: TokenUsageParams): void {
-    // A resumed thread replays its last usage when a turn starts, under the earlier turn's id, so this must not bind the active turn to it.
-    const turn = this.turn;
+    // A resumed thread replays its last usage when a turn starts, under the earlier turn's id, so this checks the thread only.
     const { last, modelContextWindow } = params.tokenUsage;
-    if (turn && !turn.finished && params.threadId === this.id && modelContextWindow) turn.events.push({ type: 'usage', used: last.totalTokens, window: modelContextWindow });
+    if (params.threadId === this.id && (this.turnId || this.starting) && modelContextWindow) this.emit({ type: 'usage', used: last.totalTokens, window: modelContextWindow });
   }
 
   private onError(params: ErrorParams): void {
-    const turn = this.turnFor(params);
-    if (turn && !params.willRetry) turn.error = params.error.message;
+    if (params.threadId === this.id && !params.willRetry) this.error = params.error.message;
+  }
+
+  private onTurnStarted(params: TurnScopedParams): void {
+    if (!params.turn || !params.threadId) return;
+    if (params.threadId === this.id) {
+      if (!this.retiredTurnIds.has(params.turn.id)) this.turnId = params.turn.id;
+      return;
+    }
+    this.runs.set(params.threadId, { turnId: params.turn.id, text: '' });
+    if (this.children.has(params.threadId)) this.emitBackground();
   }
 
   private onTurnCompleted(params: TurnScopedParams): void {
-    const turn = this.turnFor(params);
-    if (!turn || !params.turn) return;
-    switch (params.turn.status) {
-      case 'completed':
-        finishTurn(turn, { type: 'done', status: 'completed' });
-        break;
-      case 'interrupted':
-        finishTurn(turn, { type: 'done', status: 'interrupted' });
-        break;
-      case 'failed':
-        finishTurn(turn, { type: 'done', status: 'failed', error: params.turn.error?.message ?? turn.error ?? 'Codex turn failed' });
-        break;
+    const { turn, threadId } = params;
+    if (!turn || !threadId || turn.status === 'inProgress') return;
+    if (threadId !== this.id) {
+      this.onTaskCompleted(threadId, turn);
+      return;
     }
+    if (this.retiredTurnIds.has(turn.id)) return;
+    this.retire(turn.id);
+    if (this.turnId === turn.id) this.turnId = undefined;
+    const error = turn.status === 'failed' ? turn.error?.message ?? this.error ?? 'Codex turn failed' : undefined;
+    this.inTurn = false;
+    this.cancellation.abort();
+    this.cancellation = new AbortController();
+    this.streamed.clear();
+    this.lastMessageId = null;
+    this.error = null;
+    this.items.clear();
+    this.emit({ type: 'done', status: turn.status, ...(error ? { error } : {}) });
   }
+
+  private onTaskCompleted(threadId: string, turn: NonNullable<TurnScopedParams['turn']>): void {
+    const run = this.runs.get(threadId);
+    if (run?.turnId !== turn.id) return;
+    this.runs.delete(threadId);
+    const agentPath = this.children.get(threadId);
+    if (agentPath === undefined) return;
+    const status = turn.status === 'interrupted' ? 'stopped' : turn.status === 'failed' ? 'failed' : 'completed';
+    this.emit({ type: 'notice', task: threadId, description: this.prompts.get(threadId) ?? agentPath, status, text: run.text || (turn.error?.message ?? '') });
+    this.emitBackground();
+  }
+}
+
+function inputOf({ text, images = [] }: AgentMessage): unknown[] {
+  return [...images.map(({ path }) => ({ type: 'localImage', path })), { type: 'text', text, text_elements: [] }];
 }
 
 /** A failed resume is a lost thread only if Codex cannot read the thread either; its error text is not relied on. */
@@ -374,10 +515,7 @@ async function resumeThread(transport: JSONRPCTransport, threadId: string, setti
   }
 }
 
-function finishTurn(turn: ActiveTurn, event: AgentEvent): void {
-  if (turn.finished) return;
-  turn.finished = true;
-  turn.cancellation.abort();
-  turn.events.push(event);
-  turn.events.close();
+/** A child's name from its `agentPath`, such as "counter 1" from "/root/counter_1", for when Codex sends no task text. */
+function agentName(agentPath: string): string {
+  return agentPath.split('/').filter(Boolean).at(-1)?.replace(/[_-]+/g, ' ') || agentPath;
 }

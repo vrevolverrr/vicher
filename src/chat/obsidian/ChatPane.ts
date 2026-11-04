@@ -10,10 +10,10 @@ import type { MarkdownTarget } from '@/chat/view/TextBlock';
 import { appendMessageText } from '@/chat/view/appendMessageText';
 import type { ChatContext } from '@/context/ChatContext';
 import { type NoteQuote, quoteOf } from '@/context/NoteContext';
-import type { Chat, ChatEvents } from '@/chat/Chat';
-import type { ChatTurn, Rating } from '@/chat/ChatRecord';
+import type { Chat, ChatEvents, ChatView } from '@/chat/Chat';
+import type { AgentTurn, Rating, UserTurn } from '@/chat/ChatRecord';
 import { usesStoredFile } from '@/chat/ChatRecord';
-import type { TurnView } from '@/chat/runTurn';
+import { TaskRow } from '@/chat/view/TaskRow';
 import { type ChatAttachment, isMention, mentionPaths, type StoredAttachment } from '@/context/ChatAttachment';
 import type { VaultAttachments } from '@/attachments/obsidian/VaultAttachments';
 import type { VaultFileIndex } from '@/attachments/obsidian/VaultFileIndex';
@@ -43,12 +43,19 @@ export class ChatPane extends Component {
   private messagesEl!: HTMLElement;
   private composer!: Composer;
   private approvals!: ApprovalCard;
+  private tasks!: TaskRow;
+  /** Bubbles of messages sent and not yet taken in, by message id. */
+  private readonly queued = new Map<string, { turnEl: HTMLElement; labelEl: HTMLElement; message: string }>();
+  /** The element of the message the agent took in last; its replies go in it. */
+  private turnEl: HTMLElement | null = null;
+  /** The reply being written. */
+  private reply: { el: HTMLElement; view: ReplyView } | null = null;
+  private detach: (() => void) | null = null;
   private markdown!: MarkdownContentRenderer;
   /** What replies draw through: Markdown, plus Mermaid diagrams where a reply asks for them. */
   private replyMarkdown!: MarkdownTarget;
   private closed = false;
   private closing: Promise<void> | null = null;
-  private task: Promise<void> | null = null;
   private displayed = false;
   unread = false;
   private unpin: (() => void) | null = null;
@@ -73,12 +80,13 @@ export class ChatPane extends Component {
       changed: () => {
         if (this.closed) return;
         this.composer.updateLabels();
+        this.composer.setStreaming(this.chat.running);
         this.refreshTab();
       },
       switched: () => {
         if (this.closed) return;
         this.composer.closeMenus();
-        if (this.chat.record.turns.length) this.addNotice(`Switched to ${PROVIDERS[this.chat.agent].name}. It does not see the earlier messages.`);
+        if (this.chat.turns.length) this.addNotice(`Switched to ${PROVIDERS[this.chat.agent].name}. It does not see the earlier messages.`);
         this.composer.meter.clear();
         this.composer.refresh();
       },
@@ -105,6 +113,10 @@ export class ChatPane extends Component {
       finishRenderMath,
     };
     this.registerDomEvent(this.messagesEl, 'click', (event) => this.openInternalLink(event));
+    this.tasks = new TaskRow(root, () => this.chat.agent, (id) => this.chat.stopTask(id).catch((error: unknown) => {
+      new Notice(`Could not stop this task: ${messageOf(error)}`);
+      throw error;
+    }));
     this.approvals = new ApprovalCard(root, () => this.refreshTab());
     const composerArea = root.createDiv({ cls: 'vicher-chat-composer-area' });
     this.composer = new Composer(this, composerArea, {
@@ -116,7 +128,11 @@ export class ChatPane extends Component {
       savePaste: (text) => this.host.images.savePaste(this.chat.record.id, text),
       discardStored: (attachment) => this.discardStored(attachment),
     }, this.chat);
-    for (const [index, turn] of this.chat.record.turns.entries()) this.replayTurn(turn, index);
+    for (const [index, turn] of this.chat.turns.entries()) {
+      if (turn.role === 'user') this.addUser(turn);
+      else this.replayReply(turn, index);
+    }
+    this.detach = this.chat.attach(this.chatView());
     this.chat.open();
   }
 
@@ -134,13 +150,6 @@ export class ChatPane extends Component {
 
   focus(): void {
     this.composer.focus();
-  }
-
-  private start(task: Promise<void>): Promise<void> {
-    return this.task = task.catch((error: unknown) => {
-      this.addNotice(`Could not show this message: ${messageOf(error)}`);
-      this.refreshTab();
-    });
   }
 
   /**
@@ -177,97 +186,136 @@ export class ChatPane extends Component {
 
   private async dispose(): Promise<void> {
     this.closed = true;
+    this.detach?.();
     const closing = this.chat.close();
     this.stopTour?.();
     this.walkers.clear();
     this.unpin?.();
     this.composer.dispose();
-    await this.task;
+    this.tasks.destroy();
     await closing;
     for (const reply of this.replies) reply.destroy();
     this.replies.clear();
     this.markdown.dispose();
   }
 
-  /** Sends `message` as the student's next message, for a visual that writes one (a quiz answer). False while a reply is still being written. */
+  /** Sends `message` as the student's next message, for a visual that writes one (a quiz answer). False once the chat is closed. */
   private ask(message: string): boolean {
-    if (this.chat.busy || this.closed) return false;
+    if (this.closed) return false;
     const { note } = this.composer.document.read();
-    void this.start(this.run({ message, attachments: [], ...(note ? { note } : {}) }));
+    this.run({ message, attachments: [], ...(note ? { note } : {}) });
     return true;
   }
 
   private send(): void {
-    if ((!this.composer.message && !this.composer.hasAttachments) || this.chat.busy || this.closed) return;
+    if ((!this.composer.message && !this.composer.hasAttachments) || this.closed) return;
     const message = this.composer.message;
-    void this.start(this.run({ message, attachments: this.composer.take(), ...this.composer.document.read() }));
+    this.run({ message, attachments: this.composer.take(), ...this.composer.document.read() });
   }
 
-  /** Runs one turn on `context`, drawn as it streams. */
-  private run(context: ChatContext): Promise<void> {
+  /** Sends one message; the chat draws it through the view as the agent takes it in and answers. */
+  private run(context: ChatContext): void {
     const { document } = this.composer;
     this.sourcePath = document.path;
-    const { selection } = context;
-    return this.displayTurn(context, (view) => this.chat.send(context, view), () => { if (selection) document.sent(selection); });
+    if (context.selection) document.sent(context.selection);
+    // A dropped message is drawn as not sent; nothing else waits on it.
+    this.chat.send(context).catch(() => undefined);
   }
 
-  /** Keeps live replies and scripted demos on the same display lifecycle. */
-  private async displayTurn(context: ChatContext, send: (view: TurnView) => Promise<unknown>, sent = (): void => undefined): Promise<void> {
-    const { turnEl, replyEl, reply } = this.addTurn(context.message, quoteOf(context.selection), context.attachments, true);
-    this.messagesEl.scrollTo({ top: turnEl.offsetTop, behavior: 'smooth' });
-    const view = this.turnView(replyEl, reply, this.chat.record.turns.length, sent);
-    this.composer.setStreaming(true);
-    if (this.host.active()) this.host.tour.reset();
-    try {
-      await send(view);
-    } finally {
-      this.composer.setStreaming(false);
-      this.unread = !this.host.active();
-      this.refreshTab();
-    }
-  }
-
-  /** What a running turn draws on: the reply being written, the tour, the context meter. */
-  private turnView(replyEl: HTMLElement, reply: ReplyView, index: number, sent: () => void): TurnView {
+  /** What the chat draws on: bubbles, the reply being written, the tour, the context meter, the task row. */
+  private chatView(): ChatView {
+    const reply = (): ReplyView => {
+      if (!this.reply) this.openReply();
+      return this.reply!.view;
+    };
     return {
-      sent,
-      appendText: (delta) => reply.appendText(delta),
-      tool: (part) => reply.tool(part),
-      thinking: () => reply.thinking(),
+      pending: (id, context) => {
+        const turnEl = this.drawUser(context.message, quoteOf(context.selection), context.attachments);
+        const labelEl = turnEl.createDiv({ cls: 'vicher-user-label', text: 'Queued' });
+        this.queued.set(id, { turnEl, labelEl, message: context.message });
+        this.messagesEl.scrollTo({ top: turnEl.offsetTop, behavior: 'smooth' });
+        if (this.host.active()) this.host.tour.reset();
+      },
+      user: (id) => {
+        const queued = this.queued.get(id);
+        this.queued.delete(id);
+        if (!queued) return;
+        queued.labelEl.remove();
+        // Bubbles still queued stay below the one taken in, so they keep their send order.
+        const next = this.firstQueued();
+        if (next && next.compareDocumentPosition(queued.turnEl) & Node.DOCUMENT_POSITION_FOLLOWING) this.messagesEl.insertBefore(queued.turnEl, next);
+        this.turnEl = queued.turnEl;
+      },
+      dropped: (id, error) => {
+        const queued = this.queued.get(id);
+        this.queued.delete(id);
+        if (!queued) return;
+        queued.labelEl.setText(`Not sent: ${error}`);
+        queued.labelEl.addClass('is-error');
+        this.composer.restore(queued.message);
+      },
+      agentStart: () => this.openReply(),
+      appendText: (delta) => reply().appendText(delta),
+      tool: (part) => reply().tool(part),
+      thinking: () => reply().thinking(),
+      notice: (part) => reply().notice(part),
       usage: (used, window) => this.composer.meter.set(used, window),
       approve: (request, signal) => this.approvals.ask(request, signal),
       ask: (questions, signal) => this.approvals.askQuestions(questions, signal),
       act: (step) => {
-        reply.highlight(step);
+        reply().highlight(step);
         if (this.host.active()) this.host.tour.add(step);
       },
-      finish: (turn) => {
-        reply.finish(turn.at, this.feedback(index));
-        this.showStatus(replyEl, turn);
+      agentEnd: (turn, index) => {
+        if (!this.reply) this.openReply();
+        const { el, view } = this.reply!;
+        this.reply = null;
+        view.finish(turn.at, this.feedback(index));
+        this.showStatus(el, turn);
+        this.unread = !this.host.active();
+        this.refreshTab();
       },
+      background: (tasks) => this.tasks.set(tasks),
     };
   }
 
+  private firstQueued(): HTMLElement | undefined {
+    return [...this.queued.values()].map(({ turnEl }) => turnEl).find((el) => el.isConnected);
+  }
+
+  /** Starts a reply below the message it follows, above any message still queued. */
+  private openReply(): HTMLElement {
+    let turnEl = this.turnEl;
+    if (!turnEl) {
+      turnEl = this.turnEl = this.messagesEl.createDiv({ cls: 'vicher-turn' });
+      this.messagesEl.insertBefore(turnEl, this.firstQueued() ?? null);
+    }
+    const { replyEl, reply } = this.addReply(turnEl, true);
+    this.reply = { el: replyEl, view: reply };
+    return replyEl;
+  }
+
   /**
-   * Runs a turn on a session the caller made, as if the student had sent `message` with `notePath` open, and saves it.
-   * A way to show what a reply looks like without an agent.
+   * Plays `session` as if the student had sent `message` with `notePath` open, and saves it. A way to show what a
+   * reply looks like without an agent.
    */
-  playTurn(message: string, session: AgentSession, notePath: string): Promise<void> {
-    if (this.closed || this.chat.busy) return Promise.resolve();
-    const context: ChatContext = { message, attachments: [], note: { path: notePath } };
-    return this.start(this.displayTurn(context, (view) => this.chat.play(context, session, view)));
+  async playTurn(message: string, session: AgentSession, notePath: string): Promise<void> {
+    if (this.closed) return;
+    this.sourcePath = notePath;
+    // A dropped message is drawn as not sent; nothing else waits on it.
+    await this.chat.play({ message, attachments: [], note: { path: notePath } }, session).catch(() => undefined);
   }
 
   /** Deletes the file of an image taken off a message, unless an earlier message of the chat shows it too. */
   private discardStored(stored: StoredAttachment): void {
-    if (usesStoredFile(this.chat.record.turns, stored.path)) return;
+    if (usesStoredFile(this.chat.turns, stored.path)) return;
     void this.host.images.remove(stored.path).catch((error: unknown) => {
       new Notice(`Could not remove this attachment: ${messageOf(error)}`);
     });
   }
 
-  /** `live` is true for a turn being run, false for a saved one drawn again. */
-  private addTurn(message: string, quote?: NoteQuote, attachments: readonly ChatAttachment[] = [], live = false): { turnEl: HTMLElement; replyEl: HTMLElement; reply: ReplyView } {
+  /** Draws a message as its own turn at the end of the chat. */
+  private drawUser(message: string, quote?: NoteQuote, attachments: readonly ChatAttachment[] = []): HTMLElement {
     const turnEl = this.messagesEl.createDiv({ cls: 'vicher-turn' });
     const chipped = attachments.filter((attachment) => !isMention(attachment));
     if (chipped.length) {
@@ -294,18 +342,30 @@ export class ChatPane extends Component {
       // Lets Obsidian finish the maths styles.
       if (bubble.querySelector('.math, mjx-container')) finishRenderMath().catch(() => undefined);
     }
+    return turnEl;
+  }
+
+  /** Draws a stored message. */
+  private addUser(turn: UserTurn): void {
+    this.turnEl = this.drawUser(turn.message, turn.quote, turn.attachments);
+  }
+
+  /** `live` is true for a reply being written, false for a saved one drawn again. */
+  private addReply(turnEl: HTMLElement, live: boolean): { replyEl: HTMLElement; reply: ReplyView } {
     const replyEl = turnEl.createDiv({ cls: 'vicher-reply markdown-rendered' });
     const reply = new ReplyView(replyEl, this.replyMarkdown, this.walkthrough, (message) => this.ask(message), live);
     this.replies.add(reply);
-    return { turnEl, replyEl, reply };
+    return { replyEl, reply };
   }
 
-  /** Draws a stored turn as it was drawn live. */
-  private replayTurn(turn: ChatTurn, index: number): void {
-    const { replyEl, reply } = this.addTurn(turn.message, turn.quote, turn.attachments);
+  /** Draws a stored reply as it was drawn live. */
+  private replayReply(turn: AgentTurn, index: number): void {
+    if (!this.turnEl) this.turnEl = this.messagesEl.createDiv({ cls: 'vicher-turn' });
+    const { replyEl, reply } = this.addReply(this.turnEl, false);
     for (const part of turn.parts) {
       if (part.type === 'text') reply.appendText(part.text);
       else if (part.type === 'highlight') reply.highlight(part.step);
+      else if (part.type === 'notice') reply.notice(part);
       else reply.tool(part);
     }
     reply.finish(turn.at, this.feedback(index, turn.rating));
@@ -317,7 +377,7 @@ export class ChatPane extends Component {
     return { rating, rate: (next) => void this.chat.rate(index, next) };
   }
 
-  private showStatus(replyEl: HTMLElement, turn: ChatTurn): void {
+  private showStatus(replyEl: HTMLElement, turn: AgentTurn): void {
     if (turn.status === 'interrupted') replyEl.createDiv({ cls: 'vicher-reply-status', text: 'Stopped.' });
     if (turn.status === 'failed') replyEl.createDiv({ cls: 'vicher-reply-error', text: turn.error ?? 'The agent failed.' });
   }

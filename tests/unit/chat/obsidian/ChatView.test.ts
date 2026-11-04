@@ -3,13 +3,12 @@ import { webcrypto } from 'node:crypto';
 import { TextEncoder } from 'node:util';
 import type { App, DataAdapter, WorkspaceLeaf } from 'obsidian';
 import { FileSystemAdapter } from 'obsidian';
-import { AsyncQueue } from '@/agents/shared/AsyncQueue';
 import type { AgentAdapter, AgentEvent, AgentSession, AgentSessionOptions } from '@/agents/types';
 import { ChatView } from '@/chat/obsidian/ChatView';
 import { playApprovalDemo } from '@/chat/obsidian/playApprovalDemo';
 import { Chat } from '@/chat/Chat';
 import { ChatDefaults } from '@/chat/ChatDefaults';
-import { newChat } from '@/chat/ChatRecord';
+import { type ChatRecord, newChat } from '@/chat/ChatRecord';
 import { ChatStore } from '@/chat/ChatStore';
 import { VaultAttachments } from '@/attachments/obsidian/VaultAttachments';
 import type { VaultFileIndex } from '@/attachments/obsidian/VaultFileIndex';
@@ -47,28 +46,70 @@ jest.mock('obsidian', () => {
   };
 }, { virtual: true });
 
+/**
+ * A session that takes each message in at once, as an idle agent does. `events.push` emits on it; `signal` is the
+ * running turn's, aborted by `interrupt`, which ends the turn as interrupted.
+ */
+interface FakeSession extends AgentSession {
+  input: string[];
+  /** Messages sent, by id; set `hold` to keep them pending until the test takes them in. */
+  sent: string[];
+  hold: boolean;
+  stopTask: jest.Mock;
+  options: AgentSessionOptions;
+  readonly signal: AbortSignal | undefined;
+  events: { push(event: AgentEvent): void; close(): void };
+  setModel: jest.Mock;
+  close: jest.Mock;
+}
+
+function fakeSession(id: string, options: AgentSessionOptions): FakeSession {
+  const listeners = new Set<(event: AgentEvent) => void>();
+  const emit = (event: AgentEvent): void => listeners.forEach((listener) => listener(event));
+  let turn: AbortController | undefined;
+  return {
+    id, options, input: [], sent: [], hold: false,
+    get signal() { return turn?.signal; },
+    events: {
+      push: (event) => {
+        if (event.type === 'done') turn = undefined;
+        emit(event);
+      },
+      close: () => undefined,
+    },
+    subscribe: (listener) => { listeners.add(listener); return () => void listeners.delete(listener); },
+    send({ id: message, text }) {
+      this.input.push(text);
+      this.sent.push(message);
+      if (this.hold) return;
+      turn = new AbortController();
+      emit({ type: 'user', id: message });
+    },
+    interrupt: () => {
+      if (!turn) return;
+      turn.abort();
+      turn = undefined;
+      emit({ type: 'done', status: 'interrupted' });
+    },
+    stopTask: jest.fn(async () => undefined),
+    started: async () => undefined,
+    title: async () => 'A conversation', skills: async () => [], setModel: jest.fn(async () => undefined), close: jest.fn(async () => turn?.abort()),
+  };
+}
+
+const replies = (chat: ChatRecord | null) => chat?.turns.filter((turn) => turn.role === 'agent') ?? [];
+const messages = (chat: ChatRecord | null) => chat?.turns.filter((turn) => turn.role === 'user') ?? [];
+
 const settle = async (): Promise<void> => { for (let i = 0; i < 50; i++) await Promise.resolve(); };
 const views: ChatView[] = [];
 
 function setup() {
-  const sessions: Array<AgentSession & { input: string[]; signal?: AbortSignal; events: AsyncQueue<AgentEvent>; options: AgentSessionOptions }> = [];
+  const sessions: FakeSession[] = [];
   const agent: AgentAdapter = {
     id: 'claude', skillSyntax: { prefix: '/', atStart: true }, fileMention: (path) => `@"${path}"`, toolsOnResume: true,
     authState: async () => 'logged-in', models: async () => [],
     openSession: jest.fn(async (options) => {
-      const events = new AsyncQueue<AgentEvent>();
-      const session = {
-        id: `session-${sessions.length}`, input: [] as string[], events, options, signal: undefined as AbortSignal | undefined,
-        async *send(text: string, signal?: AbortSignal) {
-          session.input.push(text); session.signal = signal;
-          const abort = () => { events.push({ type: 'done', status: 'interrupted' }); events.close(); };
-          signal?.addEventListener('abort', abort, { once: true });
-          if (signal?.aborted) abort();
-          try { yield* events; }
-          finally { signal?.removeEventListener('abort', abort); }
-        },
-        title: async () => 'A conversation', skills: async () => [], setModel: jest.fn(async () => undefined), close: jest.fn(async () => undefined),
-      };
+      const session = fakeSession(`session-${sessions.length}`, options);
       sessions.push(session);
       return session;
     }),
@@ -121,7 +162,7 @@ beforeEach(() => {
 describe('permission relay', () => {
   const request = { description: 'these file changes', input: { file: 'notes.md' }, fields: [], changes: [] };
   /** Streams an approval on the session's running turn, cancelled with that turn as an adapter's is. */
-  const ask = (session: { events: AsyncQueue<AgentEvent>; signal?: AbortSignal }): Promise<boolean> =>
+  const ask = (session: FakeSession): Promise<boolean> =>
     new Promise((answer) => session.events.push({ type: 'approval', request, signal: session.signal!, answer }));
 
   it('plays the sample cards through the real chat and records choices without sending to an agent', async () => {
@@ -148,7 +189,7 @@ describe('permission relay', () => {
     expect(panel().querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
     expect(panel().textContent).toContain('Demo complete.');
     expect(sessions.every((session) => session.input.length === 0)).toBe(true);
-    expect((await store.load(view.chatId!))?.turns[0]?.status).toBe('completed');
+    expect(replies(await store.load(view.chatId!))[0]?.status).toBe('completed');
   });
 
   it.each(['stop', 'close'] as const)('cancels a pending approval demo on %s without opening the next card', async (action) => {
@@ -164,7 +205,7 @@ describe('permission relay', () => {
     stale.click(); await settle();
     expect(originalPanel.querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
     expect(originalPanel.textContent).not.toContain('Sample 2');
-    expect((await store.load(id))?.turns[0]?.status).toBe('interrupted');
+    expect(replies(await store.load(id))[0]?.status).toBe('interrupted');
   });
 
   it('keeps a pending card above its own composer across tab switches', async () => {
@@ -300,7 +341,7 @@ describe('concurrent chat tabs', () => {
     expect(view.hasChat(second)).toBe(false);
     expect(sessions[1]!.signal?.aborted).toBe(true);
     expect(sessions[1]!.close).toHaveBeenCalledTimes(1);
-    expect((await store.load(second))?.turns[0]?.status).toBe('interrupted');
+    expect(replies(await store.load(second))[0]?.status).toBe('interrupted');
     expect(create.disabled).toBe(false);
     expect(input().value).toBe('');
     select(0);
@@ -356,32 +397,24 @@ describe('concurrent chat tabs', () => {
     const { start, view, send, sessions, type, input, panel, store } = setup();
     await start();
     send('Original question'); await settle();
-    sessions[0]!.events.push({ type: 'done', status: 'completed' }); sessions[0]!.events.close(); await settle();
+    sessions[0]!.events.push({ type: 'text', delta: 'Answer.' });
+    sessions[0]!.events.push({ type: 'done', status: 'completed' }); await settle();
     const id = view.chatId!;
     type('Unsent draft');
-    const events = new AsyncQueue<AgentEvent>();
-    let received: string | undefined;
-    let signal: AbortSignal | undefined;
-    const demo: AgentSession = {
-      id: 'scripted-demo', skills: async () => [], setModel: async () => undefined, close: async () => undefined,
-      async *send(text, abort) {
-        received = text; signal = abort;
-        const stop = () => { events.push({ type: 'done', status: 'interrupted' }); events.close(); };
-        abort?.addEventListener('abort', stop, { once: true });
-        try { yield* events; } finally { abort?.removeEventListener('abort', stop); }
-      },
-    };
+    const demo = fakeSession('scripted-demo', {} as AgentSessionOptions);
     const running = view.playTurn('Scripted reply', demo, 'demo.md'); await settle();
-    expect(received).toBe('Scripted reply');
+    expect(demo.input).toEqual(['Scripted reply']);
     expect(input().value).toBe('Unsent draft');
-    expect(panel().querySelector('[aria-label="Stop"]')).not.toBeNull();
+    // With a draft typed, the button sends it into the running turn; Escape still stops.
+    expect(panel().querySelector('[aria-label="Send"]')).not.toBeNull();
+    const signal = demo.signal;
     input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await running;
     expect(signal?.aborted).toBe(true);
     expect(panel().querySelector('[aria-label="Send"]')).not.toBeNull();
     expect(input().value).toBe('Unsent draft');
     expect((await store.load(id))?.sessionId).toBe(sessions[0]!.id);
-    expect((await store.load(id))?.turns[1]?.status).toBe('interrupted');
+    expect(replies(await store.load(id))[1]?.status).toBe('interrupted');
   });
   it('cleans up a paste that finishes storing after its tab closes', async () => {
     const { start, view, input, vault, disk } = setup();
@@ -444,12 +477,12 @@ describe('concurrent chat tabs', () => {
     expect(panel().textContent).toContain('Second reply');
     expect(panel().textContent).not.toContain('First reply');
     expect(view.contentEl.querySelector('[role="tab"]')?.classList.contains('is-unread')).toBe(true);
-    expect((await store.load(first))?.turns[0]?.message).toBe('Question one');
+    expect(messages(await store.load(first))[0]?.message).toBe('Question one');
     select(0);
     expect(panel().textContent).toContain('First reply');
     expect(view.contentEl.querySelector('[role="tab"]')?.classList.contains('is-unread')).toBe(false);
     sessions[1]!.events.push({ type: 'done', status: 'completed' }); sessions[1]!.events.close(); await settle();
-    expect((await store.load(second))?.turns[0]?.message).toBe('Question two');
+    expect(messages(await store.load(second))[0]?.message).toBe('Question two');
   });
 
   it('does not autoplay highlights from a background chat', async () => {
@@ -461,7 +494,7 @@ describe('concurrent chat tabs', () => {
     sessions[0]!.events.push({ type: 'text', delta: '@Highlight("a long quote", "Look", "a.md")\n' });
     sessions[0]!.events.push({ type: 'done', status: 'completed' }); sessions[0]!.events.close(); await settle();
     expect(stage.show).not.toHaveBeenCalled();
-    expect((await store.load(first))?.turns[0]?.parts).toContainEqual({ type: 'highlight', step: { path: 'a.md', quote: 'a long quote', comment: 'Look' } });
+    expect(replies(await store.load(first))[0]?.parts).toContainEqual({ type: 'highlight', step: { path: 'a.md', quote: 'a long quote', comment: 'Look' } });
   });
 
   it('autoplays highlights from the selected chat', async () => {
@@ -501,7 +534,7 @@ describe('concurrent chat tabs', () => {
     await Promise.all([view.closeChat(id), view.openChat({ chatId: id })]);
     expect(view.chatId).toBe(id);
     expect(sessions.filter((session) => session.options.resume === sessions[0]!.id)).toHaveLength(1);
-    expect((await store.load(id))?.turns[0]?.status).toBe('interrupted');
+    expect(replies(await store.load(id))[0]?.status).toBe('interrupted');
   });
 
   it('keeps each restored chat model independent of new-chat defaults', async () => {
@@ -536,13 +569,90 @@ describe('concurrent chat tabs', () => {
     select(0);
     expect(panel().textContent).toContain('1 line selected');
     input().focus(); document.getSelection()!.removeAllRanges();
-    // Reopen a session's event stream for its next turn, as a real CLI does.
-    const next = new AsyncQueue<AgentEvent>();
-    sessions[0]!.send = async function* (text, signal) { sessions[0]!.input.push(text); sessions[0]!.signal = signal; yield* next; };
     send('Explain that'); await settle();
     expect(sessions[0]!.input.at(-1)).toContain(`<selection source="chat" chatId="${first}">\nAn explanation to quote.\n</selection>`);
     expect(panel().querySelector('.vicher-context-tray')!.textContent).not.toContain('selected');
-    next.push({ type: 'done', status: 'completed' }); next.close(); await settle();
-    expect((await store.load(first))?.turns[1]?.quote).toMatchObject({ source: 'chat', path: first, text: 'An explanation to quote.' });
+    sessions[0]!.events.push({ type: 'done', status: 'completed' }); await settle();
+    expect(messages(await store.load(first))[1]?.quote).toMatchObject({ source: 'chat', path: first, text: 'An explanation to quote.' });
+  });
+});
+
+describe('agent stream', () => {
+  it('queues a message sent during a turn below the reply, and takes the label off once the agent takes it in', async () => {
+    const { start, panel, send, type, sessions } = setup();
+    await start();
+    send('First'); await settle();
+    const session = sessions[0]!;
+    session.hold = true;
+    session.events.push({ type: 'text', delta: 'Working on it.' });
+    type('Second');
+    expect(panel().querySelector<HTMLButtonElement>('.vicher-send')!.getAttribute('aria-label')).toBe('Send');
+    send('Second'); await settle();
+    const bubbles = () => [...panel().querySelectorAll('.vicher-user-message')].map((el) => el.parentElement!.textContent);
+    expect(bubbles()).toEqual(['First', 'SecondQueued']);
+    session.events.push({ type: 'user', id: session.sent[1]! });
+    session.events.push({ type: 'text', delta: 'Steered.' });
+    session.events.push({ type: 'done', status: 'completed' }); await settle();
+    expect(bubbles()[1]).not.toContain('Queued');
+    const order = [...panel().querySelectorAll('.vicher-user-message, .vicher-reply-text')].map((el) => el.textContent);
+    expect(order).toEqual(['First', 'Working on it.', 'Second', 'Steered.']);
+  });
+
+  it('draws a reply the agent starts on its own above a queued message', async () => {
+    const { start, panel, send, sessions } = setup();
+    await start();
+    send('First'); await settle();
+    const session = sessions[0]!;
+    session.events.push({ type: 'text', delta: 'One.' });
+    session.events.push({ type: 'done', status: 'completed' });
+    session.hold = true;
+    send('Second'); await settle();
+    session.events.push({ type: 'notice', task: 't1', description: 'Review ch6', status: 'completed', text: 'Two typos.' });
+    session.events.push({ type: 'text', delta: 'The review is back.' });
+    session.events.push({ type: 'done', status: 'completed' }); await settle();
+    const order = [...panel().querySelectorAll('.vicher-user-message, .vicher-reply-text, .vicher-reply-notice')].map((el) => el.textContent);
+    expect(order).toEqual(['First', 'One.', 'Review ch6 finished: Two typos.', 'The review is back.', 'Second']);
+  });
+
+  it('marks a dropped message as not sent and puts its text back in an empty composer', async () => {
+    const { start, panel, send, input, sessions } = setup();
+    await start();
+    sessions[0]!.hold = true;
+    send('Lost message'); await settle();
+    sessions[0]!.events.push({ type: 'dropped', ids: [...sessions[0]!.sent], error: 'Claude Code exited' }); await settle();
+    expect(panel().querySelector('.vicher-user-label')?.textContent).toBe('Not sent: Claude Code exited');
+    expect(input().value).toBe('Lost message');
+  });
+
+  it('shows running background tasks above the composer, each with its time and stop, and Working on the tab', async () => {
+    const { start, view, panel, send, sessions } = setup();
+    await start();
+    send('Review'); await settle();
+    const session = sessions[0]!;
+    session.events.push({ type: 'background', tasks: [{ id: 't1', description: 'Review ch6' }, { id: 't2', description: 'Review ch7' }] });
+    session.events.push({ type: 'done', status: 'completed' }); await settle();
+    const row = panel().querySelector<HTMLElement>('.vicher-task-row')!;
+    expect(row.hidden).toBe(false);
+    expect(row.querySelector('.vicher-task-first')?.textContent).toBe('Review ch6');
+    expect(row.querySelector('.vicher-task-more')?.textContent).toBe('+1 other');
+    expect(view.contentEl.querySelector('[role="tab"]')?.getAttribute('aria-label')).toContain('Working');
+    row.querySelector<HTMLElement>('.vicher-task-summary')!.click();
+    expect(row.classList.contains('is-expanded')).toBe(true);
+    expect(row.querySelector('.vicher-task-count')?.textContent).toBe('2 tasks running');
+    row.querySelectorAll<HTMLButtonElement>('.vicher-task-stop')[1]!.click(); await settle();
+    expect(session.stopTask).toHaveBeenCalledWith('t2');
+    expect(row.querySelectorAll('.vicher-task-time')[1]!.textContent).toBe('Stopping');
+    expect(row.querySelectorAll('.vicher-task-time')[1]!.querySelector('.vicher-task-spinner')).not.toBeNull();
+    jest.useFakeTimers();
+    try {
+      session.events.push({ type: 'background', tasks: [] });
+      expect(row.querySelector('.vicher-task-count')?.textContent).toBe('Tasks finished');
+      expect(row.querySelectorAll('.vicher-task.is-done')).toHaveLength(2);
+      jest.advanceTimersByTime(1200);
+      expect(row.querySelectorAll('.vicher-task')).toHaveLength(0);
+      expect(row.hidden).toBe(true);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

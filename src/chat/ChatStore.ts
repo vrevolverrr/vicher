@@ -1,7 +1,7 @@
 import { isPermissionPolicy } from '@/agents/types';
 import { isAgentId } from '@/agents/providers';
 import { decodeChoice } from '@/chat/ChatDefaults';
-import type { ChatRecord, ChatSummary, ChatTurn, ReplyPart, TourStep } from '@/chat/ChatRecord';
+import type { AgentTurn, ChatRecord, ChatSummary, ChatTurn, ReplyPart, TourStep, UserTurn } from '@/chat/ChatRecord';
 import { summarize } from '@/chat/ChatRecord';
 import type { NoteQuote } from '@/context/NoteContext';
 import { type ChatAttachment, isImageMediaType } from '@/context/ChatAttachment';
@@ -155,21 +155,28 @@ export function decodeChat(value: unknown): ChatRecord | null {
 }
 
 function decodeTurn(value: unknown): ChatTurn | null {
-  if (!isRecord(value)) return null;
-  const { message, quote, attachments, parts, status, error, at, rating, prompt } = value;
-  if (typeof message !== 'string' || !Array.isArray(parts)) return null;
+  if (!isRecord(value) || typeof value.at !== 'number') return null;
+  return value.role === 'user' ? decodeUserTurn(value, value.at) : value.role === 'agent' ? decodeAgentTurn(value, value.at) : null;
+}
+
+function decodeUserTurn({ message, quote, attachments }: Record<string, unknown>, at: number): UserTurn | null {
+  if (typeof message !== 'string') return null;
   const decodedQuote = quote === undefined ? undefined : decodeQuote(quote);
   if (decodedQuote === null) return null;
   const decodedAttachments = attachments === undefined ? undefined : decodeList(attachments, decodeAttachment);
   if (decodedAttachments === null) return null;
-  if (status !== 'completed' && status !== 'interrupted' && status !== 'failed') return null;
+  return { role: 'user', message, quote: decodedQuote, attachments: decodedAttachments, at };
+}
+
+function decodeAgentTurn({ parts, status, error, rating, prompt }: Record<string, unknown>, at: number): AgentTurn | null {
+  if (!Array.isArray(parts)) return null;
+  if (status !== 'completed' && status !== 'interrupted' && status !== 'failed' && status !== 'steered') return null;
   if (error !== undefined && typeof error !== 'string') return null;
-  if (at !== undefined && typeof at !== 'number') return null;
   if (rating !== undefined && rating !== 'up' && rating !== 'down') return null;
   if (prompt !== undefined && typeof prompt !== 'string') return null;
-  const decoded = parts.map(decodePart);
-  if (decoded.some((part) => part === null)) return null;
-  return { message, quote: decodedQuote, attachments: decodedAttachments, parts: decoded as ReplyPart[], status, error, at, rating, prompt };
+  const decoded = decodeList(parts, decodePart);
+  if (decoded === null) return null;
+  return { role: 'agent', parts: decoded, status, error, at, rating, prompt };
 }
 
 function decodeList<T>(value: unknown, decodeEntry: (entry: unknown) => T | null): T[] | null {
@@ -204,6 +211,11 @@ function decodeQuote(value: unknown): NoteQuote | null {
 function decodePart(value: unknown): ReplyPart | null {
   if (!isRecord(value)) return null;
   if (value.type === 'text') return typeof value.text === 'string' ? { type: 'text', text: value.text } : null;
+  if (value.type === 'notice') {
+    const { description, status, text } = value;
+    if (typeof description !== 'string' || typeof text !== 'string') return null;
+    return status === 'completed' || status === 'failed' || status === 'stopped' ? { type: 'notice', description, status, text } : null;
+  }
   if (value.type === 'highlight') {
     const step = decodeStep(value.step);
     return step ? { type: 'highlight', step } : null;

@@ -2,9 +2,10 @@ import { countFigures } from '@/chat/splitReply';
 import { type MarkdownTarget, ReplyFigures, TextBlock } from '@/chat/view/TextBlock';
 import { ToolGroup } from '@/chat/view/ToolGroup';
 import { formatWhen } from '@/chat/view/chatList';
-import type { Rating, ToolPart, TourStep } from '@/chat/ChatRecord';
+import type { NoticePart, Rating, ToolPart, TourStep } from '@/chat/ChatRecord';
 import { Walkthrough, type WalkthroughHost } from '@/tour/view/Walkthrough';
 import { canAnimate, createCopyButton, createIconButton } from '@/shared/view/iconButtons';
+import { setIcon } from '@/shared/view/icon';
 
 /** The thumb a reply starts with, and what to do when the student gives or takes back one. */
 export interface ReplyFeedback {
@@ -19,7 +20,7 @@ export interface ReplyFeedback {
  * While the agent works without writing, an empty group at the end stands in as a working line.
  */
 export class ReplyView {
-  private readonly blocks: (TextBlock | ToolGroup | Walkthrough)[] = [];
+  private readonly blocks: (TextBlock | ToolGroup | Walkthrough | HTMLElement)[] = [];
   /** Every stop of the reply, across its runs. */
   private readonly steps: TourStep[] = [];
   private copyable = false;
@@ -70,6 +71,17 @@ export class ReplyView {
     run.add();
   }
 
+  /** One muted line saying a background task ended; it shows two lines of what the task reported until clicked. */
+  notice({ description, status, text }: NoticePart): void {
+    const last = this.blocks.at(-1);
+    if (last instanceof ToolGroup && last.isEmpty()) this.discard(last);
+    const el = this.el.createDiv({ cls: 'vicher-reply-notice' });
+    setIcon(el.createSpan({ cls: 'vicher-reply-notice-icon' }), status === 'completed' ? 'circle-check' : status === 'failed' ? 'circle-alert' : 'circle-stop');
+    const label = el.createSpan({ cls: 'vicher-reply-notice-text', text: status === 'stopped' ? `${description} stopped` : `${description} ${status === 'completed' ? 'finished' : 'failed'}: ${text}` });
+    el.addEventListener('click', () => label.toggleClass('is-expanded', !label.hasClass('is-expanded')));
+    this.blocks.push(el);
+  }
+
   thinking(): void {
     if (this.blocks.at(-1) instanceof TextBlock) this.follow();
   }
@@ -92,7 +104,7 @@ export class ReplyView {
   finish(at?: number, feedback?: ReplyFeedback): void {
     const last = this.blocks.at(-1);
     if (last instanceof ToolGroup && last.isEmpty()) this.discard(last);
-    for (const block of this.blocks) if (!(block instanceof Walkthrough)) block.finish();
+    for (const block of this.blocks) if (block instanceof TextBlock || block instanceof ToolGroup) block.finish();
     // Until the repair turn exists, a held failure shows its error card when the reply ends.
     this.figures.settled = true;
     for (const failure of this.figures.held.values()) failure.showError();

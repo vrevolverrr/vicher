@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 
 import { CodexAgent } from '@/agents/codex/CodexAgent';
-import { type AgentEvent, type AgentSession, type AgentSessionOptions, ConversationNotFoundError } from '@/agents/types';
+import { type AgentEvent, type AgentSession, type AgentSessionOptions, ConversationNotFoundError, type TurnImage } from '@/agents/types';
 
 const FAKE_CODEX = path.join(__dirname, '../../../fixtures/codex/fakeCodex.mjs');
 
@@ -55,19 +55,41 @@ function paramsOf(method: string): Record<string, unknown> | undefined {
   return received().find((message) => message.method === method)?.params;
 }
 
-async function collect(events: AsyncIterable<AgentEvent>, onEvent?: (event: AgentEvent) => void): Promise<AgentEvent[]> {
-  const out: AgentEvent[] = [];
-  for await (const event of events) {
-    out.push(event);
+type Match = (events: AgentEvent[]) => boolean;
+
+/** Records every event of `tutor`; `until` resolves once the recorded events match. */
+function record(tutor: AgentSession, onEvent?: (event: AgentEvent) => void): { events: AgentEvent[]; until: (match: Match) => Promise<AgentEvent[]>; stop: () => void } {
+  const events: AgentEvent[] = [];
+  let check = (): void => {};
+  const stop = tutor.subscribe((event) => {
+    events.push(event);
     onEvent?.(event);
-  }
-  return out;
+    check();
+  });
+  const until = (match: Match): Promise<AgentEvent[]> => new Promise((resolve) => {
+    check = () => { if (match(events)) resolve(events); };
+    check();
+  });
+  return { events, until, stop };
+}
+
+const dones = (count: number): Match => (events) => events.filter((event) => event.type === 'done').length >= count;
+const has = (type: AgentEvent['type']): Match => (events) => events.some((event) => event.type === type);
+
+/** Sends one message and records the session's events until its CLI turn is done. */
+async function run(tutor: AgentSession, text: string, onEvent?: (event: AgentEvent) => void, images?: TurnImage[]): Promise<AgentEvent[]> {
+  const { until, stop } = record(tutor, onEvent);
+  tutor.send({ id: text, text, images });
+  const events = await until(dones(1));
+  stop();
+  return events;
 }
 
 const textOf = (events: AgentEvent[]): string =>
   events.map((e) => (e.type === 'text' ? e.delta : '')).join('');
 
 const MESSAGE = '{"type":"say","text":"Look at the definition first."}';
+const PARTIAL = MESSAGE.slice(0, 15);
 
 describe('CodexAgent session', () => {
   it.each([undefined, 'thread-1'])('registers nonempty dynamic tools only for a fresh thread (resume=%s)', async (resume) => {
@@ -100,6 +122,7 @@ describe('CodexAgent session', () => {
     expect(thread).not.toHaveProperty('approvalPolicy');
     expect(thread).not.toHaveProperty('ephemeral');
     expect(session!.id).toBe('thread-1');
+    await expect(session!.started()).resolves.toBeUndefined();
   });
 
   it('resumes an earlier thread under the same rules and runs a turn on it', async () => {
@@ -116,7 +139,7 @@ describe('CodexAgent session', () => {
       approvalsReviewer: 'user',
     });
     expect(tutor.id).toBe('thread-1');
-    expect(textOf(await collect(tutor.send('Welcome back.')))).toBe(MESSAGE);
+    expect(textOf(await run(tutor, 'Welcome back.'))).toBe(MESSAGE);
     expect(paramsOf('turn/start')).toMatchObject({ sandboxPolicy: { type: 'readOnly', networkAccess: false } });
   });
 
@@ -133,7 +156,7 @@ describe('CodexAgent session', () => {
   it('reports the context size of the thread against the window, skipping updates without a window', async () => {
     const tutor = await open('usage');
 
-    const events = await collect(tutor.send('Hello'));
+    const events = await run(tutor, 'Hello');
 
     expect(events.filter((e) => e.type === 'usage')).toEqual([{ type: 'usage', used: 31000, window: 258400 }]);
   });
@@ -141,26 +164,30 @@ describe('CodexAgent session', () => {
   it('keeps the new turn when a resumed thread replays the usage of an earlier turn', async () => {
     const tutor = await open('usage-replay', { resume: 'thread-1' });
 
-    const events = await collect(tutor.send('Hello'));
+    const events = await run(tutor, 'Hello');
 
     expect(textOf(events)).toBe(MESSAGE);
     expect(events.at(-1)).toEqual({ type: 'done', status: 'completed' });
   });
 
-  it('streams the agent message once and completes the turn', async () => {
+  it('takes the message in before streaming the agent message once and completing the turn', async () => {
     const tutor = await open('stream');
 
-    const events = await collect(tutor.send('Student opened the page.'));
+    const events = await run(tutor, 'Student opened the page.');
 
-    expect(textOf(events)).toBe(MESSAGE);
-    expect(events.at(-1)).toEqual({ type: 'done', status: 'completed' });
+    expect(events).toEqual([
+      { type: 'user', id: 'Student opened the page.' },
+      { type: 'text', delta: PARTIAL },
+      { type: 'text', delta: MESSAGE.slice(15) },
+      { type: 'done', status: 'completed' },
+    ]);
   });
 
   it('sends attached images as local files ahead of the text', async () => {
     const tutor = await open('stream');
 
-    await collect(tutor.send('What is this?', undefined, [{ path: '/vault/figure.png', mediaType: 'image/png' }]));
-    await collect(tutor.send('And now?'));
+    await run(tutor, 'What is this?', undefined, [{ path: '/vault/figure.png', mediaType: 'image/png' }]);
+    await run(tutor, 'And now?');
 
     const inputs = received().filter((message) => message.method === 'turn/start').map((message) => message.params!.input);
     expect(inputs[0]).toEqual([{ type: 'localImage', path: '/vault/figure.png' }, { type: 'text', text: 'What is this?', text_elements: [] }]);
@@ -170,7 +197,7 @@ describe('CodexAgent session', () => {
   it('starts each turn with the session model and effort', async () => {
     const tutor = await open('stream');
 
-    await collect(tutor.send('Student opened the page.'));
+    await run(tutor, 'Student opened the page.');
 
     expect(paramsOf('turn/start')).toMatchObject({
       threadId: 'thread-1',
@@ -183,7 +210,7 @@ describe('CodexAgent session', () => {
   it('leaves model and effort to Codex when the chat picks Auto', async () => {
     const tutor = await open('stream', { model: undefined, effort: undefined });
 
-    await collect(tutor.send('Student opened the page.'));
+    await run(tutor, 'Student opened the page.');
 
     expect(paramsOf('thread/start')).not.toHaveProperty('model');
     expect(paramsOf('turn/start')).not.toHaveProperty('model');
@@ -193,9 +220,10 @@ describe('CodexAgent session', () => {
   it('reports reasoning, then tool items, between messages and starts each message as a new paragraph', async () => {
     const tutor = await open('tools');
 
-    const events = await collect(tutor.send('What does the pin count track?'));
+    const events = await run(tutor, 'What does the pin count track?');
 
     expect(events).toEqual([
+      { type: 'user', id: 'What does the pin count track?' },
       { type: 'text', delta: 'Let me check the note.' },
       { type: 'thinking' },
       { type: 'tool', id: 'cmd-1', name: 'Read', title: 'Read notes.md', status: 'running' },
@@ -211,7 +239,7 @@ describe('CodexAgent session', () => {
   it('emits completed message text that never streamed as deltas', async () => {
     const tutor = await open('completion-only');
 
-    const events = await collect(tutor.send('Student opened the page.'));
+    const events = await run(tutor, 'Student opened the page.');
 
     expect(textOf(events)).toBe(MESSAGE);
   });
@@ -219,8 +247,8 @@ describe('CodexAgent session', () => {
   it('keeps one app-server across turns', async () => {
     const tutor = await open('stream');
 
-    await collect(tutor.send('first event'));
-    const second = await collect(tutor.send('second event'));
+    await run(tutor, 'first event');
+    const second = await run(tutor, 'second event');
 
     const methods = received().map((message) => message.method);
     expect(methods.filter((method) => method === 'initialize')).toHaveLength(1);
@@ -231,53 +259,189 @@ describe('CodexAgent session', () => {
   it('fails the turn with Codex\'s message when the usage limit is hit', async () => {
     const tutor = await open('usage-limit');
 
-    const events = await collect(tutor.send('Student opened the page.'));
+    const events = await run(tutor, 'Student opened the page.');
 
-    expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({ type: 'done', status: 'failed' });
-    expect((events[0] as { error?: string }).error).toContain('hit your usage limit');
+    expect(events.map((event) => event.type)).toEqual(['user', 'done']);
+    expect(events[1]).toMatchObject({ type: 'done', status: 'failed' });
+    expect((events[1] as { error?: string }).error).toContain('hit your usage limit');
   });
 
-  it('interrupts the turn when the caller aborts', async () => {
+  it('interrupts the running turn', async () => {
     const tutor = await open('long');
-    const controller = new AbortController();
 
-    const events = await collect(tutor.send('Write ten lines.', controller.signal), (event) => {
-      if (event.type === 'text') controller.abort();
+    const events = await run(tutor, 'Write ten lines.', (event) => {
+      if (event.type === 'text') tutor.interrupt();
     });
 
     expect(paramsOf('turn/interrupt')).toEqual({ threadId: 'thread-1', turnId: 'turn-1' });
     expect(events.at(-1)).toEqual({ type: 'done', status: 'interrupted' });
   });
 
-  it('keeps a turn the caller stopped reading from leaking into the next turn', async () => {
+  it('steers a message into the running turn, leaving the cut message with the text before it', async () => {
+    const tutor = await open('long');
+    const { until } = record(tutor, (event) => {
+      if (event.type === 'text' && event.delta === PARTIAL) tutor.send({ id: 'B', text: 'Shorter, please.' });
+      if (event.type === 'text' && event.delta.startsWith('Took in')) tutor.interrupt();
+    });
+
+    tutor.send({ id: 'A', text: 'Write ten lines.' });
+    const events = await until(dones(1));
+
+    expect(events).toEqual([
+      { type: 'user', id: 'A' },
+      { type: 'text', delta: PARTIAL },
+      { type: 'user', id: 'B' },
+      { type: 'text', delta: 'Took in: Shorter, please.' },
+      { type: 'done', status: 'interrupted' },
+    ]);
+    expect(paramsOf('turn/steer')).toEqual({ threadId: 'thread-1', expectedTurnId: 'turn-1', input: [{ type: 'text', text: 'Shorter, please.', text_elements: [] }] });
+  });
+
+  it('starts a turn for a steer that arrives after the turn ended', async () => {
+    const tutor = await open('late-complete,stream');
+    const { until } = record(tutor, (event) => {
+      if (event.type === 'user' && event.id === 'A') tutor.send({ id: 'B', text: 'Too late' });
+    });
+
+    tutor.send({ id: 'A', text: 'First' });
+    const events = await until(dones(2));
+
+    expect(events.filter((event) => event.type !== 'text')).toEqual([
+      { type: 'user', id: 'A' },
+      { type: 'done', status: 'completed' },
+      { type: 'user', id: 'B' },
+      { type: 'done', status: 'completed' },
+    ]);
+    expect(received().map((message) => message.method).filter((method) => method?.startsWith('turn/'))).toEqual(['turn/start', 'turn/steer', 'turn/start']);
+  });
+
+  it('holds messages sent while the turn starts, then steers them in order', async () => {
+    const tutor = await open('long');
+    const { until } = record(tutor, (event) => {
+      if (event.type === 'text' && event.delta.endsWith('C')) tutor.interrupt();
+    });
+
+    tutor.send({ id: 'A', text: 'A' });
+    tutor.send({ id: 'B', text: 'B' });
+    tutor.send({ id: 'C', text: 'C' });
+    const events = await until(dones(1));
+
+    expect(events).toEqual([
+      { type: 'user', id: 'A' },
+      { type: 'text', delta: PARTIAL },
+      { type: 'user', id: 'B' },
+      { type: 'text', delta: 'Took in: B' },
+      { type: 'user', id: 'C' },
+      { type: 'text', delta: 'Took in: C' },
+      { type: 'done', status: 'interrupted' },
+    ]);
+    expect(received().filter((message) => message.method === 'turn/steer').map((message) => message.params!.expectedTurnId)).toEqual(['turn-1', 'turn-1']);
+  });
+
+  it('drops the message and every held one when the turn fails to start', async () => {
+    const tutor = await open('start-fails');
+    const { until } = record(tutor);
+
+    tutor.send({ id: 'A', text: 'A' });
+    tutor.send({ id: 'B', text: 'B' });
+    tutor.send({ id: 'C', text: 'C' });
+
+    expect(await until(has('dropped'))).toEqual([{ type: 'dropped', ids: ['A', 'B', 'C'], error: 'thread is shutting down' }]);
+  });
+
+  it('interrupts a turn asked to stop while it starts, then runs the held message in a turn of its own', async () => {
     const tutor = await open('long,stream');
-    for await (const event of tutor.send('abandoned')) {
-      if (event.type === 'text') break;
-    }
+    const { until } = record(tutor);
 
-    const next = await collect(tutor.send('next event'));
+    tutor.send({ id: 'A', text: 'A' });
+    tutor.interrupt();
+    tutor.send({ id: 'B', text: 'B' });
+    const events = await until(dones(2));
 
+    expect(events.filter((event) => event.type !== 'text')).toEqual([
+      { type: 'user', id: 'A' },
+      { type: 'done', status: 'interrupted' },
+      { type: 'user', id: 'B' },
+      { type: 'done', status: 'completed' },
+    ]);
     expect(paramsOf('turn/interrupt')).toEqual({ threadId: 'thread-1', turnId: 'turn-1' });
-    expect(textOf(next)).toBe(MESSAGE);
-    expect(next.at(-1)).toEqual({ type: 'done', status: 'completed' });
+  });
+
+  it('reports a top-level subagent while it runs and its answer when it ends, ignoring its own subagent', async () => {
+    const tutor = await open('subagent');
+    const { until } = record(tutor);
+
+    tutor.send({ id: 'A', text: 'Spawn a counter.' });
+    const events = await until(has('notice'));
+    await until((all) => all.at(-1)?.type === 'background');
+
+    const task = { id: 'child-4', description: 'Count to 4' };
+    expect(events).toEqual([
+      { type: 'user', id: 'A' },
+      { type: 'background', tasks: [task] },
+      { type: 'text', delta: 'SPAWNED' },
+      { type: 'done', status: 'completed' },
+      { type: 'notice', task: 'child-4', description: 'Count to 4', status: 'completed', text: '4' },
+      { type: 'background', tasks: [] },
+    ]);
+  });
+
+  it('names a subagent spawned with no task text by the last part of its path', async () => {
+    const tutor = await open('subagent-unnamed');
+    const { until } = record(tutor);
+
+    tutor.send({ id: 'A', text: 'Spawn a counter.' });
+    const events = await until(has('notice'));
+
+    expect(events).toContainEqual({ type: 'background', tasks: [{ id: 'child-4', description: 'counter 4' }] });
+    expect(events).toContainEqual(expect.objectContaining({ type: 'notice', description: 'counter 4' }));
+  });
+
+  it('stops a running subagent and ignores a finished or unknown one', async () => {
+    const tutor = await open('subagent-long');
+    const { until } = record(tutor);
+    tutor.send({ id: 'A', text: 'Spawn a counter.' });
+    await until(dones(1));
+
+    await tutor.stopTask('child-4');
+    const events = await until(has('notice'));
+    await until((all) => all.at(-1)?.type === 'background');
+    await tutor.stopTask('child-4');
+    await tutor.stopTask('nobody');
+
+    expect(events.slice(-2)).toEqual([
+      { type: 'notice', task: 'child-4', description: 'Count to 4', status: 'stopped', text: 'Counting.' },
+      { type: 'background', tasks: [] },
+    ]);
+    expect(received().filter((message) => message.method === 'turn/interrupt').map((message) => message.params)).toEqual([{ threadId: 'child-4', turnId: 'child-turn-4' }]);
+  });
+
+  it('ends the turn, drops unsent messages and stops subagents, in that order, when the app-server exits', async () => {
+    const tutor = await open('subagent-exit');
+    const { until } = record(tutor, (event) => {
+      if (event.type === 'text') tutor.send({ id: 'B', text: 'Are you there?' });
+    });
+
+    tutor.send({ id: 'A', text: 'Spawn a counter.' });
+    const events = await until((all) => has('dropped')(all) && all.at(-1)?.type === 'background');
+
+    expect(events.slice(events.findIndex((event) => event.type === 'done'))).toEqual([
+      { type: 'done', status: 'failed', error: 'Codex exited before finishing the turn', detail: 'thread panicked at core/src/codex.rs' },
+      { type: 'dropped', ids: ['B'], error: 'Codex exited before taking the message in' },
+      { type: 'notice', task: 'child-4', description: 'Count to 4', status: 'stopped', text: 'The agent process exited' },
+      { type: 'background', tasks: [] },
+    ]);
   });
 
   it('fails the turn when the app-server exits mid-turn', async () => {
     const tutor = await open('exit');
 
-    const events = await collect(tutor.send('Student opened the page.'));
+    const events = await run(tutor, 'Student opened the page.');
 
-    expect(events.at(-1)).toEqual({ type: 'done', status: 'failed', error: 'Codex exited before finishing the turn', detail: 'thread panicked at core/src/codex.rs' });
-  });
-
-  it('rejects a second turn while one is running', async () => {
-    const tutor = await open('long');
-    const first = tutor.send('first')[Symbol.asyncIterator]();
-    await first.next();
-
-    await expect(collect(tutor.send('second'))).rejects.toThrow('A turn is already running');
-    await first.return?.();
+    expect(events.slice(1)).toEqual([
+      { type: 'done', status: 'failed', error: 'Codex exited before finishing the turn', detail: 'thread panicked at core/src/codex.rs' },
+      { type: 'background', tasks: [] },
+    ]);
   });
 
   it('shuts the app-server down when the session closes', async () => {
@@ -301,20 +465,16 @@ describe('CodexAgent permission relay', () => {
 
   it.each(['close', 'exit'] as const)('cancels a pending approval on %s without accepting a late answer', async (end) => {
     const tutor = await open(end === 'exit' ? 'approval-exit' : 'approval-command');
-    let approval: Extract<AgentEvent, { type: 'approval' }> | undefined;
-    let closing: Promise<void> | undefined;
-    const events = await collect(tutor.send('Do the action'), (event) => {
-      if (event.type === 'approval') {
-        approval = event;
-        if (end === 'close') closing = tutor.close();
-      }
-    });
-    await closing;
-    expect(approval).toBeDefined();
-    expect(approval!.request.fields).toContainEqual({ kind: 'command', value: 'echo hello' });
-    expect(approval!.signal.aborted).toBe(true);
-    approval!.answer(true);
-    expect(events.at(-1)).toMatchObject({ type: 'done', status: 'failed' });
+    const { events, until } = record(tutor);
+    tutor.send({ id: 'A', text: 'Do the action' });
+    const approval = (await until(has('approval'))).find((event) => event.type === 'approval')!;
+    if (end === 'close') await tutor.close();
+    else await until(has('background'));
+    expect(approval.request.fields).toContainEqual({ kind: 'command', value: 'echo hello' });
+    expect(approval.signal.aborted).toBe(true);
+    approval.answer(true);
+    // A closed session emits nothing more; an exited one fails the turn.
+    expect(events.filter((event) => event.type === 'done')).toEqual(end === 'close' ? [] : [expect.objectContaining({ status: 'failed' })]);
     expect(received().filter((message) => message.id === 'approval-turn-1').some((message) => message.result?.decision === 'accept')).toBe(false);
   });
   type Approval = Extract<AgentEvent, { type: 'approval' }>;
@@ -326,7 +486,7 @@ describe('CodexAgent permission relay', () => {
     ['approval-permissions', true], ['approval-permissions', false],
   ])('streams %s as an approval event and returns approval=%s on the original RPC request', async (scenario, approved) => {
     const tutor = await open(String(scenario));
-    const events = await collect(tutor.send('Do the action'), (event) => { if (event.type === 'approval') event.answer(approved); });
+    const events = await run(tutor, 'Do the action', (event) => { if (event.type === 'approval') event.answer(approved); });
     const approvals = approvalsIn(events);
     expect(approvals).toHaveLength(1);
     const response = received().find((message) => message.id === 'approval-turn-1');
@@ -339,14 +499,14 @@ describe('CodexAgent permission relay', () => {
 
   it('declines a request from another thread without asking', async () => {
     const tutor = await open('approval-stale');
-    const events = await collect(tutor.send('Do the action'));
+    const events = await run(tutor, 'Do the action');
     expect(approvalsIn(events)).toHaveLength(0);
     expect(received().find((message) => message.id === 'approval-turn-1')?.result).toEqual({ decision: 'decline' });
   });
 
   it('withdraws a native-resolved prompt even when nobody answers it', async () => {
     const tutor = await open('approval-resolved');
-    const events = await collect(tutor.send('Do the action'));
+    const events = await run(tutor, 'Do the action');
     const approvals = approvalsIn(events);
     expect(approvals).toHaveLength(1);
     expect(approvals[0]!.signal.aborted).toBe(true);
@@ -355,10 +515,9 @@ describe('CodexAgent permission relay', () => {
 
   it('interrupts a pending approval without accepting a late answer', async () => {
     const tutor = await open('approval-command');
-    const controller = new AbortController();
     let approval: Approval | undefined;
-    const events = await collect(tutor.send('Do the action', controller.signal), (event) => {
-      if (event.type === 'approval') { approval = event; controller.abort(); }
+    const events = await run(tutor, 'Do the action', (event) => {
+      if (event.type === 'approval') { approval = event; tutor.interrupt(); }
     });
     approval!.answer(true);
     expect(events.at(-1)).toEqual({ type: 'done', status: 'interrupted' });
@@ -405,9 +564,9 @@ describe('CodexAgent models', () => {
     const codex = await open('stream');
 
     await codex.setModel('gpt-6-astra', 'high');
-    await collect(codex.send('first'));
+    await run(codex, 'first');
     await codex.setModel(undefined, undefined);
-    await collect(codex.send('second'));
+    await run(codex, 'second');
 
     expect(turnStarts().map(({ model, effort }) => ({ model, effort }))).toEqual([
       { model: 'gpt-6-astra', effort: 'high' },
@@ -421,7 +580,7 @@ describe('CodexAgent models', () => {
     const codex = await open('stream', { model: 'gpt-6-astra' });
 
     await codex.setModel();
-    await collect(codex.send('first'));
+    await run(codex, 'first');
 
     const turn = received().filter((message) => message.method === 'turn/start').at(-1)!.params!;
     expect({ model: turn.model, effort: turn.effort }).toEqual({ model: 'gpt-6-luna', effort: 'high' });
@@ -446,8 +605,8 @@ describe('CodexAgent models', () => {
       second = await agent.openSession({ ...options(), model: undefined, effort: undefined });
       await first.setModel();
       await second.setModel();
-      await collect(first.send('First conversation'));
-      await collect(second.send('Second conversation'));
+      await run(first, 'First conversation');
+      await run(second, 'Second conversation');
       expect(received().filter((message) => message.method === 'turn/start').map((message) => ({
         model: message.params?.model, effort: message.params?.effort,
       }))).toEqual([

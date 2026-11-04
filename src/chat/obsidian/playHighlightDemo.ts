@@ -89,21 +89,45 @@ export interface DemoChat {
   playTurn(message: string, session: AgentSession, notePath: string): Promise<void>;
 }
 
-/** A session that writes `reply` as an agent would, in small pieces, so the demo needs no model. */
-export function scriptedSession(reply: string): AgentSession {
+/**
+ * A session that answers each message with `script`, as an agent would: it takes the message in, the script emits the
+ * reply, and the turn ends, as interrupted once `signal` aborts.
+ */
+export function demoSession(script: (emit: (event: AgentEvent) => void, signal: AbortSignal) => Promise<void>): AgentSession {
+  const listeners = new Set<(event: AgentEvent) => void>();
+  const emit = (event: AgentEvent): void => listeners.forEach((listener) => listener(event));
+  let turn: AbortController | null = null;
   return {
     id: 'demo',
-    async *send(): AsyncGenerator<AgentEvent> {
-      for (let at = 0; at < reply.length; at += CHUNK) {
-        yield { type: 'text', delta: reply.slice(at, at + CHUNK) };
-        await new Promise((resolve) => window.setTimeout(resolve, CHUNK_MS));
-      }
-      yield { type: 'done', status: 'completed' };
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => void listeners.delete(listener);
     },
+    send: ({ id }) => {
+      const controller = turn = new AbortController();
+      emit({ type: 'user', id });
+      void script(emit, controller.signal).finally(() => {
+        turn = null;
+        emit({ type: 'done', status: controller.signal.aborted ? 'interrupted' : 'completed' });
+      });
+    },
+    interrupt: () => turn?.abort(),
+    stopTask: async () => undefined,
+    started: async () => undefined,
     skills: async () => [],
     setModel: async () => undefined,
-    close: async () => undefined,
+    close: async () => turn?.abort(),
   };
+}
+
+/** A session that writes `reply` as an agent would, in small pieces, so the demo needs no model. */
+export function scriptedSession(reply: string): AgentSession {
+  return demoSession(async (emit, signal) => {
+    for (let at = 0; at < reply.length && !signal.aborted; at += CHUNK) {
+      emit({ type: 'text', delta: reply.slice(at, at + CHUNK) });
+      await new Promise((resolve) => window.setTimeout(resolve, CHUNK_MS));
+    }
+  });
 }
 
 /**

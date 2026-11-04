@@ -2,6 +2,7 @@
 // Stands in for the `codex` CLI: `login status` and `app-server --listen stdio://`.
 // FAKE_CODEX_SCENARIO lists how each turn plays out (the last repeats); FAKE_CODEX_LOG records every message received.
 // Notification shapes follow codex-cli 0.162.1, tool items its 0.163.0 schema; the usage-limit turn was captured live.
+// Steering, user messages and subagents follow codex-cli 0.166.0: a subagent runs as its own thread, reported to its parent by `subAgentActivity` items.
 import { appendFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 
@@ -53,11 +54,67 @@ let modelListFailed = false;
 let threadCwd = '';
 
 const pendingApprovals = new Map();
+/** The running turn of each thread. */
+const activeTurns = new Map();
+let userMessageCount = 0;
 
-function playTurn(turnId, scenario) {
+function startTurn(threadId, turnId) {
+  activeTurns.set(threadId, turnId);
+  notify('turn/started', { threadId, turn: { id: turnId, items: [], status: 'inProgress', error: null } });
+}
+
+/** A turn the server has ended whose `turn/completed` is still on its way; it reaches the client before the next reply. */
+let lateCompletion = null;
+
+function flushLateCompletion() {
+  lateCompletion?.();
+  lateCompletion = null;
+}
+
+function completeTurn(threadId, turnId, status, error = null) {
+  if (activeTurns.get(threadId) !== turnId) return;
+  activeTurns.delete(threadId);
+  notify('turn/completed', { threadId, turn: { id: turnId, items: [], status, error } });
+}
+
+function userMessage(threadId, turnId, content) {
+  const item = { type: 'userMessage', id: `user-${++userMessageCount}`, clientId: null, content };
+  notify('item/started', { threadId, turnId, item });
+  notify('item/completed', { threadId, turnId, item });
+}
+
+function say(threadId, turnId, id, text) {
+  notify('item/agentMessage/delta', { threadId, turnId, itemId: id, delta: text });
+  notify('item/completed', { threadId, turnId, item: { type: 'agentMessage', id, text } });
+}
+
+/** Spawns one subagent as the real server does; the child runs `child-<n>`, which spawns a grandchild of its own that the parent never reports. */
+function spawnChild(scoped, n, prompt = `Count to ${n}`) {
+  const child = `child-${n}`;
+  const childTurn = `child-turn-${n}`;
+  const spawn = { type: 'collabAgentToolCall', id: `spawn-${n}`, tool: 'spawnAgent', status: 'completed', senderThreadId: THREAD_ID, receiverThreadIds: [child], prompt, model: null, reasoningEffort: null, agentsStates: {} };
+  const activity = (kind) => ({ type: 'subAgentActivity', id: `activity-${n}-${kind}`, kind, agentThreadId: child, agentPath: `/root/counter_${n}`, model: null, reasoningEffort: null });
+  notify('item/started', { ...scoped, item: spawn });
+  startTurn(child, childTurn);
+  notify('item/completed', { ...scoped, item: activity('started') });
+  notify('item/completed', { ...scoped, item: spawn });
+  userMessage(child, childTurn, [{ type: 'text', text: `Count to ${n}`, text_elements: [] }]);
+  notify('item/completed', { threadId: child, turnId: childTurn, item: { type: 'subAgentActivity', id: 'grand', kind: 'started', agentThreadId: 'grandchild-1', agentPath: '/root/counter/inner' } });
+  startTurn('grandchild-1', 'grandchild-turn-1');
+  say('grandchild-1', 'grandchild-turn-1', 'grand-msg', 'inner');
+  completeTurn('grandchild-1', 'grandchild-turn-1', 'completed');
+  say(child, childTurn, `child-msg-${n}-1`, 'Counting.');
+  return () => {
+    say(child, childTurn, `child-msg-${n}-2`, String(n));
+    completeTurn(child, childTurn, 'completed');
+    notify('item/completed', { threadId: THREAD_ID, item: activity('completed') });
+  };
+}
+
+function playTurn(turnId, scenario, input) {
   const scoped = { threadId: THREAD_ID, turnId };
-  const turn = (status, error = null) => ({ id: turnId, items: [], status, error });
-  notify('turn/started', { threadId: THREAD_ID, turn: turn('inProgress') });
+  startTurn(THREAD_ID, turnId);
+  userMessage(THREAD_ID, turnId, input);
   const message = '{"type":"say","text":"Look at the definition first."}';
   switch (scenario) {
     case 'approval-command':
@@ -87,26 +144,33 @@ function playTurn(turnId, scenario) {
       if (scenario === 'approval-exit') process.stdout.write('', () => process.exit(3));
       break;
     }
+    case 'late-complete':
+      // The turn ends on the server before the client hears of it, so a steer sent meanwhile loses the race.
+      notify('item/agentMessage/delta', { ...scoped, itemId: 'msg-1', delta: message });
+      activeTurns.delete(THREAD_ID);
+      lateCompletion = () => notify('turn/completed', { threadId: THREAD_ID, turn: { id: turnId, items: [], status: 'completed', error: null } });
+      setTimeout(flushLateCompletion, 50);
+      break;
     case 'stream':
       notify('item/agentMessage/delta', { ...scoped, itemId: 'msg-1', delta: message.slice(0, 15) });
       notify('item/agentMessage/delta', { ...scoped, itemId: 'msg-1', delta: message.slice(15) });
       notify('item/completed', { ...scoped, item: { type: 'agentMessage', id: 'msg-1', text: message } });
-      notify('turn/completed', { threadId: THREAD_ID, turn: turn('completed') });
+      completeTurn(THREAD_ID, turnId, 'completed');
       break;
     case 'usage':
       notify('item/agentMessage/delta', { ...scoped, itemId: 'msg-1', delta: message });
       notify('thread/tokenUsage/updated', { ...scoped, tokenUsage: { total: { totalTokens: 90000 }, last: { totalTokens: 31000 }, modelContextWindow: 258400 } });
       notify('thread/tokenUsage/updated', { ...scoped, tokenUsage: { total: { totalTokens: 90000 }, last: { totalTokens: 31000 }, modelContextWindow: null } });
-      notify('turn/completed', { threadId: THREAD_ID, turn: turn('completed') });
+      completeTurn(THREAD_ID, turnId, 'completed');
       break;
     case 'usage-replay':
       notify('item/agentMessage/delta', { ...scoped, itemId: 'msg-1', delta: message });
-      notify('turn/completed', { threadId: THREAD_ID, turn: turn('completed') });
+      completeTurn(THREAD_ID, turnId, 'completed');
       break;
     case 'completion-only':
       notify('item/agentMessage/delta', { ...scoped, itemId: 'msg-1', delta: message.slice(0, 15) });
       notify('item/completed', { ...scoped, item: { type: 'agentMessage', id: 'msg-1', text: message } });
-      notify('turn/completed', { threadId: THREAD_ID, turn: turn('completed') });
+      completeTurn(THREAD_ID, turnId, 'completed');
       break;
     case 'usage-limit': {
       const error = {
@@ -115,7 +179,7 @@ function playTurn(turnId, scenario) {
         additionalDetails: null,
       };
       notify('error', { ...scoped, error, willRetry: false });
-      notify('turn/completed', { threadId: THREAD_ID, turn: turn('failed', error) });
+      completeTurn(THREAD_ID, turnId, 'failed', error);
       break;
     }
     case 'tools': {
@@ -135,7 +199,7 @@ function playTurn(turnId, scenario) {
       notify('item/completed', { ...scoped, item: { ...edit, status: 'failed' } });
       say('msg-2', 'It tracks active users.');
       say('msg-3', 'Want an example?');
-      notify('turn/completed', { threadId: THREAD_ID, turn: turn('completed') });
+      completeTurn(THREAD_ID, turnId, 'completed');
       break;
     }
     case 'long':
@@ -144,8 +208,25 @@ function playTurn(turnId, scenario) {
     case 'exit':
       process.stderr.write('thread panicked at core/src/codex.rs\n', () => process.exit(3));
       break;
+    case 'subagent':
+    case 'subagent-unnamed': {
+      // Codex may spawn with no task text; then only the child's path names it.
+      const finish = spawnChild(scoped, 4, scenario === 'subagent-unnamed' ? null : undefined);
+      say(THREAD_ID, turnId, 'msg-1', 'SPAWNED');
+      completeTurn(THREAD_ID, turnId, 'completed');
+      finish();
+      break;
+    }
+    case 'subagent-long':
+    case 'subagent-exit':
+      spawnChild(scoped, 4);
+      notify('item/agentMessage/delta', { ...scoped, itemId: 'msg-1', delta: 'Waiting on the counter.' });
+      if (scenario === 'subagent-long') completeTurn(THREAD_ID, turnId, 'completed');
+      break;
   }
 }
+
+const scenarioOf = (turn) => scenarios[Math.min(turn, scenarios.length) - 1];
 
 createInterface({ input: process.stdin }).on('line', (line) => {
   const message = JSON.parse(line);
@@ -158,7 +239,7 @@ createInterface({ input: process.stdin }).on('line', (line) => {
     const accepted = pending.isPermissions ? Boolean(message.result?.permissions?.network?.enabled) : message.result?.decision === 'accept';
     notify('serverRequest/resolved', { threadId: THREAD_ID, requestId: message.id });
     notify('item/completed', { threadId: THREAD_ID, turnId: pending.turnId, item: { ...pending.item, status: accepted ? 'completed' : 'declined' } });
-    notify('turn/completed', { threadId: THREAD_ID, turn: { id: pending.turnId, status: 'completed', items: [], error: null } });
+    completeTurn(THREAD_ID, pending.turnId, 'completed');
     return;
   }
   switch (message.method) {
@@ -186,13 +267,36 @@ createInterface({ input: process.stdin }).on('line', (line) => {
       else send({ id: message.id, error: { code: -32600, message: `thread not found: ${message.params.threadId}` } });
       break;
     case 'turn/start': {
+      if (scenarioOf(turnCount + 1) === 'start-fails') {
+        send({ id: message.id, error: { code: -32603, message: 'thread is shutting down' } });
+        break;
+      }
       const turnId = `turn-${++turnCount}`;
       // A resumed thread replays its last usage under the earlier turn's id, ahead of the turn/start response.
-      if (scenarios[Math.min(turnCount, scenarios.length) - 1] === 'usage-replay') {
+      if (scenarioOf(turnCount) === 'usage-replay') {
         notify('thread/tokenUsage/updated', { threadId: THREAD_ID, turnId: 'turn-0', tokenUsage: { total: { totalTokens: 90000 }, last: { totalTokens: 19000 }, modelContextWindow: 258400 } });
       }
       send({ id: message.id, result: { turn: { id: turnId, items: [], status: 'inProgress', error: null } } });
-      playTurn(turnId, scenarios[Math.min(turnCount, scenarios.length) - 1]);
+      playTurn(turnId, scenarioOf(turnCount), message.params.input);
+      break;
+    }
+    case 'turn/steer': {
+      flushLateCompletion();
+      const turnId = activeTurns.get(THREAD_ID);
+      if (scenarioOf(turnCount) === 'subagent-exit') {
+        process.stderr.write('thread panicked at core/src/codex.rs\n', () => process.exit(3));
+        break;
+      }
+      if (!turnId || turnId !== message.params.expectedTurnId) {
+        send({ id: message.id, error: { code: -32600, message: 'no active turn to steer' } });
+        break;
+      }
+      send({ id: message.id, result: { turnId } });
+      const scoped = { threadId: THREAD_ID, turnId };
+      userMessage(THREAD_ID, turnId, message.params.input);
+      // The real server never completes the message a steer cut; this one does, late, to show it adds nothing.
+      notify('item/completed', { ...scoped, item: { type: 'agentMessage', id: 'msg-1', text: '{"type":"say","text":"Look at the definition first."}' } });
+      say(THREAD_ID, turnId, `steered-${userMessageCount}`, `Took in: ${message.params.input.at(-1).text}`);
       break;
     }
     case 'model/list': {
@@ -211,7 +315,7 @@ createInterface({ input: process.stdin }).on('line', (line) => {
     case 'turn/interrupt':
       for (const [id, pending] of pendingApprovals) if (pending.turnId === message.params.turnId) pendingApprovals.delete(id);
       send({ id: message.id, result: {} });
-      notify('turn/completed', { threadId: THREAD_ID, turn: { id: message.params.turnId, items: [], status: 'interrupted', error: null } });
+      completeTurn(message.params.threadId, message.params.turnId, 'interrupted');
       break;
     default:
       send({ id: message.id, error: { code: -32601, message: `fake-codex: unhandled ${message.method}` } });

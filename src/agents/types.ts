@@ -79,23 +79,40 @@ export type TurnStatus = 'completed' | 'interrupted' | 'failed';
 
 export type ToolStatus = 'running' | 'done' | 'failed';
 
+/** Work the agent started that outlives the CLI turn that started it, such as a background subagent or shell. */
+export interface BackgroundTask {
+  id: string;
+  description: string;
+}
+
 /**
+ * Every event of a session, in order, from the session's one reader.
+ * `user` says the CLI took a sent message in; `dropped` says sent messages never will be. Within one session a message gets exactly one of them.
+ * `text`, `tool`, `thinking`, `usage`, `approval` and `question` belong to the running CLI turn, and `done` ends it, once per CLI turn, prompted or not.
  * `tool` reports one of the agent's own tool calls, first as `running`, then with the same `id` once it ends.
  * `name` is the tool's short name such as "Read" or "Bash"; `title` is a one-line summary such as "Read notes/ch11.md".
  * `thinking` says the agent started work that writes no text, such as reasoning or composing a tool call.
  * `usage` reports the tokens the conversation now holds against the model's context window; the latest one wins.
  * A failed `done` carries a short `error` for the student and, when the CLI left any, its stderr as `detail` for diagnosis.
+ * `background` carries the whole set of top-level background tasks each time it changes.
+ * `notice` reports that one run of a top-level task ended: `task` is its id, `description` what `background` showed for it, `text` what it reported.
  */
 export type AgentEvent =
+  | { type: 'user'; id: string }
+  | { type: 'dropped'; ids: string[]; error: string }
   | { type: 'text'; delta: string }
   | { type: 'thinking' }
   | { type: 'tool'; id: string; name: string; title: string; status: ToolStatus }
   | { type: 'usage'; used: number; window: number }
   | { type: 'done'; status: TurnStatus; error?: string; detail?: string }
-  /** The agent waits on `answer`; `signal` aborts when the request no longer stands, and a later answer is ignored. */
+  /** The agent waits on `answer`; `signal` aborts on interrupt, close or process exit, and a later answer is ignored. */
   | { type: 'approval'; request: ToolApprovalRequest; signal: AbortSignal; answer: (approved: boolean) => void }
-  /** The agent waits on `answer`: one list of answers per question, or undefined when the student declines. */
-  | { type: 'question'; questions: readonly AgentQuestion[]; signal: AbortSignal; answer: (answers: QuestionAnswers | undefined) => void };
+  /** The agent waits on `answer`: one list of answers per question, or undefined when the student declines. Same `signal`. */
+  | { type: 'question'; questions: readonly AgentQuestion[]; signal: AbortSignal; answer: (answers: QuestionAnswers | undefined) => void }
+  | { type: 'background'; tasks: BackgroundTask[] }
+  | { type: 'notice'; task: string; description: string; status: NoticeStatus; text: string };
+
+export type NoticeStatus = 'completed' | 'failed' | 'stopped';
 
 /** One list per question, in the order asked. */
 export type QuestionAnswers = readonly (readonly string[])[];
@@ -148,11 +165,29 @@ export interface TurnImage {
   mediaType: ImageMediaType;
 }
 
+/** A message for the agent. `id` is the caller's, and comes back on the `user` or `dropped` event for it. */
+export interface AgentMessage {
+  id: string;
+  text: string;
+  images?: TurnImage[];
+}
+
 export interface AgentSession {
   /** The CLI's own id for this conversation, which a later `resume` takes. Known as soon as the session opens. */
   readonly id: string;
-  /** Runs one turn on the warm session. One turn at a time; aborting `signal` interrupts it. */
-  send(text: string, signal?: AbortSignal, images?: TurnImage[]): AsyncIterable<AgentEvent>;
+  /**
+   * Every event of the session, in order. Any number of listeners; events emitted while there are none are not kept.
+   * No event is emitted before the first `send`, `stopTask` or process exit, so subscribing right after `openSession` loses nothing.
+   */
+  subscribe(listener: (event: AgentEvent) => void): () => void;
+  /** Never blocks or throws for a busy agent. The provider queues the message or takes it into the running CLI turn. */
+  send(message: AgentMessage): void;
+  /** Ends the running CLI turn, with any message already taken into it. Messages not yet taken in still run; background tasks keep running. */
+  interrupt(): void;
+  /** Stops one background task. Resolves when the native call returns; its end arrives as `notice` and `background`. An unknown or finished id is a no-op. */
+  stopTask(id: string): Promise<void>;
+  /** Resolves once the CLI has started. */
+  started(): Promise<void>;
   /** The title the CLI gave this conversation, or undefined while it has none. Only a CLI that names its conversations offers it; for the others the chat asks the agent to write one. */
   title?(): Promise<string | undefined>;
   /** The student's own skills the CLI reports for this session, without its bundled ones; read fresh each call. */

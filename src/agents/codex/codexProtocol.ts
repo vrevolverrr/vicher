@@ -79,6 +79,10 @@ export type ThreadItem =
   | { type: 'webSearch'; id: string; query: string }
   | { type: 'imageView'; id: string; path: string }
   | { type: 'reasoning'; id: string }
+  | { type: 'userMessage'; id: string }
+  /** A subagent's lifecycle, reported on the thread that started it; the subagent runs as its own thread, `agentThreadId`. */
+  | { type: 'subAgentActivity'; id: string; agentThreadId: string; agentPath: string }
+  | { type: 'collabAgentToolCall'; id: string; receiverThreadIds: string[]; prompt: string | null }
   | { type: 'other'; id: string };
 
 /** A call to one of Vicher's own tools, which the app server asks the client to run. */

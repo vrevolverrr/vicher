@@ -1,16 +1,14 @@
-import type { AgentEvent } from '@/agents/types';
 import type { ChatFiles } from '@/chat/ChatStore';
 import { ChatStore, decodeChat, decodeSummaries } from '@/chat/ChatStore';
-import type { ChatRecord } from '@/chat/ChatRecord';
-import { recordEvent, recordHighlight, startTurn, summarize } from '@/chat/ChatRecord';
+import type { AgentTurn, ChatRecord, UserTurn } from '@/chat/ChatRecord';
+import { summarize } from '@/chat/ChatRecord';
 
 const A = '3f0c1b7e-5a44-4d0e-9c1a-2b6f8e7d9a10';
 const B = '9d2e4c68-1b73-4f25-8a0c-5e6d7f8091a2';
 const ID = A;
 
-function record(events: AgentEvent[]) {
-  return events.reduce(recordEvent, startTurn('Why is the sky blue?'));
-}
+const user = (message: string, rest: Partial<UserTurn> = {}): UserTurn => ({ role: 'user', message, at: 1, ...rest });
+const agent = (parts: AgentTurn['parts'], rest: Partial<AgentTurn> = {}): AgentTurn => ({ role: 'agent', parts, status: 'completed', at: 2, ...rest });
 
 class MemoryFiles implements ChatFiles {
   readonly files = new Map<string, string>();
@@ -26,7 +24,7 @@ const chat = (id: string, updatedAt: number, message = ''): ChatRecord => ({
   sessionId: 's',
   title: id,
   updatedAt,
-  turns: message ? [{ message, parts: [{ type: 'text', text: `About ${message}` }], status: 'completed' }] : [],
+  turns: message ? [user(message), agent([{ type: 'text', text: `About ${message}` }])] : [],
 });
 const INDEX = 'index.json';
 
@@ -171,7 +169,7 @@ describe('decodeChat', () => {
     sessionId: 'thread-9',
     title: 'Why is the sky blue?',
     updatedAt: 1_700_000_000_000,
-    turns: [record([{ type: 'text', delta: 'Scattering.' }, { type: 'tool', id: 't', name: 'Read', title: 'Read a.md', status: 'failed' }, { type: 'done', status: 'completed' }])],
+    turns: [user('Why is the sky blue?'), agent([{ type: 'text', text: 'Scattering.' }, { type: 'tool', id: 't', name: 'Read', title: 'Read a.md', status: 'failed' }])],
   };
 
   it('reads back what was stored as JSON', () => {
@@ -187,32 +185,35 @@ describe('decodeChat', () => {
     expect(decodeChat(chat)?.choice).toBeUndefined();
   });
 
-  it('keeps the stops a reply pointed at, in place among its text', () => {
+  it('keeps the stops and task notices a reply holds, in place among its text', () => {
     const step = { path: 'optics.md', quote: 'blue light', comment: 'Why', line: 4 };
-    const turn = recordEvent(recordHighlight(recordEvent(startTurn('Walk me through'), { type: 'text', delta: 'Look:' }), step), { type: 'text', delta: 'Then.' });
-    const stored = { ...chat, turns: [turn] };
+    const stored = { ...chat, turns: [user('Walk me through'), agent([
+      { type: 'text', text: 'Look:' },
+      { type: 'highlight', step },
+      { type: 'notice', description: 'Review ch6', status: 'failed', text: 'No such file' },
+      { type: 'text', text: 'Then.' },
+    ])] };
 
-    expect(turn.parts.map((part) => part.type)).toEqual(['text', 'highlight', 'text']);
     expect(decodeChat(JSON.parse(JSON.stringify(stored)))).toEqual(stored);
   });
 
-  it('keeps a thumb and the prompt a turn ran under', () => {
-    const rated = { ...chat, turns: [{ ...chat.turns[0]!, rating: 'down' as const, prompt: '1a2b3c4d' }] };
+  it('keeps a thumb, the prompt a turn ran under, and a steered turn', () => {
+    const rated = { ...chat, turns: [chat.turns[0]!, agent([], { status: 'steered' }), agent([], { rating: 'down', prompt: '1a2b3c4d' })] };
     const stored = JSON.parse(JSON.stringify(rated));
 
-    expect(decodeChat(stored)?.turns[0]).toMatchObject({ rating: 'down', prompt: '1a2b3c4d' });
+    expect(decodeChat(stored)?.turns.slice(1)).toMatchObject([{ status: 'steered' }, { rating: 'down', prompt: '1a2b3c4d' }]);
   });
 
   it.each([
-    ['the quote a turn was sent with', { ...chat, turns: [startTurn('Explain this', { text: 'Rayleigh scattering', path: 'optics.md', startLine: 12 })] }],
-    ['the chat a quote came from', { ...chat, turns: [startTurn('Explain this', { text: 'Earlier reply', path: ID, source: 'chat' })] }],
+    ['the quote a message was sent with', { ...chat, turns: [user('Explain this', { quote: { text: 'Rayleigh scattering', path: 'optics.md', startLine: 12 } })] }],
+    ['the chat a quote came from', { ...chat, turns: [user('Explain this', { quote: { text: 'Earlier reply', path: ID, source: 'chat' } })] }],
     ['the chat model choice', { ...chat, choice: { model: 'model-a', effort: 'medium' } }],
-    ['the images, files, pastes and picked-file tokens a turn was sent with, in order', { ...chat, turns: [startTurn('compare @week1.md', undefined, [
+    ['the images, files, pastes and picked-file tokens a message was sent with, in order', { ...chat, turns: [user('compare @week1.md', { attachments: [
       { kind: 'file', path: '/Users/me/week1.pdf', name: 'week1.pdf' },
       { kind: 'image', path: 'attachments/chat/a1.png', mediaType: 'image/png', name: 'image.png' },
       { kind: 'paste', path: 'p/attachments/chat/ab.txt', name: 'Pasted text · 900 lines' },
       { kind: 'file', path: '/v/week1.md', name: 'week1.md', token: 'week1.md' },
-    ])] }],
+    ] })] }],
   ] as [string, ChatRecord][])('keeps %s', (_name, stored) => {
     expect(decodeChat(JSON.parse(JSON.stringify(stored)))).toEqual(stored);
   });
@@ -220,28 +221,31 @@ describe('decodeChat', () => {
   it.each<[string, unknown]>([
     ['a non-object', 'chat'],
     ...['always', null, 1, {}, []].map((permissionPolicy): [string, unknown] => [`the permission policy ${JSON.stringify(permissionPolicy)}`, { ...chat, permissionPolicy }]),
-    ['a thumb that is neither up nor down', { ...chat, turns: [{ ...chat.turns[0], rating: 'sideways' }] }],
-    ['a prompt id that is not text', { ...chat, turns: [{ ...chat.turns[0], prompt: 7 }] }],
-    ['a quote from an unknown source', { ...chat, turns: [{ message: 'q', quote: { text: 'x', path: ID, source: 'unknown' }, parts: [], status: 'completed' }] }],
+    ['a thumb that is neither up nor down', { ...chat, turns: [{ ...chat.turns[1], rating: 'sideways' }] }],
+    ['a prompt id that is not text', { ...chat, turns: [{ ...chat.turns[1], prompt: 7 }] }],
+    ['a quote from an unknown source', { ...chat, turns: [{ role: 'user', message: 'q', quote: { text: 'x', path: ID, source: 'unknown' }, at: 1 }] }],
     ['a model choice that is not an object', { ...chat, choice: 'model-a' }],
     ['an id that is not a uuid', { ...chat, id: '../../data' }],
     ['an unknown agent', { ...chat, agent: 'gemini' }],
     ['a session id that is not text', { ...chat, sessionId: 4 }],
     ['turns that are not a list', { ...chat, turns: {} }],
-    ['an end time that is not a number', { ...chat, turns: [{ message: 'q', parts: [], status: 'completed', at: 'noon' }] }],
-    ['a quote that is not an object', { ...chat, turns: [{ message: 'q', quote: 'text', parts: [], status: 'completed' }] }],
-    ['a quote with no path', { ...chat, turns: [{ message: 'q', quote: { text: 'a' }, parts: [], status: 'completed' }] }],
-    ['attachments that are not a list', { ...chat, turns: [{ message: 'q', attachments: 'a.pdf', parts: [], status: 'completed' }] }],
-    ['an attachment of an unknown kind', { ...chat, turns: [{ message: 'q', attachments: [{ kind: 'audio', path: 'a', name: 'a' }], parts: [], status: 'completed' }] }],
-    ['an attachment with no kind', { ...chat, turns: [{ message: 'q', attachments: [{ path: '/a.pdf', name: 'a.pdf' }], parts: [], status: 'completed' }] }],
-    ['an image of an unknown type', { ...chat, turns: [{ message: 'q', attachments: [{ kind: 'image', path: 'a', mediaType: 'image/bmp', name: 'a' }], parts: [], status: 'completed' }] }],
-    ['an image with no name', { ...chat, turns: [{ message: 'q', attachments: [{ kind: 'image', path: 'a', mediaType: 'image/png' }], parts: [], status: 'completed' }] }],
-    ['a file with no path', { ...chat, turns: [{ message: 'q', attachments: [{ kind: 'file', name: 'a.pdf' }], parts: [], status: 'completed' }] }],
-    ['a turn with an unknown status', { ...chat, turns: [{ message: 'q', parts: [], status: 'weird' }] }],
-    ['a reply part of an unknown type', { ...chat, turns: [{ message: 'q', parts: [{ type: 'image' }], status: 'completed' }] }],
-    ['a highlight with no quote', { ...chat, turns: [{ message: 'q', parts: [{ type: 'highlight', step: { path: 'a.md' } }], status: 'completed' }] }],
-    ['a highlight whose comment is not text', { ...chat, turns: [{ message: 'q', parts: [{ type: 'highlight', step: { path: 'a.md', quote: 'q', comment: 3 } }], status: 'completed' }] }],
-    ['a tool part with a bad status', { ...chat, turns: [{ message: 'q', parts: [{ type: 'tool', id: 't', name: 'n', title: 't', status: 'x' }], status: 'completed' }] }],
+    ['an end time that is not a number', { ...chat, turns: [{ role: 'agent', parts: [], status: 'completed', at: 'noon' }] }],
+    ['a quote that is not an object', { ...chat, turns: [{ role: 'user', message: 'q', quote: 'text', at: 1 }] }],
+    ['a quote with no path', { ...chat, turns: [{ role: 'user', message: 'q', quote: { text: 'a' }, at: 1 }] }],
+    ['attachments that are not a list', { ...chat, turns: [{ role: 'user', message: 'q', attachments: 'a.pdf', at: 1 }] }],
+    ['an attachment of an unknown kind', { ...chat, turns: [{ role: 'user', message: 'q', attachments: [{ kind: 'audio', path: 'a', name: 'a' }], at: 1 }] }],
+    ['an attachment with no kind', { ...chat, turns: [{ role: 'user', message: 'q', attachments: [{ path: '/a.pdf', name: 'a.pdf' }], at: 1 }] }],
+    ['an image of an unknown type', { ...chat, turns: [{ role: 'user', message: 'q', attachments: [{ kind: 'image', path: 'a', mediaType: 'image/bmp', name: 'a' }], at: 1 }] }],
+    ['an image with no name', { ...chat, turns: [{ role: 'user', message: 'q', attachments: [{ kind: 'image', path: 'a', mediaType: 'image/png' }], at: 1 }] }],
+    ['a file with no path', { ...chat, turns: [{ role: 'user', message: 'q', attachments: [{ kind: 'file', name: 'a.pdf' }], at: 1 }] }],
+    ['a turn with an unknown role', { ...chat, turns: [{ role: 'system', message: 'q', at: 1 }] }],
+    ['a turn with no time', { ...chat, turns: [{ role: 'user', message: 'q' }] }],
+    ['a notice with an unknown status', { ...chat, turns: [{ role: 'agent', parts: [{ type: 'notice', description: 'd', status: 'running', text: '' }], status: 'completed', at: 1 }] }],
+    ['a turn with an unknown status', { ...chat, turns: [{ role: 'agent', parts: [], status: 'weird', at: 1 }] }],
+    ['a reply part of an unknown type', { ...chat, turns: [{ role: 'agent', parts: [{ type: 'image' }], status: 'completed', at: 1 }] }],
+    ['a highlight with no quote', { ...chat, turns: [{ role: 'agent', parts: [{ type: 'highlight', step: { path: 'a.md' } }], status: 'completed', at: 1 }] }],
+    ['a highlight whose comment is not text', { ...chat, turns: [{ role: 'agent', parts: [{ type: 'highlight', step: { path: 'a.md', quote: 'q', comment: 3 } }], status: 'completed', at: 1 }] }],
+    ['a tool part with a bad status', { ...chat, turns: [{ role: 'agent', parts: [{ type: 'tool', id: 't', name: 'n', title: 't', status: 'x' }], status: 'completed', at: 1 }] }],
   ])('refuses %s', (_name, value) => {
     expect(decodeChat(value)).toBeNull();
   });
@@ -253,11 +257,10 @@ describe('decodeSummaries', () => {
     agent: 'codex',
     title: 'Sky',
     updatedAt: 5,
-    turns: [{
-      message: 'Why is the sky\nblue?',
-      parts: [{ type: 'tool', id: 't', name: 'Read', title: 'Read notes.md', status: 'done' }, { type: 'text', text: 'Rayleigh   scattering.' }],
-      status: 'completed',
-    }],
+    turns: [
+      user('Why is the sky\nblue?'),
+      agent([{ type: 'tool', id: 't', name: 'Read', title: 'Read notes.md', status: 'done' }, { type: 'text', text: 'Rayleigh   scattering.' }]),
+    ],
   };
 
   it('reads back what it wrote', () => {

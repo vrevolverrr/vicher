@@ -153,4 +153,40 @@ const providerNames = {
   },
 };
 
-module.exports = { meta: { name: 'vicher-layers' }, rules: { layers, 'no-dom': noDom, 'provider-names': providerNames } };
+const COMPOSER_AREA = 'vicher-chat-composer-area';
+
+/** A call that makes the composer area: some argument is an object whose `cls` names its class. */
+function makesComposerArea(node) {
+  return node?.type === 'CallExpression' && node.arguments.some((arg) => arg.type === 'ObjectExpression' && arg.properties.some((prop) =>
+    prop.type === 'Property' && prop.key.type === 'Identifier' && prop.key.name === 'cls'
+    && prop.value.type === 'Literal' && typeof prop.value.value === 'string' && prop.value.value.split(/\s+/).includes(COMPOSER_AREA)));
+}
+
+const composerArea = {
+  meta: { type: 'problem', schema: [], docs: { description: 'Keeps everything but the composer out of the composer area, below the chat tabs' } },
+  create(context) {
+    const report = (node) => context.report({
+      node,
+      message: 'The composer area sits below the chat tabs (1 2 3) and holds only the Composer. Give other UI its own grid row above the tabs, as the task row and the approval card have.',
+    });
+    return {
+      VariableDeclarator(node) {
+        if (!makesComposerArea(node.init)) return;
+        for (const variable of context.sourceCode.getDeclaredVariables(node)) {
+          for (const ref of variable.references) {
+            if (ref.init) continue;
+            const parent = ref.identifier.parent;
+            const intoComposer = parent.type === 'NewExpression' && parent.callee.type === 'Identifier' && parent.callee.name === 'Composer' && parent.arguments.includes(ref.identifier);
+            if (!intoComposer) report(ref.identifier);
+          }
+        }
+      },
+      // The area used without a name, such as `root.createDiv({ cls: 'vicher-chat-composer-area' }).createDiv()`.
+      'MemberExpression'(node) {
+        if (makesComposerArea(node.object)) report(node);
+      },
+    };
+  },
+};
+
+module.exports = { meta: { name: 'vicher-layers' }, rules: { layers, 'no-dom': noDom, 'provider-names': providerNames, 'composer-area': composerArea } };
