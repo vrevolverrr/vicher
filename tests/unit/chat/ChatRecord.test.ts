@@ -32,8 +32,8 @@ describe('recordEvent', () => {
 
   it('starts new text after another part, and does not change the turn it was given', () => {
     const before = agent();
-    const noticed = addPart(recordEvent(before, { type: 'text', delta: 'a' }), { type: 'notice', description: 'Review', status: 'completed', text: 'ok' });
-    expect(recordEvent(noticed, { type: 'text', delta: 'b' }).parts.map((part) => part.type)).toEqual(['text', 'notice', 'text']);
+    const marked = addPart(recordEvent(before, { type: 'text', delta: 'a' }), { type: 'highlight', step: { path: 'a.md', quote: 'q' } });
+    expect(recordEvent(marked, { type: 'text', delta: 'b' }).parts.map((part) => part.type)).toEqual(['text', 'highlight', 'text']);
     expect(before.parts).toEqual([]);
   });
 });

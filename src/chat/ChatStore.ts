@@ -211,11 +211,6 @@ function decodeQuote(value: unknown): NoteQuote | null {
 function decodePart(value: unknown): ReplyPart | null {
   if (!isRecord(value)) return null;
   if (value.type === 'text') return typeof value.text === 'string' ? { type: 'text', text: value.text } : null;
-  if (value.type === 'notice') {
-    const { description, status, text } = value;
-    if (typeof description !== 'string' || typeof text !== 'string') return null;
-    return status === 'completed' || status === 'failed' || status === 'stopped' ? { type: 'notice', description, status, text } : null;
-  }
   if (value.type === 'highlight') {
     const step = decodeStep(value.step);
     return step ? { type: 'highlight', step } : null;

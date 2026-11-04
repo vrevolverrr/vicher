@@ -598,7 +598,7 @@ describe('agent stream', () => {
     expect(order).toEqual(['First', 'Working on it.', 'Second', 'Steered.']);
   });
 
-  it('draws a reply the agent starts on its own above a queued message', async () => {
+  it('draws a reply the agent starts on its own above a queued message, and a task result in the task card', async () => {
     const { start, panel, send, sessions } = setup();
     await start();
     send('First'); await settle();
@@ -610,8 +610,11 @@ describe('agent stream', () => {
     session.events.push({ type: 'notice', task: 't1', description: 'Review ch6', status: 'completed', text: 'Two typos.' });
     session.events.push({ type: 'text', delta: 'The review is back.' });
     session.events.push({ type: 'done', status: 'completed' }); await settle();
-    const order = [...panel().querySelectorAll('.vicher-user-message, .vicher-reply-text, .vicher-reply-notice')].map((el) => el.textContent);
-    expect(order).toEqual(['First', 'One.', 'Review ch6 finished: Two typos.', 'The review is back.', 'Second']);
+    const order = [...panel().querySelectorAll('.vicher-user-message, .vicher-reply-text')].map((el) => el.textContent);
+    expect(order).toEqual(['First', 'One.', 'The review is back.', 'Second']);
+    const result = panel().querySelector('.vicher-task.is-result')!;
+    expect(result.querySelector('.vicher-task-description')?.textContent).toBe('Review ch6');
+    expect(result.querySelector('.vicher-task-note')?.textContent).toBe('');
   });
 
   it('marks a dropped message as not sent and puts its text back in an empty composer', async () => {
@@ -633,12 +636,13 @@ describe('agent stream', () => {
     session.events.push({ type: 'done', status: 'completed' }); await settle();
     const row = panel().querySelector<HTMLElement>('.vicher-task-row')!;
     expect(row.hidden).toBe(false);
-    expect(row.querySelector('.vicher-task-first')?.textContent).toBe('Review ch6');
-    expect(row.querySelector('.vicher-task-more')?.textContent).toBe('+1 other');
+    const shown = (): string[] => [...row.querySelectorAll('.vicher-task:not(.is-folded) .vicher-task-description')].map((el) => el.textContent ?? '');
+    expect(shown()).toEqual(['Review ch6']);
+    expect(row.querySelector('.vicher-task-more')?.textContent).toBe('+\u20091 other');
     expect(view.contentEl.querySelector('[role="tab"]')?.getAttribute('aria-label')).toContain('Working');
-    row.querySelector<HTMLElement>('.vicher-task-summary')!.click();
+    row.querySelector<HTMLElement>('.vicher-task-toggle')!.click();
     expect(row.classList.contains('is-expanded')).toBe(true);
-    expect(row.querySelector('.vicher-task-count')?.textContent).toBe('2 tasks running');
+    expect(shown()).toEqual(['Review ch6', 'Review ch7']);
     row.querySelectorAll<HTMLButtonElement>('.vicher-task-stop')[1]!.click(); await settle();
     expect(session.stopTask).toHaveBeenCalledWith('t2');
     expect(row.querySelectorAll('.vicher-task-time')[1]!.textContent).toBe('Stopping');
@@ -646,7 +650,6 @@ describe('agent stream', () => {
     jest.useFakeTimers();
     try {
       session.events.push({ type: 'background', tasks: [] });
-      expect(row.querySelector('.vicher-task-count')?.textContent).toBe('Tasks finished');
       expect(row.querySelectorAll('.vicher-task.is-done')).toHaveLength(2);
       jest.advanceTimersByTime(1200);
       expect(row.querySelectorAll('.vicher-task')).toHaveLength(0);

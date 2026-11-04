@@ -185,12 +185,11 @@ describe('decodeChat', () => {
     expect(decodeChat(chat)?.choice).toBeUndefined();
   });
 
-  it('keeps the stops and task notices a reply holds, in place among its text', () => {
+  it('keeps the stops a reply holds, in place among its text', () => {
     const step = { path: 'optics.md', quote: 'blue light', comment: 'Why', line: 4 };
     const stored = { ...chat, turns: [user('Walk me through'), agent([
       { type: 'text', text: 'Look:' },
       { type: 'highlight', step },
-      { type: 'notice', description: 'Review ch6', status: 'failed', text: 'No such file' },
       { type: 'text', text: 'Then.' },
     ])] };
 
@@ -240,7 +239,6 @@ describe('decodeChat', () => {
     ['a file with no path', { ...chat, turns: [{ role: 'user', message: 'q', attachments: [{ kind: 'file', name: 'a.pdf' }], at: 1 }] }],
     ['a turn with an unknown role', { ...chat, turns: [{ role: 'system', message: 'q', at: 1 }] }],
     ['a turn with no time', { ...chat, turns: [{ role: 'user', message: 'q' }] }],
-    ['a notice with an unknown status', { ...chat, turns: [{ role: 'agent', parts: [{ type: 'notice', description: 'd', status: 'running', text: '' }], status: 'completed', at: 1 }] }],
     ['a turn with an unknown status', { ...chat, turns: [{ role: 'agent', parts: [], status: 'weird', at: 1 }] }],
     ['a reply part of an unknown type', { ...chat, turns: [{ role: 'agent', parts: [{ type: 'image' }], status: 'completed', at: 1 }] }],
     ['a highlight with no quote', { ...chat, turns: [{ role: 'agent', parts: [{ type: 'highlight', step: { path: 'a.md' } }], status: 'completed', at: 1 }] }],

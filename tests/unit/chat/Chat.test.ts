@@ -180,17 +180,17 @@ describe('Chat', () => {
     expect(await sending).toEqual([]);
   });
 
-  it('adds a notice to the reply being written, or records it as a turn of its own before the reply it starts', async () => {
+  it('shows a task notice without recording it', async () => {
     const { chat, session } = setup();
+    const view = recordingView();
+    chat.attach(view);
     chat.open(); await settle();
-    const notice = { type: 'notice', task: 't1', description: 'Review ch6', status: 'completed', text: 'Two typos.' } as const;
     void chat.send(context);
     await settle();
-    session().emit({ type: 'user', id: session().sent[0]!.id }, { type: 'text', delta: 'Waiting.' }, notice, { type: 'done', status: 'completed' });
-    session().emit(notice, { type: 'text', delta: 'The review is back.' }, { type: 'done', status: 'completed' });
-    const agents = chat.turns.filter((turn) => turn.role === 'agent');
-    expect(agents.map((turn) => turn.parts.map((part) => part.type))).toEqual([['text', 'notice'], ['notice'], ['text']]);
-    expect(agents.map((turn) => turn.status)).toEqual(['completed', 'completed', 'completed']);
+    session().emit({ type: 'user', id: session().sent[0]!.id }, { type: 'text', delta: 'Waiting.' },
+      { type: 'notice', task: 't1', description: 'Review ch6', status: 'completed', text: 'Two typos.' }, { type: 'done', status: 'completed' });
+    expect(view.calls).toContain('notice:Review ch6');
+    expect(chat.turns.filter((turn) => turn.role === 'agent').map((turn) => turn.parts.map((part) => part.type))).toEqual([['text']]);
   });
 
   it('shows a failure with no output as an empty failed turn, logs its detail without saving it, and ignores a bare completed end', async () => {

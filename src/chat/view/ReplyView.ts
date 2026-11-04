@@ -2,10 +2,9 @@ import { countFigures } from '@/chat/splitReply';
 import { type MarkdownTarget, ReplyFigures, TextBlock } from '@/chat/view/TextBlock';
 import { ToolGroup } from '@/chat/view/ToolGroup';
 import { formatWhen } from '@/chat/view/chatList';
-import type { NoticePart, Rating, ToolPart, TourStep } from '@/chat/ChatRecord';
+import type { Rating, ToolPart, TourStep } from '@/chat/ChatRecord';
 import { Walkthrough, type WalkthroughHost } from '@/tour/view/Walkthrough';
 import { canAnimate, createCopyButton, createIconButton } from '@/shared/view/iconButtons';
-import { setIcon } from '@/shared/view/icon';
 
 /** The thumb a reply starts with, and what to do when the student gives or takes back one. */
 export interface ReplyFeedback {
@@ -69,17 +68,6 @@ export class ReplyView {
       this.blocks.push(run);
     }
     run.add();
-  }
-
-  /** One muted line saying a background task ended; it shows two lines of what the task reported until clicked. */
-  notice({ description, status, text }: NoticePart): void {
-    const last = this.blocks.at(-1);
-    if (last instanceof ToolGroup && last.isEmpty()) this.discard(last);
-    const el = this.el.createDiv({ cls: 'vicher-reply-notice' });
-    setIcon(el.createSpan({ cls: 'vicher-reply-notice-icon' }), status === 'completed' ? 'circle-check' : status === 'failed' ? 'circle-alert' : 'circle-stop');
-    const label = el.createSpan({ cls: 'vicher-reply-notice-text', text: status === 'stopped' ? `${description} stopped` : `${description} ${status === 'completed' ? 'finished' : 'failed'}: ${text}` });
-    el.addEventListener('click', () => label.toggleClass('is-expanded', !label.hasClass('is-expanded')));
-    this.blocks.push(el);
   }
 
   thinking(): void {

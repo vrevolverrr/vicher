@@ -1,4 +1,4 @@
-import type { AgentEvent, AgentId, NoticeStatus, PermissionPolicy, TurnStatus } from '@/agents/types';
+import type { AgentEvent, AgentId, PermissionPolicy, TurnStatus } from '@/agents/types';
 import type { NoteQuote } from '@/context/NoteContext';
 import type { ModelChoice } from '@/chat/ChatDefaults';
 import { type ChatAttachment, isStored } from '@/context/ChatAttachment';
@@ -14,19 +14,11 @@ export interface TourStep {
   line?: number;
 }
 
-/** A background task's run ended. */
-export interface NoticePart {
-  type: 'notice';
-  description: string;
-  status: NoticeStatus;
-  text: string;
-}
-
 /**
  * One piece of a reply in the order the agent wrote it. A tool call keeps the place of its first event, with its
  * latest status. A highlight is a stop the agent pointed at in a note, kept so a saved chat can walk through it again.
  */
-export type ReplyPart = { type: 'text'; text: string } | ToolPart | { type: 'highlight'; step: TourStep } | NoticePart;
+export type ReplyPart = { type: 'text'; text: string } | ToolPart | { type: 'highlight'; step: TourStep };
 
 export interface UserTurn {
   role: 'user';

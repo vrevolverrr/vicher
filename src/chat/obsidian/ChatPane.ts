@@ -220,6 +220,7 @@ export class ChatPane extends Component {
     if (context.selection) document.sent(context.selection);
     // A dropped message is drawn as not sent; nothing else waits on it.
     this.chat.send(context).catch(() => undefined);
+    this.tasks.sent();
   }
 
   /** What the chat draws on: bubbles, the reply being written, the tour, the context meter, the task row. */
@@ -258,7 +259,7 @@ export class ChatPane extends Component {
       appendText: (delta) => reply().appendText(delta),
       tool: (part) => reply().tool(part),
       thinking: () => reply().thinking(),
-      notice: (part) => reply().notice(part),
+      notice: (event) => this.tasks.notice(event),
       usage: (used, window) => this.composer.meter.set(used, window),
       approve: (request, signal) => this.approvals.ask(request, signal),
       ask: (questions, signal) => this.approvals.askQuestions(questions, signal),
@@ -365,7 +366,6 @@ export class ChatPane extends Component {
     for (const part of turn.parts) {
       if (part.type === 'text') reply.appendText(part.text);
       else if (part.type === 'highlight') reply.highlight(part.step);
-      else if (part.type === 'notice') reply.notice(part);
       else reply.tool(part);
     }
     reply.finish(turn.at, this.feedback(index, turn.rating));

@@ -5,7 +5,7 @@ import { turnImages } from '@/context/ChatAttachment';
 import { quoteOf } from '@/context/NoteContext';
 import { turnText } from '@/context/turnText';
 import type { ChatDefaults, ModelChoice } from '@/chat/ChatDefaults';
-import { addPart, type AgentTurn, type AgentTurnStatus, type ChatRecord, type ChatTurn, type NoticePart, type Rating, rateTurn, recordEvent, type ToolPart, type TourStep, turnTitle, type UserTurn } from '@/chat/ChatRecord';
+import { addPart, type AgentTurn, type AgentTurnStatus, type ChatRecord, type ChatTurn, type Rating, rateTurn, recordEvent, type ToolPart, type TourStep, turnTitle, type UserTurn } from '@/chat/ChatRecord';
 import { ChatSession } from '@/chat/ChatSession';
 import type { ChatStore } from '@/chat/ChatStore';
 import { ReplyActions, type ShownPart } from '@/chat/ReplyActions';
@@ -43,7 +43,7 @@ export interface ChatView {
   tool(part: ToolPart): void;
   thinking(): void;
   usage(used: number, window: number): void;
-  notice(part: NoticePart): void;
+  notice(event: Extract<AgentEvent, { type: 'notice' }>): void;
   /** Asks the student; drops the question once `signal` aborts. The turn keeps streaming meanwhile. */
   approve(request: ToolApprovalRequest, signal: AbortSignal): Promise<boolean>;
   /** Like `approve`, for the agent's questions; undefined when the student declines. */
@@ -356,15 +356,9 @@ export class Chat {
       case 'usage':
         this.view?.usage(event.used, event.window);
         break;
-      case 'notice': {
-        const part: NoticePart = { type: 'notice', description: event.description, status: event.status, text: event.text };
-        const alone = !this.writingTurn;
-        const open = this.startTurn(prompt);
-        open.turn = addPart(open.turn, part);
-        this.view?.notice(part);
-        if (alone) this.closeTurn('completed');
+      case 'notice':
+        this.view?.notice(event);
         break;
-      }
       case 'done':
         this.cliTurn = false;
         // Diagnosis only: kept out of the saved chat and the reply, which show the short error.
