@@ -34,6 +34,18 @@
   min-height: 100cqh;
 }
 
+/* A message just sent rises into place from the composer below; one redrawn from a saved chat does not. */
+.vicher-turn.is-sent > :is(.vicher-user-attachments, .vicher-user-quote, .vicher-user-message) {
+  transform-origin: right bottom;
+  animation: vicher-pop-in 260ms cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vicher-turn.is-sent > :is(.vicher-user-attachments, .vicher-user-quote, .vicher-user-message) {
+    animation: none;
+  }
+}
+
 .vicher-user-message {
   align-self: flex-end;
   max-width: 85%;
@@ -606,6 +618,19 @@
     animation: none;
   }
 
+  .vicher-task-row,
+  .vicher-task-spinner,
+  .vicher-task-mark.is-drawing svg > * {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+
+  .vicher-task-row,
+  .vicher-task,
+  .vicher-task-toggle .svg-icon {
+    transition: none;
+  }
+
   .vicher-picker-menu,
   .vicher-picker-menu.is-closing,
   .vicher-history-menu,
@@ -918,6 +943,11 @@
   from {
     opacity: 0;
   }
+}
+
+/* An agent turn followed by another under the same message reads as one reply: only the last keeps the footer. */
+.vicher-reply.is-continued > .vicher-reply-footer {
+  display: none;
 }
 
 .vicher-reply-footer {
@@ -1690,6 +1720,28 @@
   margin-top: 0 !important;
 }
 
+.vicher-tools.is-entering {
+  animation: vicher-tools-enter 260ms cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+
+/* The working line that opens with a send follows the bubble rather than arriving with it. */
+.vicher-turn.is-waiting .vicher-tools.is-entering {
+  animation-delay: 120ms;
+}
+
+@keyframes vicher-tools-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vicher-tools.is-entering {
+    animation: none;
+  }
+}
+
 /* As tall as a line of reply text, so a line that replaces another lands in the same spot. */
 .vicher-tools .vicher-tools-header {
   display: flex;
@@ -1703,7 +1755,7 @@
   background: transparent;
   box-shadow: none;
   color: inherit;
-  transition: color 150ms ease;
+  transition: color 240ms cubic-bezier(0.4, 0, 0.2, 1);
   font-size: inherit;
   text-align: left;
   cursor: pointer;
@@ -1737,7 +1789,8 @@
 }
 
 .vicher-tools.is-running .vicher-tools-summary,
-.vicher-tool[data-status='running'],
+.vicher-tools.is-open .vicher-tool[data-status='running'],
+.vicher-task.is-running:not(.is-folded) .vicher-task-description,
 .vicher-diagram-card-label {
   background: linear-gradient(90deg, var(--text-muted) 40%, var(--text-normal) 50%, var(--text-muted) 60%) 0 0 / 250% 100%;
   -webkit-background-clip: text;
@@ -1812,7 +1865,7 @@
 .vicher-tools-time {
   flex-shrink: 0;
   color: var(--text-faint);
-  transition: color 150ms ease;
+  transition: color 240ms cubic-bezier(0.4, 0, 0.2, 1);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1827,7 +1880,7 @@
 .vicher-tools-chevron {
   display: inline-flex;
   flex-shrink: 0;
-  transition: transform 150ms ease;
+  transition: transform 220ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 .vicher-tools.is-empty .vicher-tools-chevron {
@@ -1843,17 +1896,37 @@
   transform: rotate(90deg);
 }
 
+.vicher-tools-drawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.vicher-tools.is-open .vicher-tools-drawer {
+  grid-template-rows: 1fr;
+}
+
+/* The space above the rows is the first row's margin, inside the clip: padding or a margin on the list itself would keep
+   the closed drawer from reaching zero height. */
 .vicher-tools-list {
-  display: none;
+  display: flex;
   flex-direction: column;
   gap: var(--size-2-2);
-  margin-top: var(--size-2-3);
+  min-height: 0;
   padding-left: var(--size-4-3);
+  overflow: hidden;
   border-left: 1px solid var(--background-modifier-border);
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.vicher-tools-list > :first-child {
+  margin-top: var(--size-2-3);
 }
 
 .vicher-tools.is-open .vicher-tools-list {
-  display: flex;
+  opacity: 1;
+  transition: opacity 180ms ease-out 60ms;
 }
 
 .vicher-tool[data-status='failed'] {
@@ -1902,6 +1975,10 @@
   38% {
     opacity: 0.9;
   }
+}
+
+.vicher-task.is-running:not(.is-folded) .vicher-task-description {
+  background-image: linear-gradient(90deg, var(--text-muted) 40%, color-mix(in srgb, var(--text-muted) 45%, white) 50%, var(--text-muted) 60%);
 }
 
 @keyframes vicher-shimmer {
@@ -2068,11 +2145,11 @@
   position: relative;
   flex: 1;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-rows: minmax(0, 1fr) auto auto auto;
 }
 
 .vicher-chat-panel {
-  grid-area: 1 / 1 / 4 / 2;
+  grid-area: 1 / 1 / 5 / 2;
   grid-template-rows: subgrid;
 }
 
@@ -2085,7 +2162,7 @@
 .vicher-chat-tab[hidden] { display: none; }
 
 .vicher-chat-composer-area {
-  grid-row: 3;
+  grid-row: 4;
   container-type: inline-size;
   min-width: 0;
   padding: 0 4px 4px;
@@ -2097,7 +2174,7 @@
 }
 
 .vicher-approval-card {
-  grid-row: 2;
+  grid-row: 3;
   min-width: 0;
   margin: 0 4px 42px;
   overflow: hidden;
@@ -2109,9 +2186,19 @@
   font-size: var(--font-ui-small);
   line-height: 1.5;
   animation: vicher-approval-enter 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    height 280ms cubic-bezier(0.32, 0.72, 0, 1),
+    margin-bottom 280ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 160ms ease-out;
 }
 
 .vicher-approval-card[hidden] { display: none; }
+
+.vicher-approval-card.is-closing {
+  margin-bottom: 0;
+  border-width: 0;
+  opacity: 0;
+}
 .vicher-approval-body {
   max-height: min(300px, 32vh);
   min-width: 0;
@@ -2268,6 +2355,7 @@
   .vicher-approval-card,
   .vicher-approval-body,
   .vicher-approval-disclosure[open] > pre { animation: none; }
+  .vicher-approval-card,
   .vicher-approval-actions button,
   .vicher-approval-disclosure > summary,
   .vicher-approval-chevron .svg-icon { transition: none; }
@@ -2284,7 +2372,7 @@
 
 .vicher-chat-tab-bar {
   position: absolute;
-  grid-area: 3 / 1;
+  grid-area: 4 / 1;
   inset-inline: 7px;
   bottom: 100%;
   z-index: 1;
@@ -3711,4 +3799,343 @@
 }
 .vicher-figure-pointer[data-tag='bad'] {
   --vicher-figure-pointer-ink: var(--vicher-figure-tag-bad);
+}
+
+.vicher-user-label {
+  align-self: flex-end;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.vicher-user-label.is-error {
+  color: var(--text-error);
+}
+
+.vicher-task-row {
+  position: relative;
+  grid-row: 2;
+  min-width: 0;
+  /* Clears the floating chat tabs, as the approval card does; with the card below it, the card clears them. */
+  margin: 0 4px 38px;
+  overflow: hidden;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 14px;
+  background: var(--background-primary);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--text-normal) 3%, transparent), 0 8px 24px color-mix(in srgb, var(--text-normal) 4%, transparent);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  /* One curve for the card's motion: quick to start, long soft landing, no overshoot. */
+  --vicher-task-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --vicher-task-duration: 280ms;
+  /* Every row keeps this much free at its end, under the card's controls, so no row moves when they change. */
+  --vicher-task-controls: 100px;
+  --vicher-task-line: 32px;
+  --vicher-task-pad: 4px;
+  animation: vicher-approval-enter var(--vicher-task-duration) var(--vicher-task-ease);
+  transition:
+    height var(--vicher-task-duration) var(--vicher-task-ease),
+    margin-bottom var(--vicher-task-duration) var(--vicher-task-ease),
+    opacity 160ms ease-out;
+}
+
+.vicher-task-row[hidden] { display: none; }
+
+.vicher-task-row.is-closing {
+  margin-bottom: 0;
+  border-width: 0;
+  opacity: 0;
+}
+
+.vicher-task-row:has(+ .vicher-approval-card:not([hidden])) {
+  margin-bottom: 6px;
+}
+
+.vicher-task-row:not(.is-expanded):has(.vicher-task-toggle:not([hidden])) {
+  cursor: pointer;
+}
+
+.vicher-task-list {
+  position: relative;
+  padding: var(--vicher-task-pad) 0;
+  /* Eight rows show; the rest scroll. */
+  max-height: calc(8 * var(--vicher-task-line) + 2 * var(--vicher-task-pad));
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb-bg) transparent;
+}
+
+/* A row folds by its slot's height, so collapsing, opening, adding and leaving all move the same way. Its curve is
+   shorter than the card's: over a row's 32px the card's long landing creeps a pixel a frame. */
+.vicher-task {
+  display: grid;
+  grid-template-rows: 1fr;
+  --vicher-task-row-ease: cubic-bezier(0.2, 0, 0, 1);
+  transition: grid-template-rows 220ms var(--vicher-task-row-ease);
+}
+
+.vicher-task.is-folded {
+  grid-template-rows: 0fr;
+}
+
+/* Coming in, the row fades and drops into place once its slot is mostly open, so the slot's edge does not wipe its
+   text in. */
+.vicher-task-inner {
+  position: relative;
+  display: flex;
+  gap: var(--size-2-3);
+  min-height: 0;
+  padding: 0 var(--size-4-4) 0 var(--size-4-3);
+  overflow: hidden;
+  transition:
+    opacity 160ms ease-out 70ms,
+    transform 220ms var(--vicher-task-row-ease) 40ms;
+}
+
+.vicher-task.is-folded .vicher-task-inner {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 100ms ease-out,
+    transform 220ms var(--vicher-task-row-ease);
+}
+
+/* A result enters from below, so the rows above it shift up as the card grows. */
+.vicher-task.is-result.is-folded:not(.is-leaving) .vicher-task-inner {
+  transform: translateY(6px);
+}
+
+/* The running slot changes task in place: the next row opens at once under the one going, which fades over it. */
+.vicher-task.is-instant {
+  transition: none;
+}
+
+/* Crossfading, the incoming text starts at once and does not drop in, so the slot never reads as empty. */
+.vicher-task.is-instant .vicher-task-inner {
+  transform: none;
+  transition: opacity 160ms ease-out;
+}
+
+.vicher-task.is-replaced {
+  position: absolute;
+  right: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.vicher-task.is-replaced .vicher-task-inner {
+  opacity: 0;
+  transition: opacity 160ms ease-out;
+}
+
+/* A row going away shrinks and fades in place first, then its slot closes. */
+.vicher-task.is-leaving {
+  transition: grid-template-rows 220ms var(--vicher-task-row-ease) 140ms;
+}
+
+.vicher-task.is-leaving .vicher-task-inner {
+  opacity: 0;
+  transform: scale(0.94);
+  transition:
+    opacity 160ms ease-out,
+    transform 220ms var(--vicher-task-row-ease);
+}
+
+.vicher-task-mark {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: var(--vicher-task-line);
+}
+
+.vicher-task-mark .svg-icon,
+.vicher-task-mark .vicher-agent-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.vicher-task.is-done .vicher-task-mark {
+  color: var(--color-green);
+}
+
+.vicher-task[data-status='failed'] .vicher-task-mark {
+  color: var(--text-error);
+}
+
+.vicher-task[data-status='stopped'] .vicher-task-mark {
+  color: var(--text-muted);
+}
+
+.vicher-task-mark.is-drawing svg > * {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: vicher-task-draw 420ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.vicher-task-mark.is-drawing svg > :last-child {
+  animation-duration: 260ms;
+  animation-delay: 320ms;
+}
+
+@keyframes vicher-task-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.vicher-task-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.vicher-task-head {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  height: var(--vicher-task-line);
+  min-width: 0;
+  /* The name never runs under the controls or the stop button. */
+  padding-right: calc(var(--vicher-task-controls) + 20px);
+}
+
+.vicher-task-description {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-normal);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vicher-task.is-done:not(.is-result) .vicher-task-description {
+  color: var(--text-faint);
+  transition: color 200ms ease;
+}
+
+.vicher-task-time {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--size-2-2);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.vicher-task-time .svg-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.vicher-task-spinner {
+  display: flex;
+  animation: vicher-task-spin 900ms linear infinite;
+}
+
+@keyframes vicher-task-spin {
+  to { transform: rotate(360deg); }
+}
+
+.vicher-task-note {
+  flex-shrink: 0;
+  color: var(--text-error);
+}
+
+.vicher-task-note:empty {
+  display: none;
+}
+
+.vicher-task-note.is-pill {
+  padding: 1px var(--size-4-2);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-error) 12%, transparent);
+  font-size: var(--font-ui-smaller);
+}
+
+.vicher-task[data-status='stopped'] .vicher-task-note.is-pill {
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+}
+
+/* The stop button takes the row's end just inside the controls' column, and shows on the row under the pointer. */
+.vicher-task :is(.vicher-task-stop, .vicher-task-dismiss).clickable-icon {
+  position: absolute;
+  top: calc((var(--vicher-task-line) - 24px) / 2);
+  right: var(--size-4-2);
+  height: 24px;
+  padding: 0 var(--size-2-1);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  opacity: 0;
+  /* All three listed: a transition list replaces Obsidian's own for clickable icons. */
+  transition:
+    opacity 180ms ease-out,
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.vicher-task :is(.vicher-task-stop, .vicher-task-dismiss).clickable-icon:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.vicher-task-inner:is(:hover, :focus-within) :is(.vicher-task-stop, .vicher-task-dismiss) {
+  opacity: 1;
+}
+
+.vicher-task:is(.is-stopping, .is-done) .vicher-task-stop,
+.vicher-task:not(.is-result) .vicher-task-dismiss {
+  display: none;
+}
+
+/* A row's buttons take the chevron's column, except on the top row while the card's controls sit there. */
+.vicher-task-row:has(.vicher-task-toggle:not([hidden])) .vicher-task.is-top .vicher-task-stop.clickable-icon {
+  right: calc(var(--size-4-2) + var(--vicher-task-controls));
+}
+
+/* Open, the controls are only the chevron, so the button sits right beside it. */
+.vicher-task-row.is-expanded:has(.vicher-task-toggle:not([hidden])) .vicher-task.is-top .vicher-task-stop.clickable-icon {
+  right: calc(var(--size-4-2) + 28px);
+}
+
+.vicher-task-row.is-expanded .vicher-task-inner:hover {
+  background: var(--background-modifier-hover);
+}
+
+.vicher-task-controls {
+  position: absolute;
+  top: var(--vicher-task-pad);
+  right: var(--size-4-2);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--vicher-task-line);
+}
+
+.vicher-task-more {
+  padding-right: var(--size-2-1);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.vicher-task-controls .clickable-icon {
+  padding: var(--size-2-1);
+  color: var(--text-faint);
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.vicher-task-controls .clickable-icon:hover {
+  color: var(--text-normal);
+}
+
+.vicher-task-controls .clickable-icon[hidden] {
+  display: none;
+}
+
+.vicher-task-toggle .svg-icon {
+  transition: transform var(--vicher-task-duration) var(--vicher-task-ease);
+}
+
+.vicher-task-row.is-expanded .vicher-task-toggle .svg-icon {
+  transform: rotate(180deg);
 }

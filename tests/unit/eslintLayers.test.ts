@@ -39,3 +39,15 @@ tester.run('provider-names', rules['provider-names'] as never, {
   valid: [{ filename: at('agents/claude/ClaudeAgent.ts'), code: "const name = 'claude';" }],
   invalid: [{ filename: at('chat/Chat.ts'), code: "const name = 'Claude';", errors: 1 }],
 });
+
+tester.run('composer-area', rules['composer-area'] as never, {
+  valid: [
+    { filename: at('chat/obsidian/ChatPane.ts'), code: "const area = root.createDiv({ cls: 'vicher-chat-composer-area' }); new Composer(this, area, host, chat);" },
+    { filename: at('chat/obsidian/ChatPane.ts'), code: "const row = root.createDiv({ cls: 'vicher-task-row' }); row.createDiv();" },
+  ],
+  invalid: [
+    { filename: at('chat/obsidian/ChatPane.ts'), code: "const area = root.createDiv({ cls: 'vicher-chat-composer-area' }); new Composer(this, area, host, chat); new TaskRow(area, agent, stop);", errors: 1 },
+    { filename: at('chat/obsidian/ChatPane.ts'), code: "const area = root.createDiv({ cls: 'vicher-chat-composer-area wide' }); area.createDiv({ cls: 'vicher-banner' });", errors: 1 },
+    { filename: at('chat/obsidian/ChatPane.ts'), code: "root.createDiv({ cls: 'vicher-chat-composer-area' }).createDiv();", errors: 1 },
+  ],
+});

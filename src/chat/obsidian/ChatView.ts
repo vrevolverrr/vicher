@@ -202,7 +202,7 @@ export class ChatView extends ItemView {
   private openTabs(): ChatTab[] {
     return [...this.panes.values()].map((pane) => ({
       id: pane.chat.record.id, title: pane.chat.record.title, agent: pane.chat.record.agent,
-      running: pane.chat.running, unread: pane.unread, failed: pane.chat.failed,
+      running: pane.chat.running || pane.chat.background.length > 0, unread: pane.unread, failed: pane.chat.failed,
       waitingForApproval: pane.waitingForApproval,
     }));
   }

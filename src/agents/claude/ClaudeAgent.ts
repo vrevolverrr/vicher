@@ -1,14 +1,15 @@
-import type { Options, Query, SDKMessage, SDKResultMessage, SDKUserMessage, SpawnedProcess, SpawnOptions } from '@anthropic-ai/claude-agent-sdk';
+import type { Options, Query, SDKBackgroundTasksChangedMessage, SDKMessage, SDKResultMessage, SDKTaskNotificationMessage, SDKUserMessage, SpawnedProcess, SpawnOptions } from '@anthropic-ai/claude-agent-sdk';
 import type * as ClaudeSDK from '@anthropic-ai/claude-agent-sdk/core';
-import { randomUUID } from 'crypto';
+import { randomUUID, type UUID } from 'crypto';
 import { readFile } from 'fs/promises';
 import * as os from 'os';
 
 import { AsyncQueue } from '@/agents/shared/AsyncQueue';
+import { Listeners } from '@/agents/shared/Listeners';
 import { resolveCLI } from '@/agents/process/cliBinaryLocator';
 import { cliEnv, getEnhancedPath } from '@/agents/process/env';
 import { runProcessProbe } from '@/agents/process/processProbe';
-import { type AgentAdapter, type AgentEvent, type AgentSession, type AgentSessionOptions, type AuthState, ConversationNotFoundError, type Effort, type ModelOption, type SkillOption, type TurnImage } from '@/agents/types';
+import { type AgentAdapter, type AgentEvent, type AgentMessage, type AgentSession, type AgentSessionOptions, type AuthState, type BackgroundTask, ConversationNotFoundError, type Effort, type ModelOption, type SkillOption, type TurnImage } from '@/agents/types';
 
 import { findClaudeBinaryPath } from './ClaudeBinaryLocator';
 import { ClaudeModelAdapter } from './ClaudeModelAdapter';
@@ -108,100 +109,162 @@ function buildOptions(options: AgentSessionOptions, cli: string, id: string, use
   };
 }
 
+const EXITED = 'Claude Code exited';
+
 class ClaudeSession implements AgentSession {
   private readonly prompts = new AsyncQueue<SDKUserMessage>();
+  private readonly listeners = new Listeners<AgentEvent>();
   private readonly query: Query;
   private readonly modelAdapter: ClaudeModelAdapter;
-  private readonly messages: AsyncIterator<SDKMessage>;
-  private turnActive = false;
-  /** The running turn: its cancellation, and where its approval events go. */
-  private turn: { controller: AbortController; approvals: AsyncQueue<AgentEvent> } | null = null;
-  /** A message read that a turn left pending when it yielded an approval; the next reader takes it over. */
-  private pendingMessage: Promise<IteratorResult<SDKMessage>> | null = null;
-  /** Turns the caller stopped reading; their remaining messages are skipped before the next turn. */
-  private abandonedTurns = 0;
+  /** Sent messages the CLI has not taken in yet, in send order. */
+  private readonly pending = new Set<string>();
+  /** Keeps pushes in send order while images are read. */
+  private sending: Promise<void> = Promise.resolve();
+  /** The running CLI turn: its approvals' cancellation, and whether `interrupt` ended it. */
+  private turn: { controller: AbortController; interrupted: boolean } | null = null;
+  /** Top-level tasks not yet reported by a notice, by id; the notice and the emptied set arrive in either order. */
+  private readonly tasks = new Map<string, string>();
+  private running: BackgroundTask[] = [];
+  private exited = false;
+  private closed = false;
   /** The end of the CLI's stderr, to say why it failed. */
   private stderr = '';
 
   constructor(createQuery: ClaudeQuery, options: Options, readonly id: string, private readonly tools: ClaudeToolAdapter, private readonly configDir: string) {
+    // An approval is output of a CLI turn, so one that comes while none runs starts it.
     const canUseTool = new ClaudePermissionAdapter().callback(() => {
-      const turn = this.turn;
-      return turn ? { signal: turn.controller.signal, push: (event) => turn.approvals.push(event) } : undefined;
+      if (this.closed || this.exited) return undefined;
+      return { signal: this.begin().controller.signal, push: (event) => this.emit(event) };
     });
     const spawnClaudeCodeProcess = (spawn: SpawnOptions): SpawnedProcess => spawnClaudeCode(spawn, (text) => {
       this.stderr = (this.stderr + text).slice(-STDERR_LIMIT);
     });
     // Bypass never asks, and the SDK warns when it is given a callback it will not call.
     const approvals = options.permissionMode === 'bypassPermissions' ? {} : { canUseTool };
-    this.query = createQuery({ prompt: this.prompts, options: { ...options, ...approvals, spawnClaudeCodeProcess } });
-    this.messages = this.query[Symbol.asyncIterator]();
+    // The replay echo is how the session learns the CLI took a message in.
+    const extraArgs = { ...options.extraArgs, 'replay-user-messages': null };
+    this.query = createQuery({ prompt: this.prompts, options: { ...options, ...approvals, extraArgs, spawnClaudeCodeProcess } });
     this.modelAdapter = new ClaudeModelAdapter(this.query);
+    void this.read();
   }
 
-  async *send(text: string, signal?: AbortSignal, images: TurnImage[] = []): AsyncGenerator<AgentEvent, void> {
-    if (this.turnActive) throw new Error('A turn is already running');
-    if (signal?.aborted) { yield { type: 'done', status: 'interrupted' }; return; }
-    this.turnActive = true;
-    const controller = new AbortController();
-    let interrupted = false;
-    let finished = false;
-    const interrupt = (): void => {
-      interrupted = true;
-      controller.abort();
-      void this.query.interrupt().catch(() => undefined);
-    };
-    signal?.addEventListener('abort', interrupt, { once: true });
-    try {
-      await this.skipAbandonedTurns();
-      const prompt = await userMessage(text, images);
-      if (controller.signal.aborted) { finished = true; yield { type: 'done', status: 'interrupted' }; return; }
-      const approvals = new AsyncQueue<AgentEvent>();
-      const approvalEvents = approvals[Symbol.asyncIterator]();
-      let approval = approvalEvents.next();
-      this.turn = { controller, approvals };
-      this.prompts.push(prompt);
-      for (;;) {
-        // The CLI sends nothing while it waits on an approval, so the turn listens for both.
-        const ready = await Promise.race([this.nextMessage().then((message) => ({ message })), approval.then(({ value }) => ({ approval: value as AgentEvent }))]);
-        if ('approval' in ready) {
-          approval = approvalEvents.next();
-          yield ready.approval;
-          continue;
-        }
-        this.pendingMessage = null;
-        const next = ready.message;
-        if (next.done) {
-          finished = true;
-          yield this.failed('Claude Code exited before finishing the turn');
-          return;
-        }
-        const delta = textDelta(next.value);
-        if (delta) yield { type: 'text', delta };
-        if (startsSilentBlock(next.value)) yield { type: 'thinking' };
-        yield* this.tools.events(next.value);
-        if (next.value.type === 'result') {
-          finished = true;
-          if (next.value.subtype === 'success' && !next.value.is_error) {
-            const usage = await this.contextUsage();
-            if (usage) yield usage;
-          }
-          yield finish(next.value, interrupted);
-          return;
-        }
+  subscribe(listener: (event: AgentEvent) => void): () => void {
+    return this.listeners.add(listener);
+  }
+
+  send({ id, text, images = [] }: AgentMessage): void {
+    if (this.closed) return;
+    if (this.exited) { this.emit({ type: 'dropped', ids: [id], error: EXITED }); return; }
+    this.pending.add(id);
+    // Settled at once, so a failed read is never an unhandled rejection while earlier sends wait.
+    const prompt = userMessage(id, text, images).then((message) => ({ message }), (error: unknown) => ({ error }));
+    this.sending = this.sending.then(() => prompt).then((read) => {
+      if (!this.pending.has(id) || this.closed) return;
+      if ('message' in read) this.prompts.push(read.message);
+      else {
+        this.pending.delete(id);
+        this.emit({ type: 'dropped', ids: [id], error: errorText(read.error) });
       }
-    } catch (error) {
-      finished = true;
-      yield this.failed(error instanceof Error ? error.message : String(error));
-    } finally {
-      signal?.removeEventListener('abort', interrupt);
-      if (!finished) {
-        this.abandonedTurns++;
-        if (!interrupted) interrupt();
-      }
-      controller.abort();
-      this.turn = null;
-      this.turnActive = false;
+    });
+  }
+
+  interrupt(): void {
+    if (this.turn) {
+      this.turn.interrupted = true;
+      this.turn.controller.abort();
     }
+    void this.query.interrupt().catch(() => undefined);
+  }
+
+  async stopTask(id: string): Promise<void> {
+    if (this.running.some((task) => task.id === id)) await this.query.stopTask(id);
+  }
+
+  private async read(): Promise<void> {
+    let error = 'Claude Code exited before finishing the turn';
+    try {
+      for await (const message of this.query) {
+        if (this.closed) return;
+        await this.handle(message);
+      }
+    } catch (thrown) {
+      error = errorText(thrown);
+    }
+    if (!this.closed) this.exit(error);
+  }
+
+  private async handle(message: SDKMessage): Promise<void> {
+    if (message.type === 'user' && 'isReplay' in message && message.parent_tool_use_id === null && this.pending.delete(message.uuid)) {
+      this.output({ type: 'user', id: message.uuid });
+      return;
+    }
+    if (message.type === 'system') {
+      if (message.subtype === 'background_tasks_changed') this.background(message.tasks);
+      else if (message.subtype === 'task_notification') this.notice(message);
+      return;
+    }
+    if (message.type === 'result') return this.end(message);
+    const delta = textDelta(message);
+    if (delta) this.output({ type: 'text', delta });
+    if (startsSilentBlock(message)) this.output({ type: 'thinking' });
+    for (const event of this.tools.events(message)) this.output(event);
+  }
+
+  private background(tasks: SDKBackgroundTasksChangedMessage['tasks']): void {
+    // Ambient tasks are watchers, not work: the SDK says hosts should leave them out of activity.
+    const running = tasks.filter((task) => !task.parent_task_id && !task.ambient).map((task) => ({ id: task.task_id, description: task.description }));
+    for (const task of running) this.tasks.set(task.id, task.description);
+    if (JSON.stringify(running) === JSON.stringify(this.running)) return;
+    this.running = running;
+    this.emit({ type: 'background', tasks: running });
+  }
+
+  private notice({ task_id, status, summary }: SDKTaskNotificationMessage): void {
+    const description = this.tasks.get(task_id);
+    // A task started by another task was never top-level.
+    if (description === undefined) return;
+    this.tasks.delete(task_id);
+    this.emit({ type: 'notice', task: task_id, description, status, text: summary });
+  }
+
+  private async end(result: SDKResultMessage): Promise<void> {
+    const turn = this.begin();
+    const usage = result.subtype === 'success' && !result.is_error ? await this.contextUsage() : null;
+    this.turn = null;
+    turn.controller.abort();
+    if (usage) this.emit(usage);
+    this.emit(finish(result, turn.interrupted));
+  }
+
+  /** The process ended on its own: close out the turn, the messages and the tasks it leaves behind. */
+  private exit(error: string): void {
+    this.exited = true;
+    const turn = this.turn;
+    this.turn = null;
+    if (turn) {
+      turn.controller.abort();
+      this.emit(this.failed(error));
+    }
+    if (this.pending.size) this.emit({ type: 'dropped', ids: [...this.pending], error: EXITED });
+    this.pending.clear();
+    for (const [task, description] of this.tasks) this.emit({ type: 'notice', task, description, status: 'stopped', text: 'The agent process exited' });
+    this.tasks.clear();
+    this.running = [];
+    this.emit({ type: 'background', tasks: [] });
+  }
+
+  private begin(): NonNullable<ClaudeSession['turn']> {
+    this.turn ??= { controller: new AbortController(), interrupted: false };
+    return this.turn;
+  }
+
+  private output(event: AgentEvent): void {
+    this.begin();
+    this.emit(event);
+  }
+
+  private emit(event: AgentEvent): void {
+    if (!this.closed) this.listeners.emit(event);
   }
 
   private async contextUsage(): Promise<AgentEvent | null> {
@@ -235,6 +298,7 @@ class ClaudeSession implements AgentSession {
   }
 
   async close(): Promise<void> {
+    this.closed = true;
     this.turn?.controller.abort();
     this.prompts.close();
     this.query.close();
@@ -244,22 +308,13 @@ class ClaudeSession implements AgentSession {
     const detail = this.stderr.trim();
     return { type: 'done', status: 'failed', error, ...(detail ? { detail } : {}) };
   }
-
-  private async skipAbandonedTurns(): Promise<void> {
-    while (this.abandonedTurns > 0) {
-      const next = await this.nextMessage();
-      this.pendingMessage = null;
-      if (next.done || next.value.type === 'result') this.abandonedTurns--;
-    }
-  }
-
-  private nextMessage(): Promise<IteratorResult<SDKMessage>> {
-    this.pendingMessage ??= this.messages.next();
-    return this.pendingMessage;
-  }
 }
 
-async function userMessage(text: string, images: TurnImage[]): Promise<SDKUserMessage> {
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function userMessage(id: string, text: string, images: TurnImage[]): Promise<SDKUserMessage> {
   // Images go first, as the API recommends.
   const blocks = await Promise.all(images.map(async ({ path, mediaType }) => ({
     type: 'image' as const,
@@ -270,7 +325,8 @@ async function userMessage(text: string, images: TurnImage[]): Promise<SDKUserMe
     message: { role: 'user', content: blocks.length ? [...blocks, { type: 'text', text }] : text },
     parent_tool_use_id: null,
     session_id: '',
-    uuid: randomUUID(),
+    // The CLI echoes it on the replay; callers pass a UUID, as Claude Code expects.
+    uuid: id as UUID,
   };
 }
 

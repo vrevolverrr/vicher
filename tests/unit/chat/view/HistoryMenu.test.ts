@@ -52,7 +52,7 @@ describe('HistoryMenu', () => {
     anchor.dispatchEvent(new Event('pointerenter')); await settle();
     expect(rows().map((row) => row.querySelector('.vicher-history-title')?.textContent)).toEqual(['Second', 'New chat', 'First']);
     expect(rows().map((row) => row.querySelector('.vicher-history-number')?.textContent)).toEqual(['1', '2', undefined]);
-    expect(rows()[0]!.textContent).toContain('Generating');
+    expect(rows()[0]!.textContent).toContain('Working');
     expect([...document.querySelectorAll('.vicher-history-group')].map((el) => el.textContent)).toEqual(['Open chats', 'Recent chats']);
   });
 

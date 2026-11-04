@@ -18,6 +18,8 @@ export class ChatSession {
       resume?: string;
       /** Called once the session has opened without the conversation, because the CLI no longer has it. */
       onLost?: () => void;
+      /** Called with the session as soon as it opens, before anything is sent to it. */
+      onOpen?: (session: AgentSession) => void;
       permissionPolicy?: PermissionPolicy;
     },
   ) {}
@@ -51,11 +53,13 @@ export class ChatSession {
   private async start(): Promise<AgentSession> {
     const { model, effort } = this.choice();
     const { agent } = this;
-    const { cwd, resume: saved, onLost, permissionPolicy } = this.options;
-    const open = (resume?: string): Promise<AgentSession> => {
+    const { cwd, resume: saved, onLost, onOpen, permissionPolicy } = this.options;
+    const open = async (resume?: string): Promise<AgentSession> => {
       const systemPrompt = buildSystemPrompt();
       this.promptId = promptHash(systemPrompt);
-      return agent.openSession({ systemPrompt, model, effort, cwd, resume, permissionPolicy });
+      const session = await agent.openSession({ systemPrompt, model, effort, cwd, resume, permissionPolicy });
+      onOpen?.(session);
+      return session;
     };
     if (!saved) return open();
     try {

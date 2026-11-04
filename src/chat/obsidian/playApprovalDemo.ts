@@ -1,5 +1,5 @@
-import type { AgentEvent, AgentQuestion, AgentSession, QuestionAnswers, ToolApprovalRequest } from '@/agents/types';
-import type { DemoChat } from '@/chat/obsidian/playHighlightDemo';
+import type { AgentQuestion, QuestionAnswers, ToolApprovalRequest } from '@/agents/types';
+import { type DemoChat, demoSession } from '@/chat/obsidian/playHighlightDemo';
 
 const REQUESTS: readonly ToolApprovalRequest[] = [
   {
@@ -53,42 +53,34 @@ const QUESTIONS: readonly AgentQuestion[] = [
 export async function playApprovalDemo(openChat: () => Promise<DemoChat | null>): Promise<void> {
   const chat = await openChat();
   if (!chat) return;
-  const session: AgentSession = {
-    id: 'approval-demo',
-    async *send(_text, signal = new AbortController().signal): AsyncGenerator<AgentEvent> {
-      yield { type: 'text', delta: 'This is an approval demo. Sample actions do not run commands or change files. Choose Deny or Allow once on each card, answer the last one, or press Stop to end the demo.\n\n' };
-      for (const [index, request] of REQUESTS.entries()) {
-        if (signal.aborted) break;
-        yield { type: 'text', delta: `Sample ${index + 1} of ${REQUESTS.length}: ${request.description}.\n\n` };
-        if (signal.aborted) break;
-        const { answer, reply, dispose } = waitFor(signal, false);
-        try {
-          yield { type: 'approval', request, signal, answer };
-          const approved = await reply;
-          if (signal.aborted) break;
-          yield { type: 'text', delta: `${approved ? 'Allowed once' : 'Denied'} (demo only).\n\n` };
-        } finally {
-          dispose();
-        }
+  const session = demoSession(async (emit, signal) => {
+    emit({ type: 'text', delta: 'This is an approval demo. Sample actions do not run commands or change files. Choose Deny or Allow once on each card, answer the last one, or press Stop to end the demo.\n\n' });
+    for (const [index, request] of REQUESTS.entries()) {
+      if (signal.aborted) return;
+      emit({ type: 'text', delta: `Sample ${index + 1} of ${REQUESTS.length}: ${request.description}.\n\n` });
+      const { answer, reply, dispose } = waitFor(signal, false);
+      try {
+        emit({ type: 'approval', request, signal, answer });
+        const approved = await reply;
+        if (signal.aborted) return;
+        emit({ type: 'text', delta: `${approved ? 'Allowed once' : 'Denied'} (demo only).\n\n` });
+      } finally {
+        dispose();
       }
-      if (!signal.aborted) {
-        yield { type: 'text', delta: 'Last sample: questions from the agent.\n\n' };
-        const { answer, reply, dispose } = waitFor<QuestionAnswers | undefined>(signal, undefined);
-        try {
-          yield { type: 'question', questions: QUESTIONS, signal, answer };
-          const answers = await reply;
-          if (!signal.aborted) yield { type: 'text', delta: `${answers ? answers.map((list) => list.join(', ')).join('; ') : 'Skipped'} (demo only).\n\n` };
-        } finally {
-          dispose();
-        }
-      }
-      if (!signal.aborted) yield { type: 'text', delta: 'Demo complete. Run Play approval demo again to try another choice or theme.' };
-      yield { type: 'done', status: signal.aborted ? 'interrupted' : 'completed' };
-    },
-    skills: async () => [],
-    setModel: async () => undefined,
-    close: async () => undefined,
-  };
+    }
+    if (signal.aborted) return;
+    emit({ type: 'text', delta: 'Last sample: questions from the agent.\n\n' });
+    const { answer, reply, dispose } = waitFor<QuestionAnswers | undefined>(signal, undefined);
+    try {
+      emit({ type: 'question', questions: QUESTIONS, signal, answer });
+      const answers = await reply;
+      if (signal.aborted) return;
+      emit({ type: 'text', delta: `${answers ? answers.map((list) => list.join(', ')).join('; ') : 'Skipped'} (demo only).\n\n` });
+    } finally {
+      dispose();
+    }
+    emit({ type: 'text', delta: 'Demo complete. Run Play approval demo again to try another choice or theme.' });
+  });
   await chat.playTurn('Preview approval prompts.', session, '');
 }
 

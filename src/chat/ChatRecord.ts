@@ -20,28 +20,41 @@ export interface TourStep {
  */
 export type ReplyPart = { type: 'text'; text: string } | ToolPart | { type: 'highlight'; step: TourStep };
 
-export interface ChatTurn {
+export interface UserTurn {
+  role: 'user';
   message: string;
   quote?: NoteQuote;
   attachments?: ChatAttachment[];
+  /** Milliseconds since the epoch when the agent took the message in. */
+  at: number;
+}
+
+/** `steered`: a message was taken in while this turn ran, and the next agent turn continues it. */
+export type AgentTurnStatus = TurnStatus | 'steered';
+
+/** One stretch of the agent's reply. */
+export interface AgentTurn {
+  role: 'agent';
   parts: ReplyPart[];
-  status: TurnStatus;
+  status: AgentTurnStatus;
   error?: string;
-  /** Milliseconds since the epoch when the turn ended; absent for a turn that never reported an end, and for chats saved before it was kept. */
-  at?: number;
+  /** Milliseconds since the epoch when the turn ended. */
+  at: number;
   /** The student's thumb on the reply; absent until they give one. */
   rating?: Rating;
-  /** `promptId` of the system prompt the agent ran under; absent for chats saved before it was kept. */
+  /** `promptId` of the system prompt the agent ran under; absent for a scripted turn. */
   prompt?: string;
 }
 
+export type ChatTurn = UserTurn | AgentTurn;
+
 export type Rating = 'up' | 'down';
 
-/** The chat with turn `index` rated, or with its rating taken off when `rating` is undefined. A missing turn leaves the chat as it was. */
+/** The chat with agent turn `index` rated, or with its rating taken off when `rating` is undefined. Any other index leaves the chat as it was. */
 export function rateTurn(chat: ChatRecord, index: number, rating: Rating | undefined): ChatRecord {
-  if (!chat.turns[index]) return chat;
+  if (chat.turns[index]?.role !== 'agent') return chat;
   const turns = chat.turns.map((turn, i) => {
-    if (i !== index) return turn;
+    if (i !== index || turn.role !== 'agent') return turn;
     const { rating: _previous, ...rest } = turn;
     return rating ? { ...rest, rating } : rest;
   });
@@ -82,42 +95,26 @@ export function newChat(id: string, agent: AgentId): ChatRecord {
   return { id, agent, title: '', updatedAt: Date.now(), turns: [] };
 }
 
-export function startTurn(message: string, quote?: NoteQuote, attachments?: readonly ChatAttachment[]): ChatTurn {
-  // Until the agent says otherwise, a turn that never finished counts as stopped.
-  return { message, quote, attachments: attachments?.length ? [...attachments] : undefined, parts: [], status: 'interrupted' };
-}
-
-/** Whether a turn of the chat shows the stored image or paste, so its file must stay. */
+/** Whether a message of the chat shows the stored image or paste, so its file must stay. */
 export function usesStoredFile(turns: readonly ChatTurn[], path: string): boolean {
-  return turns.some((turn) => turn.attachments?.some((attachment) => isStored(attachment) && attachment.path === path));
+  return turns.some((turn) => turn.role === 'user' && turn.attachments?.some((attachment) => isStored(attachment) && attachment.path === path));
 }
 
-export function recordEvent(turn: ChatTurn, event: AgentEvent): ChatTurn {
-  switch (event.type) {
-    case 'text': {
-      const last = turn.parts.at(-1);
-      const parts = last?.type === 'text'
-        ? [...turn.parts.slice(0, -1), { type: 'text' as const, text: last.text + event.delta }]
-        : [...turn.parts, { type: 'text' as const, text: event.delta }];
-      return { ...turn, parts };
-    }
-    case 'tool': {
-      const known = turn.parts.some((part) => part.type === 'tool' && part.id === event.id);
-      const parts = known ? turn.parts.map((part) => (part.type === 'tool' && part.id === event.id ? event : part)) : [...turn.parts, event];
-      return { ...turn, parts };
-    }
-    case 'done':
-      return { ...turn, status: event.status, error: event.error, at: Date.now() };
-    case 'thinking':
-    case 'usage':
-    case 'approval':
-    case 'question':
-      return turn;
+export function recordEvent(turn: AgentTurn, event: Extract<AgentEvent, { type: 'text' | 'tool' }>): AgentTurn {
+  if (event.type === 'text') {
+    const last = turn.parts.at(-1);
+    const parts = last?.type === 'text'
+      ? [...turn.parts.slice(0, -1), { type: 'text' as const, text: last.text + event.delta }]
+      : [...turn.parts, { type: 'text' as const, text: event.delta }];
+    return { ...turn, parts };
   }
+  const known = turn.parts.some((part) => part.type === 'tool' && part.id === event.id);
+  const parts = known ? turn.parts.map((part) => (part.type === 'tool' && part.id === event.id ? event : part)) : [...turn.parts, event];
+  return { ...turn, parts };
 }
 
-export function recordHighlight(turn: ChatTurn, step: TourStep): ChatTurn {
-  return { ...turn, parts: [...turn.parts, { type: 'highlight', step }] };
+export function addPart(turn: AgentTurn, part: ReplyPart): AgentTurn {
+  return { ...turn, parts: [...turn.parts, part] };
 }
 
 export function chatTitle(message: string): string {
@@ -125,14 +122,14 @@ export function chatTitle(message: string): string {
   return line.length > TITLE_LENGTH ? `${line.slice(0, TITLE_LENGTH - 1).trimEnd()}…` : line;
 }
 
-/** A chat takes its title from its first turn: the message, or the name of the first thing attached when there is none. */
-export function turnTitle({ message, attachments }: ChatTurn): string {
+/** A chat takes its title from its first message, or the name of the first thing attached when there is none. */
+export function turnTitle({ message, attachments }: UserTurn): string {
   return chatTitle(message.trim() ? message : (attachments?.[0]?.name ?? ''));
 }
 
 export function summarize(chat: ChatRecord): ChatSummary {
   const text = chat.turns
-    .flatMap((turn) => [turn.message, ...turn.parts.flatMap((part) => (part.type === 'text' ? [part.text] : []))])
+    .flatMap((turn) => (turn.role === 'user' ? [turn.message] : turn.parts.flatMap((part) => (part.type === 'text' ? [part.text] : []))))
     .join('\n')
     .replace(/\s+/g, ' ')
     .slice(0, SEARCH_TEXT_LENGTH);

@@ -10,9 +10,30 @@ import {
 
 const spawn = crossSpawn as typeof nodeSpawn;
 
+/** The `exit` listeners the SDK added to `process`. */
+const sdkExitListeners = new Set<(code: number) => void>();
+/** A spawn can finish after unload, such as the model listing a quick reload interrupts. */
+let released = false;
+
+/**
+ * Removes the `exit` listener the SDK adds to `process` on its first spawn and never removes. It would keep this
+ * copy of the plugin's code alive after unload, about 2.5 MB for each reload of the plugin.
+ */
+export function releaseClaudeSdk(): void {
+  released = true;
+  for (const listener of sdkExitListeners) process.off('exit', listener);
+  sdkExitListeners.clear();
+}
+
 /** Starts the CLI for the SDK, which would otherwise spawn it itself, and hands its stderr to `onStderr`; the SDK reads none from a process it did not start. */
 export function spawnClaudeCode(options: SpawnOptions, onStderr: (text: string) => void = () => undefined): SpawnedProcess {
   const { args, command, cwd, env, signal } = options;
+  // The SDK tracks the process it gets back in the same tick, which is when it adds its listener.
+  const listeners = new Set(process.listeners('exit'));
+  queueMicrotask(() => {
+    for (const listener of process.listeners('exit')) if (!listeners.has(listener)) sdkExitListeners.add(listener);
+    if (released) releaseClaudeSdk();
+  });
 
   const resolvedSpawnSpec = resolveWindowsCmdShimSpawnSpec({ args, command });
 

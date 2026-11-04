@@ -2,7 +2,7 @@ import type { SpawnOptions } from '@anthropic-ai/claude-agent-sdk';
 import spawn from 'cross-spawn';
 import { PassThrough } from 'stream';
 
-import { spawnClaudeCode } from '@/agents/claude/spawnClaudeCode';
+import { releaseClaudeSdk, spawnClaudeCode } from '@/agents/claude/spawnClaudeCode';
 
 jest.mock('cross-spawn', () => jest.fn());
 
@@ -46,6 +46,38 @@ describe('spawnClaudeCode', () => {
     expect(spawnMock.mock.calls[0][2]?.stdio).toEqual(['pipe', 'pipe', 'pipe']);
     mockProcess.stderr.write('Error: not logged in');
     expect(onStderr).toHaveBeenCalledWith('Error: not logged in');
+  });
+
+  it('removes on release the exit listener the SDK adds when it tracks the process', async () => {
+    spawnMock.mockReturnValue(createMockProcess() as unknown as ReturnType<typeof spawn>);
+    const others = () => undefined;
+    const sdk = () => undefined;
+    process.on('exit', others);
+    try {
+      spawnClaudeCode({ command: 'claude', args: [], cwd: '/tmp', env: {}, signal: new AbortController().signal });
+      process.on('exit', sdk);
+      await Promise.resolve();
+      releaseClaudeSdk();
+      expect(process.listeners('exit')).not.toContain(sdk);
+      expect(process.listeners('exit')).toContain(others);
+    } finally {
+      process.off('exit', others);
+      process.off('exit', sdk);
+    }
+  });
+
+  it('removes the listener of a spawn that finishes after release', async () => {
+    spawnMock.mockReturnValue(createMockProcess() as unknown as ReturnType<typeof spawn>);
+    const sdk = () => undefined;
+    releaseClaudeSdk();
+    try {
+      spawnClaudeCode({ command: 'claude', args: [], cwd: '/tmp', env: {}, signal: new AbortController().signal });
+      process.on('exit', sdk);
+      await Promise.resolve();
+      expect(process.listeners('exit')).not.toContain(sdk);
+    } finally {
+      process.off('exit', sdk);
+    }
   });
 
   it('throws when process streams are missing', () => {

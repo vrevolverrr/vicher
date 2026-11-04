@@ -1,6 +1,10 @@
 import type { AgentQuestion, QuestionAnswers, ToolApprovalFileChange, ToolApprovalRequest } from '@/agents/types';
 import { inlineDiff, type ApprovalDiffPart } from '@/chat/view/inlineDiff';
 import { setIcon } from '@/shared/view/icon';
+import { canAnimate } from '@/shared/view/iconButtons';
+
+/** The card's exit animation (`.vicher-approval-card.is-closing`). */
+const CLOSE_MS = 280;
 
 /**
  * Each chat owns its pending approvals and questions, including while its presentation is hidden. The card shows the
@@ -10,6 +14,7 @@ export class ApprovalCard {
   private readonly el: HTMLElement;
   private readonly pending = new Map<object, () => void>();
   private current: object | undefined;
+  private closing: number | undefined;
 
   constructor(parent: HTMLElement, private readonly changed: () => void) {
     this.el = parent.createDiv({ cls: 'vicher-approval-card', attr: { role: 'region', 'aria-live': 'polite' } });
@@ -46,13 +51,48 @@ export class ApprovalCard {
 
   private render(): void {
     const [key, draw] = this.pending.entries().next().value ?? [];
-    this.el.hidden = !key;
+    if (key) this.open();
+    else this.close();
     if (key !== this.current) {
       this.current = key;
-      this.el.empty();
+      // A closing card keeps what it showed until it is gone.
+      if (key) this.el.empty();
       draw?.();
     }
     this.changed();
+  }
+
+  private open(): void {
+    window.clearTimeout(this.closing);
+    this.closing = undefined;
+    this.el.removeClass('is-closing');
+    this.el.removeAttribute('inert');
+    this.el.style.removeProperty('height');
+    this.el.hidden = false;
+  }
+
+  /** Fades the card and shrinks it, gap included, so the chat above grows smoothly instead of jumping. */
+  private close(): void {
+    if (this.el.hidden || this.closing !== undefined) return;
+    if (!canAnimate(this.el)) {
+      this.el.hidden = true;
+      this.el.empty();
+      return;
+    }
+    // A height transition needs a number to start from.
+    this.el.setCssProps({ height: `${this.el.offsetHeight}px` });
+    void this.el.offsetHeight;
+    this.el.setCssProps({ height: '0px' });
+    this.el.addClass('is-closing');
+    this.el.setAttribute('inert', '');
+    this.closing = window.setTimeout(() => {
+      this.closing = undefined;
+      this.el.hidden = true;
+      this.el.empty();
+      this.el.removeClass('is-closing');
+      this.el.removeAttribute('inert');
+      this.el.style.removeProperty('height');
+    }, CLOSE_MS);
   }
 
   private draw(request: ToolApprovalRequest, answer: (approved: boolean) => void): void {

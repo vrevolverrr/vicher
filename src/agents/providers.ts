@@ -1,4 +1,5 @@
 import { ClaudeAgent } from './claude/ClaudeAgent';
+import { releaseClaudeSdk } from './claude/spawnClaudeCode';
 import { CodexAgent } from './codex/CodexAgent';
 import { resolveLoginShellPath } from './process/loginShellPath';
 import type { AgentAdapter, AgentId } from './types';
@@ -49,4 +50,9 @@ export function createAgents(env: () => Record<string, string>): Record<AgentId,
     claude: new ClaudeAgent(undefined, undefined, env),
     codex: new CodexAgent(env),
   };
+}
+
+/** Lets go of what the agent SDKs hold in this window's `process`, so an unloaded plugin can be collected. */
+export function releaseAgents(): void {
+  releaseClaudeSdk();
 }

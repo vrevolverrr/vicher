@@ -47,7 +47,7 @@ export default defineConfig([
   {
     files: ['src/**/*.ts'],
     plugins: { vicher: layers },
-    rules: { 'vicher/layers': 'error', 'vicher/no-dom': 'error', 'vicher/provider-names': 'error' },
+    rules: { 'vicher/layers': 'error', 'vicher/no-dom': 'error', 'vicher/provider-names': 'error', 'vicher/composer-area': 'error' },
   },
   globalIgnores([
     'main.js',

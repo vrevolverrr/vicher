@@ -28,6 +28,9 @@ if (typeof HTMLElement !== 'undefined') {
     },
   });
   Object.assign(HTMLElement.prototype, {
+    setCssProps(this: HTMLElement, props: Record<string, string>) {
+      for (const [name, value] of Object.entries(props)) this.style.setProperty(name, value);
+    },
     createEl(this: HTMLElement, tag: string, options: Options = {}) {
       const el = this.appendChild(document.createElement(tag));
       el.className = options.cls ?? '';

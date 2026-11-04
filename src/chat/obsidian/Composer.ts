@@ -131,7 +131,7 @@ export class Composer {
 
     bar.createDiv({ cls: 'vicher-composer-spacer' });
     this.sendEl = bar.createEl('button', { cls: 'vicher-send' });
-    owner.registerDomEvent(this.sendEl, 'click', () => (this.streaming ? host.stop() : host.send()));
+    owner.registerDomEvent(this.sendEl, 'click', () => (this.stops ? host.stop() : host.send()));
     this.setStreaming(false);
   }
 
@@ -172,14 +172,22 @@ export class Composer {
     this.inputEl.focus();
   }
 
-  /** Stop stays available during a turn; Send needs text. */
+  /** Puts back the text of a message that was not sent, unless the student has started another. */
+  restore(text: string): void {
+    if (this.inputEl.value.trim()) return;
+    this.inputEl.value = text;
+    this.refresh();
+  }
+
+  /** During a turn the button sends what is typed, else it stops the turn; Send needs text. */
   setStreaming(streaming: boolean): void {
     this.streaming = streaming;
-    this.sendEl.empty();
-    setIcon(this.sendEl, streaming ? 'square' : 'arrow-up');
-    this.sendEl.setAttr('aria-label', streaming ? 'Stop' : 'Send');
-    this.sendEl.toggleClass('is-streaming', streaming);
     this.updateSend();
+  }
+
+  /** The button stops the turn: one runs and there is nothing to send. */
+  private get stops(): boolean {
+    return this.streaming && !this.inputEl.value.trim() && !this.hasAttachments;
   }
 
   /** Fits the input to its text, redraws the mirror behind it, and enables Send to match. */
@@ -220,8 +228,15 @@ export class Composer {
   }
 
   private updateSend(): void {
+    const stops = this.stops;
+    if (this.sendEl.hasClass('is-streaming') !== stops || !this.sendEl.hasChildNodes()) {
+      this.sendEl.empty();
+      setIcon(this.sendEl, stops ? 'square' : 'arrow-up');
+      this.sendEl.setAttr('aria-label', stops ? 'Stop' : 'Send');
+      this.sendEl.toggleClass('is-streaming', stops);
+    }
     const empty = !this.inputEl.value.trim() && !this.hasAttachments;
-    this.sendEl.disabled = !this.streaming && (empty || this.storing > 0);
+    this.sendEl.disabled = !stops && (empty || this.storing > 0);
   }
 
   private async attach({ images: files, attachments }: Dropped): Promise<void> {

@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 
 import { ClaudeAgent, type ClaudeQuery } from '@/agents/claude/ClaudeAgent';
-import { type AgentEvent, type AgentSessionOptions, type AgentTool, ConversationNotFoundError } from '@/agents/types';
+import { AsyncQueue } from '@/agents/shared/AsyncQueue';
+import { type AgentEvent, type AgentSession, type AgentSessionOptions, type AgentTool, ConversationNotFoundError } from '@/agents/types';
 
 import completedTurn from '../../../fixtures/claude/completed-turn.json';
 import interruptedTurn from '../../../fixtures/claude/interrupted-turn.json';
@@ -22,67 +23,73 @@ const SESSION: AgentSessionOptions = {
   cliPath: process.execPath,
 };
 
-interface ScriptedTurn {
-  messages: SDKMessage[];
-  /** Like the real CLI, keep the turn streaming until the session sends an interrupt. */
-  runsUntilInterrupted?: boolean;
-}
+const completed = completedTurn as SDKMessage[];
+const RESULT = completed.find((message) => message.type === 'result')!;
+const INTERRUPTED = (interruptedTurn as SDKMessage[]).find((message) => message.type === 'result')!;
 
-const completed: ScriptedTurn = { messages: completedTurn as SDKMessage[] };
-const longRunning: ScriptedTurn = { messages: interruptedTurn as SDKMessage[], runsUntilInterrupted: true };
-const loggedOut: ScriptedTurn = { messages: loggedOutTurn as SDKMessage[] };
+const text = (delta: string): SDKMessage => ({
+  type: 'stream_event', event: { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: delta } }, parent_tool_use_id: null, uuid: 'frame', session_id: '',
+}) as unknown as SDKMessage;
 
-/** Stands in for the SDK boundary: replays captured CLI output for each user message it receives. */
-async function nextApproval(stream: AsyncIterator<AgentEvent>): Promise<Extract<AgentEvent, { type: 'approval' }>> {
-  for (;;) {
-    const { value, done } = await stream.next();
-    if (done) throw new Error('The turn ended without an approval');
-    if (value.type === 'approval') return value;
-  }
-}
+interface FakeTask { task_id: string; description: string; parent_task_id?: string; ambient?: boolean }
+const tasksChanged = (tasks: FakeTask[]): SDKMessage => ({
+  type: 'system', subtype: 'background_tasks_changed', tasks: tasks.map((task) => ({ task_type: 'local_agent', ...task })), uuid: 'frame', session_id: '',
+}) as unknown as SDKMessage;
+const taskNotification = (task_id: string, status: 'completed' | 'failed' | 'stopped', summary: string): SDKMessage => ({
+  type: 'system', subtype: 'task_notification', task_id, status, summary, output_file: '', uuid: 'frame', session_id: '',
+}) as unknown as SDKMessage;
 
-class ScriptedQuery {
-  readonly prompts: string[] = [];
-  readonly contents: SDKUserMessage['message']['content'][] = [];
+/** What the CLI prints, with `--replay-user-messages`, when it takes a message in. */
+const replay = (message: SDKUserMessage): SDKMessage => ({ ...message, isReplay: true }) as unknown as SDKMessage;
+
+/** Stands in for the SDK boundary. By default it takes each message in at once and plays the next scripted turn; a test can drive it by hand instead. */
+class FakeClaude {
+  readonly sent: SDKUserMessage[] = [];
   options: Options | undefined;
   interrupts = 0;
+  readonly stopped: string[] = [];
   queries = 0;
   closed = false;
   readonly controls: object[] = [];
   /** Set to make the CLI refuse to start, as it does for a session it no longer has. */
   startError: Error | null = null;
   usage: { totalTokens: number; rawMaxTokens: number } | Error = { totalTokens: 84_000, rawMaxTokens: 200_000 };
-  private onInterrupt: () => void = () => {};
+  onPrompt: (message: SDKUserMessage) => void = (message) => {
+    this.emit(replay(message), ...(this.turns.shift() ?? []));
+  };
+  private out = new AsyncQueue<SDKMessage>();
+  private failure: Error | null = null;
 
-  constructor(private readonly turns: ScriptedTurn[]) {}
+  constructor(private readonly turns: SDKMessage[][] = []) {}
+
+  emit(...messages: SDKMessage[]): void {
+    for (const message of messages) this.out.push(message);
+  }
+
+  /** The process ends, cleanly or with `error`. */
+  exit(error?: Error): void {
+    this.failure = error ?? null;
+    this.out.close();
+  }
 
   readonly query: ClaudeQuery = ({ prompt, options }) => {
     this.queries++;
     this.options = options;
-    const self = this;
-    async function* replay(): AsyncGenerator<SDKMessage, void> {
-      const input = (prompt as AsyncIterable<SDKUserMessage>)[Symbol.asyncIterator]();
-      for (const turn of self.turns) {
-        const next = await input.next();
-        if (next.done) return;
-        self.prompts.push(String(next.value.message.content));
-        self.contents.push(next.value.message.content);
-        const interruptsBefore = self.interrupts;
-        let waited = false;
-        for (const message of turn.messages) {
-          yield message;
-          if (turn.runsUntilInterrupted && !waited && isTextDelta(message)) {
-            waited = true;
-            if (self.interrupts === interruptsBefore) {
-              await new Promise<void>((resolve) => { self.onInterrupt = resolve; });
-            }
-          }
-        }
+    void (async () => {
+      for await (const message of prompt) {
+        this.sent.push(message);
+        this.onPrompt(message);
       }
+    })();
+    const self = this;
+    async function* stream(): AsyncGenerator<SDKMessage, void> {
+      for await (const message of self.out) yield message;
+      if (self.failure) throw self.failure;
     }
-    return Object.assign(replay(), {
-      interrupt: async () => { this.interrupts++; this.onInterrupt(); return undefined; },
-      close: () => { this.closed = true; },
+    return Object.assign(stream(), {
+      interrupt: async () => { this.interrupts++; return undefined; },
+      stopTask: async (id: string) => { this.stopped.push(id); },
+      close: () => { this.closed = true; this.out.close(); },
       initializationResult: async () => { if (this.startError) throw this.startError; return {}; },
       getContextUsage: async () => { if (this.usage instanceof Error) throw this.usage; return this.usage; },
       supportedModels: async () => supportedModels as ModelInfo[],
@@ -91,58 +98,235 @@ class ScriptedQuery {
       applyFlagSettings: async (settings: object) => { this.controls.push({ applyFlagSettings: settings }); },
     }) as unknown as Query;
   };
-}
 
-function isTextDelta(message: SDKMessage): boolean {
-  return message.type === 'stream_event'
-    && message.event.type === 'content_block_delta'
-    && message.event.delta.type === 'text_delta';
+  /** Hold every message until the test takes it in. */
+  manual(): this {
+    this.onPrompt = () => {};
+    return this;
+  }
 }
 
 function streamedText(turn: SDKMessage[]): string {
   return turn
-    .filter(isTextDelta)
+    .filter((m) => m.type === 'stream_event' && m.event.type === 'content_block_delta' && m.event.delta.type === 'text_delta')
     .map((m) => (m as { event: { delta: { text: string } } }).event.delta.text)
     .join('');
-}
-
-async function collect(events: AsyncIterable<AgentEvent>, onEvent?: (event: AgentEvent) => void): Promise<AgentEvent[]> {
-  const out: AgentEvent[] = [];
-  for await (const event of events) {
-    out.push(event);
-    onEvent?.(event);
-  }
-  return out;
 }
 
 const textOf = (events: AgentEvent[]): string =>
   events.map((e) => (e.type === 'text' ? e.delta : '')).join('');
 
+async function open(cli: FakeClaude, options: Partial<AgentSessionOptions> = {}): Promise<{ session: AgentSession; events: AgentEvent[] }> {
+  const session = await new ClaudeAgent(cli.query).openSession({ ...SESSION, ...options });
+  const events: AgentEvent[] = [];
+  session.subscribe((event) => events.push(event));
+  return { session, events };
+}
+
+/** Waits on time, not turns of the event loop: a send that reads an image file waits on real I/O, slower under load. */
+async function until(check: () => boolean, ms = 2000): Promise<void> {
+  const end = Date.now() + ms;
+  while (!check() && Date.now() < end) await new Promise((resolve) => setImmediate(resolve));
+  if (!check()) throw new Error('Timed out');
+}
+
+const doneCount = (events: AgentEvent[]): number => events.filter((e) => e.type === 'done').length;
+
+/** One line per event, with runs of text, thinking and tool events folded into one. */
+function lines(events: AgentEvent[]): string[] {
+  const out: string[] = [];
+  for (const e of events) {
+    const line = e.type === 'user' ? `user ${e.id}`
+      : e.type === 'done' ? `done ${e.status}`
+      : e.type === 'dropped' ? `dropped ${e.ids.join(',')}`
+      : e.type === 'background' ? `background [${e.tasks.map((task) => task.id).join(',')}]`
+      : e.type === 'notice' ? `notice ${e.task} ${e.status}`
+      : e.type;
+    if (line !== out.at(-1) || e.type === 'notice' || e.type === 'background') out.push(line);
+  }
+  return out;
+}
+
 describe('ClaudeAgent session', () => {
+  it('reports a plain reply: taken in, text, usage, done', async () => {
+    const cli = new FakeClaude([completed]);
+    const { session, events } = await open(cli);
+    await until(() => true);
+    expect(events).toEqual([]);
 
-  it('cancels a pending permission request when the session closes', async () => {
-    const cli = new ScriptedQuery([longRunning]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
-    const stream = session.send('Edit the note')[Symbol.asyncIterator]();
-    await stream.next();
-    const pending = cli.options!.canUseTool!('Edit', { file_path: '/vault/note.md', old_string: 'before', new_string: 'after' }, {
-      toolUseID: 'edit', requestId: 'request', signal: new AbortController().signal,
-    });
-    const approval = await nextApproval(stream);
-    await session.close();
-    expect(approval.signal.aborted).toBe(true);
-    approval.answer(true);
-    expect(await pending).toMatchObject({ behavior: 'deny', interrupt: true });
-    await stream.return?.();
+    session.send({ id: 'A', text: 'Greet the student.' });
+    await until(() => doneCount(events) === 1);
+
+    expect(lines(events)).toEqual(['user A', 'text', 'usage', 'done completed']);
+    expect(textOf(events)).toBe(streamedText(completed));
+    expect(events.slice(-2)).toEqual([{ type: 'usage', used: 84_000, window: 200_000 }, { type: 'done', status: 'completed' }]);
+    expect(cli.sent[0]).toMatchObject({ uuid: 'A', message: { content: 'Greet the student.' } });
+    expect(cli.sent[0]).not.toHaveProperty('priority');
   });
-  it('streams the assistant text once and completes the turn', async () => {
-    const cli = new ScriptedQuery([completed]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
 
-    const events = await collect(session.send('Greet the student.'));
+  it('runs a message sent during a reply after that reply, as its own CLI turn', async () => {
+    const cli = new FakeClaude().manual();
+    const { session, events } = await open(cli);
+    session.send({ id: 'A', text: 'Write an essay.' });
+    await until(() => cli.sent.length === 1);
+    cli.emit(replay(cli.sent[0]!), text('Telescopes'));
+    await until(() => events.some((e) => e.type === 'text'));
 
-    expect(textOf(events)).toBe(streamedText(completed.messages));
-    expect(events.at(-1)).toEqual({ type: 'done', status: 'completed' });
+    session.send({ id: 'B', text: 'And then?' });
+    await until(() => cli.sent.length === 2);
+    cli.emit(RESULT, replay(cli.sent[1]!), text('B-OK'), RESULT);
+    await until(() => doneCount(events) === 2);
+
+    expect(lines(events)).toEqual(['user A', 'text', 'usage', 'done completed', 'user B', 'text', 'usage', 'done completed']);
+    expect(cli.queries).toBe(1);
+  });
+
+  it('folds a message the CLI takes in at a tool boundary into the running turn, with one done', async () => {
+    const turn = toolTurn as SDKMessage[];
+    const toolResult = turn.findIndex((m) => m.type === 'user');
+    const cli = new FakeClaude().manual();
+    const { session, events } = await open(cli, { cwd: '/private/tmp/vicher-capture' });
+    session.send({ id: 'A', text: 'What does the pin count track?' });
+    await until(() => cli.sent.length === 1);
+    cli.emit(replay(cli.sent[0]!), ...turn.slice(0, toolResult));
+    session.send({ id: 'B', text: 'Keep it short.' });
+    await until(() => cli.sent.length === 2);
+    cli.emit(turn[toolResult]!, replay(cli.sent[1]!), ...turn.slice(toolResult + 1));
+    await until(() => doneCount(events) === 1);
+
+    expect(lines(events)).toEqual(['user A', 'thinking', 'tool', 'user B', 'thinking', 'text', 'usage', 'done completed']);
+    const id = 'toolu_01RHHNWxmCuxJs3J3jH9Lm2X';
+    expect(events.filter((e) => e.type === 'tool')).toEqual([
+      { type: 'tool', id, name: 'Read', title: 'Read notes.md', status: 'running' },
+      { type: 'tool', id, name: 'Read', title: 'Read notes.md', status: 'done' },
+    ]);
+    expect(textOf(events)).toBe(streamedText(turn));
+  });
+
+  it('reports a background task, its notice, then the turn the CLI starts on its own', async () => {
+    const cli = new FakeClaude().manual();
+    const { session, events } = await open(cli);
+    session.send({ id: 'A', text: 'Start a subagent.' });
+    await until(() => cli.sent.length === 1);
+    cli.emit(replay(cli.sent[0]!), tasksChanged([{ task_id: 't1', description: 'Count to four' }]), text('SPAWNED'), RESULT);
+    await until(() => doneCount(events) === 1);
+    cli.emit(taskNotification('t1', 'completed', 'It is 4.'), tasksChanged([]), text('The subagent finished'), RESULT);
+    await until(() => doneCount(events) === 2);
+
+    expect(lines(events)).toEqual(['user A', 'background [t1]', 'text', 'usage', 'done completed', 'notice t1 completed', 'background []', 'text', 'usage', 'done completed']);
+    expect(events.find((e) => e.type === 'background')).toEqual({ type: 'background', tasks: [{ id: 't1', description: 'Count to four' }] });
+    expect(events.find((e) => e.type === 'notice')).toEqual({ type: 'notice', task: 't1', description: 'Count to four', status: 'completed', text: 'It is 4.' });
+  });
+
+  it('reports a notice whose notification arrives after the emptied set', async () => {
+    const cli = new FakeClaude().manual();
+    const { session, events } = await open(cli);
+    session.send({ id: 'A', text: 'Start a subagent.' });
+    cli.emit(tasksChanged([{ task_id: 't1', description: 'Count' }]), tasksChanged([]), taskNotification('t1', 'failed', 'Gave up.'));
+    await until(() => events.some((e) => e.type === 'notice'));
+
+    expect(lines(events)).toEqual(['background [t1]', 'background []', 'notice t1 failed']);
+  });
+
+  it('leaves out tasks started by another task, and ambient ones', async () => {
+    const cli = new FakeClaude().manual();
+    const { session, events } = await open(cli);
+    session.send({ id: 'A', text: 'Start a subagent.' });
+    cli.emit(
+      tasksChanged([{ task_id: 't1', description: 'Review' }, { task_id: 'shell', description: 'sleep', parent_task_id: 't1' }, { task_id: 'watch', description: 'Watcher', ambient: true }]),
+      taskNotification('shell', 'completed', 'slept'),
+      taskNotification('watch', 'completed', 'watched'),
+      tasksChanged([{ task_id: 't1', description: 'Review' }]),
+      taskNotification('t1', 'completed', 'Reviewed.'),
+    );
+    await until(() => events.some((e) => e.type === 'notice'));
+    await until(() => true);
+
+    expect(lines(events)).toEqual(['background [t1]', 'notice t1 completed']);
+  });
+
+  it('stops a running top-level task, and ignores a finished or unknown one', async () => {
+    const cli = new FakeClaude().manual();
+    const { session, events } = await open(cli);
+    session.send({ id: 'A', text: 'Start two subagents.' });
+    cli.emit(tasksChanged([{ task_id: 't1', description: 'One' }, { task_id: 't2', description: 'Two' }]), tasksChanged([{ task_id: 't1', description: 'One' }]));
+    await until(() => events.filter((e) => e.type === 'background').length === 2);
+
+    await session.stopTask('t1');
+    await session.stopTask('t2');
+    await session.stopTask('nope');
+
+    expect(cli.stopped).toEqual(['t1']);
+  });
+
+  it('ends the running turn as interrupted on interrupt, and keeps a message not yet taken in', async () => {
+    const cli = new FakeClaude().manual();
+    const { session, events } = await open(cli);
+    session.send({ id: 'A', text: 'Write ten lines.' });
+    await until(() => cli.sent.length === 1);
+    cli.emit(replay(cli.sent[0]!), text('One'));
+    session.send({ id: 'B', text: 'Then this.' });
+    await until(() => events.some((e) => e.type === 'text'));
+
+    session.interrupt();
+    cli.emit(INTERRUPTED);
+    await until(() => doneCount(events) === 1);
+    await until(() => cli.sent.length === 2);
+    cli.emit(replay(cli.sent[1]!), text('B'), RESULT);
+    await until(() => doneCount(events) === 2);
+
+    expect(cli.interrupts).toBe(1);
+    expect(lines(events)).toEqual(['user A', 'text', 'done interrupted', 'user B', 'text', 'usage', 'done completed']);
+  });
+
+  it('closes out the turn, the pending messages and the running tasks when the process exits, in that order', async () => {
+    const cli = new FakeClaude().manual();
+    const { session, events } = await open(cli);
+    session.send({ id: 'A', text: 'Start a subagent.' });
+    await until(() => cli.sent.length === 1);
+    cli.emit(replay(cli.sent[0]!), tasksChanged([{ task_id: 't1', description: 'Count' }]), text('Working'));
+    session.send({ id: 'B', text: 'b' });
+    session.send({ id: 'C', text: 'c' });
+    await until(() => cli.sent.length === 3);
+
+    cli.exit();
+    await until(() => events.at(-1)?.type === 'background' && lines(events).length > 3);
+    session.send({ id: 'D', text: 'd' });
+
+    expect(lines(events)).toEqual(['user A', 'background [t1]', 'text', 'done failed', 'dropped B,C', 'notice t1 stopped', 'background []', 'dropped D']);
+    expect(events.find((e) => e.type === 'done')).toEqual({ type: 'done', status: 'failed', error: 'Claude Code exited before finishing the turn' });
+    expect(events.find((e) => e.type === 'dropped')).toEqual({ type: 'dropped', ids: ['B', 'C'], error: 'Claude Code exited' });
+    expect(events.find((e) => e.type === 'notice')).toEqual({ type: 'notice', task: 't1', description: 'Count', status: 'stopped', text: 'The agent process exited' });
+  });
+
+  it('fails the running turn with the error the stream ended on', async () => {
+    const cli = new FakeClaude().manual();
+    const { session, events } = await open(cli);
+    session.send({ id: 'A', text: 'hello' });
+    await until(() => cli.sent.length === 1);
+    cli.emit(replay(cli.sent[0]!));
+    cli.exit(new Error('Claude Code process exited with code 1'));
+    await until(() => events.at(-1)?.type === 'background');
+
+    expect(events).toEqual([
+      { type: 'user', id: 'A' },
+      { type: 'done', status: 'failed', error: 'Claude Code process exited with code 1' },
+      { type: 'background', tasks: [] },
+    ]);
+  });
+
+  it('emits nothing after close, and closes the CLI process', async () => {
+    const cli = new FakeClaude().manual();
+    const { session, events } = await open(cli);
+    session.send({ id: 'A', text: 'hello' });
+    await until(() => cli.sent.length === 1);
+
+    await session.close();
+    session.send({ id: 'B', text: 'again' });
+    await until(() => true);
+
+    expect(cli.closed).toBe(true);
+    expect(events).toEqual([]);
   });
 
   it("reports the title Claude Code wrote for the session's conversation", async () => {
@@ -150,7 +334,7 @@ describe('ClaudeAgent session', () => {
     const previous = process.env.CLAUDE_CONFIG_DIR;
     process.env.CLAUDE_CONFIG_DIR = configDir;
     try {
-      const session = await new ClaudeAgent(new ScriptedQuery([completed]).query).openSession(SESSION);
+      const session = await new ClaudeAgent(new FakeClaude().query).openSession(SESSION);
       expect(await session.title?.()).toBeUndefined();
 
       mkdirSync(path.join(configDir, 'projects', '-vault'), { recursive: true });
@@ -168,70 +352,62 @@ describe('ClaudeAgent session', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'vicher-claude-'));
     const file = path.join(dir, 'figure.png');
     writeFileSync(file, Buffer.from('not really a png'));
-    const cli = new ScriptedQuery([completed, completed]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
+    const cli = new FakeClaude([completed, completed]);
+    const { session, events } = await open(cli);
 
     try {
-      await collect(session.send('What is this?', undefined, [{ path: file, mediaType: 'image/png' }]));
-      await collect(session.send('And now?'));
+      session.send({ id: 'A', text: 'What is this?', images: [{ path: file, mediaType: 'image/png' }] });
+      session.send({ id: 'B', text: 'And now?' });
+      await until(() => doneCount(events) === 2);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
 
-    expect(cli.contents[0]).toEqual([
-      { type: 'image', source: { type: 'base64', media_type: 'image/png', data: Buffer.from('not really a png').toString('base64') } },
-      { type: 'text', text: 'What is this?' },
+    expect(cli.sent.map((m) => m.message.content)).toEqual([
+      [
+        { type: 'image', source: { type: 'base64', media_type: 'image/png', data: Buffer.from('not really a png').toString('base64') } },
+        { type: 'text', text: 'What is this?' },
+      ],
+      'And now?',
     ]);
-    expect(cli.contents[1]).toBe('And now?');
   });
 
-  it('fails the turn when an attached image cannot be read, and takes the next one', async () => {
-    const cli = new ScriptedQuery([completed]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
+  it('drops a message whose image cannot be read, and sends the next one', async () => {
+    const cli = new FakeClaude([completed]);
+    const { session, events } = await open(cli);
 
-    const events = await collect(session.send('What is this?', undefined, [{ path: '/no/such/figure.png', mediaType: 'image/png' }]));
-    const next = await collect(session.send('Try again.'));
+    session.send({ id: 'A', text: 'What is this?', images: [{ path: '/no/such/figure.png', mediaType: 'image/png' }] });
+    session.send({ id: 'B', text: 'Try again.' });
+    await until(() => doneCount(events) === 1);
 
-    expect(events.at(-1)).toMatchObject({ type: 'done', status: 'failed', error: expect.stringContaining('ENOENT') });
-    expect(next.at(-1)).toEqual({ type: 'done', status: 'completed' });
-  });
-
-  it('reports context usage before the turn ends', async () => {
-    const cli = new ScriptedQuery([completed]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
-
-    const events = await collect(session.send('Greet the student.'));
-
-    expect(events.slice(-2)).toEqual([
-      { type: 'usage', used: 84_000, window: 200_000 },
-      { type: 'done', status: 'completed' },
-    ]);
+    expect(events[0]).toEqual({ type: 'dropped', ids: ['A'], error: expect.stringContaining('ENOENT') });
+    expect(lines(events)).toEqual(['dropped A', 'user B', 'text', 'usage', 'done completed']);
+    expect(cli.sent.map((m) => m.uuid)).toEqual(['B']);
   });
 
   it('completes the turn without usage when the CLI cannot report it', async () => {
-    const cli = new ScriptedQuery([completed]);
+    const cli = new FakeClaude([completed]);
     cli.usage = new Error('unavailable');
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
+    const { session, events } = await open(cli);
 
-    const events = await collect(session.send('Greet the student.'));
+    session.send({ id: 'A', text: 'Greet the student.' });
+    await until(() => doneCount(events) === 1);
 
     expect(events.some((e) => e.type === 'usage')).toBe(false);
     expect(events.at(-1)).toEqual({ type: 'done', status: 'completed' });
   });
 
-  it('reports each tool call as running, then done', async () => {
-    const cli = new ScriptedQuery([{ messages: toolTurn as SDKMessage[] }]);
-    const session = await new ClaudeAgent(cli.query).openSession({ ...SESSION, cwd: '/private/tmp/vicher-capture' });
+  it('reports thinking when a tool-use or thinking block starts, and each tool call as running, then done', async () => {
+    const cli = new FakeClaude([toolTurn as SDKMessage[]]);
+    const { session, events } = await open(cli, { cwd: '/private/tmp/vicher-capture' });
 
-    const events = await collect(session.send('What does the pin count track?'));
+    session.send({ id: 'A', text: 'What does the pin count track?' });
+    await until(() => doneCount(events) === 1);
 
-    const id = 'toolu_01RHHNWxmCuxJs3J3jH9Lm2X';
-    expect(events.filter((e) => e.type === 'tool')).toEqual([
-      { type: 'tool', id, name: 'Read', title: 'Read notes.md', status: 'running' },
-      { type: 'tool', id, name: 'Read', title: 'Read notes.md', status: 'done' },
+    const kinds = events.map((e) => (e.type === 'tool' ? `tool ${e.status}` : e.type));
+    expect(kinds.filter((kind, i) => kind !== kinds[i - 1])).toEqual([
+      'user', 'thinking', 'tool running', 'tool done', 'thinking', 'text', 'usage', 'done',
     ]);
-    expect(textOf(events)).toBe(streamedText(toolTurn as SDKMessage[]));
-    expect(events.at(-1)).toEqual({ type: 'done', status: 'completed' });
   });
 
   describe('with a tool of its own', () => {
@@ -244,7 +420,7 @@ describe('ClaudeAgent session', () => {
     };
 
     it('hands the CLI the tool and lets it run without asking', async () => {
-      const cli = new ScriptedQuery([completed]);
+      const cli = new FakeClaude();
       const server = { type: 'sdk', name: 'vicher' };
       const offered: AgentTool[][] = [];
       const agent = new ClaudeAgent(cli.query, async (tools) => {
@@ -260,7 +436,7 @@ describe('ClaudeAgent session', () => {
     });
 
     it('starts no tool server for a session with no tools', async () => {
-      const cli = new ScriptedQuery([completed]);
+      const cli = new FakeClaude();
       const agent = new ClaudeAgent(cli.query, async () => { throw new Error('no server wanted'); });
 
       await agent.openSession(SESSION);
@@ -275,10 +451,13 @@ describe('ClaudeAgent session', () => {
         const content = (message.message.content as { type: string }[]).map((block) => (block.type === 'tool_use' ? { ...block, name: 'mcp__vicher__load_pack', input: { name: 'plot' } } : block));
         return { ...message, message: { ...message.message, content } };
       }) as SDKMessage[];
-      const cli = new ScriptedQuery([{ messages }]);
+      const cli = new FakeClaude([messages]);
       const session = await new ClaudeAgent(cli.query, async () => ({})).openSession({ ...SESSION, tools: [loadPack] });
+      const events: AgentEvent[] = [];
+      session.subscribe((event) => events.push(event));
 
-      const events = await collect(session.send('Plot sin x.'));
+      session.send({ id: 'A', text: 'Plot sin x.' });
+      await until(() => doneCount(events) === 1);
 
       expect(events.filter((e) => e.type === 'tool').map((e) => e.type === 'tool' && [e.name, e.title, e.status])).toEqual([
         ['load_pack', 'Loaded the plot visuals', 'running'],
@@ -287,39 +466,15 @@ describe('ClaudeAgent session', () => {
     });
   });
 
-  it('reports thinking when a tool-use or thinking block starts, before the text', async () => {
-    const cli = new ScriptedQuery([{ messages: toolTurn as SDKMessage[] }]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
-
-    const events = await collect(session.send('What does the pin count track?'));
-
-    const kinds = events.map((e) => (e.type === 'tool' ? `tool ${e.status}` : e.type));
-    expect(kinds.filter((kind, i) => kind !== kinds[i - 1])).toEqual([
-      'thinking', 'tool running', 'tool done', 'thinking', 'text', 'usage', 'done',
-    ]);
-  });
-
-  it('keeps one CLI process across turns and sends each event as a user message', async () => {
-    const cli = new ScriptedQuery([completed, completed]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
-
-    await collect(session.send('first event'));
-    const second = await collect(session.send('second event'));
-
-    expect(cli.queries).toBe(1);
-    expect(cli.prompts).toEqual(['first event', 'second event']);
-    expect(second.at(-1)).toEqual({ type: 'done', status: 'completed' });
-  });
-
-  it('inherits Claude Code settings and permissions and installs the approval relay', async () => {
-    const cli = new ScriptedQuery([]);
+  it('inherits Claude Code settings and permissions, asks for replays and installs the approval relay', async () => {
+    const cli = new FakeClaude();
 
     await new ClaudeAgent(cli.query).openSession(SESSION);
 
     const options = cli.options!;
     expect(options.settingSources).toBeUndefined();
     expect(options.strictMcpConfig).toBeUndefined();
-    expect(options.extraArgs).toBeUndefined();
+    expect(options.extraArgs).toEqual({ 'replay-user-messages': null });
     expect(options.tools).toEqual({ type: 'preset', preset: 'claude_code' });
     expect(options.permissionMode).toBeUndefined();
     expect(options.allowDangerouslySkipPermissions).toBeUndefined();
@@ -333,7 +488,7 @@ describe('ClaudeAgent session', () => {
   });
 
   it('adds the student\'s environment variables to the CLI process, over inherited ones and under PATH', async () => {
-    const cli = new ScriptedQuery([]);
+    const cli = new FakeClaude();
     let userEnv: Record<string, string> = { ANTHROPIC_API_KEY: 'sk-ant-test', HOME: '/custom-home', PATH: '/ignored' };
     const agent = new ClaudeAgent(cli.query, undefined, () => userEnv);
 
@@ -350,53 +505,96 @@ describe('ClaudeAgent session', () => {
   });
 
   it('passes a permission override to the CLI as its native mode', async () => {
-    const cli = new ScriptedQuery([]);
+    const cli = new FakeClaude();
     await new ClaudeAgent(cli.query).openSession({ ...SESSION, permissionPolicy: 'bypass' });
     expect(cli.options!.permissionMode).toBe('bypassPermissions');
     expect(cli.options!.allowDangerouslySkipPermissions).toBe(true);
     expect(cli.options!.canUseTool).toBeUndefined();
+
+    await new ClaudeAgent(cli.query).openSession({ ...SESSION, permissionPolicy: 'auto' });
+    expect(cli.options!.extraArgs).toEqual({ 'enable-auto-mode': null, 'replay-user-messages': null });
   });
 
-  it('cancels a pending permission request when its turn is stopped', async () => {
-    const cli = new ScriptedQuery([longRunning]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
-    const controller = new AbortController();
-    const stream = session.send('Edit the note', controller.signal)[Symbol.asyncIterator]();
-    await stream.next();
-    const pending = cli.options!.canUseTool!('Edit', {}, { toolUseID: 'edit-1', requestId: 'request-1', signal: new AbortController().signal });
-    const approval = await nextApproval(stream);
-    controller.abort();
-    expect(approval.signal.aborted).toBe(true);
-    expect(await pending).toMatchObject({ behavior: 'deny', interrupt: true });
-    approval.answer(true);
-    await stream.return?.(); await session.close();
-  });
+  describe('approvals', () => {
+    const ask = (cli: FakeClaude) => cli.options!.canUseTool!('Edit', { file_path: '/vault/note.md', old_string: 'before', new_string: 'after' }, {
+      toolUseID: 'edit', requestId: 'request', signal: new AbortController().signal,
+    });
+    const approvalOf = (events: AgentEvent[]) => events.find((e): e is Extract<AgentEvent, { type: 'approval' }> => e.type === 'approval')!;
 
-  it('runs the next turn after one was abandoned at an approval', async () => {
-    // The read left pending at the approval is the one that gets the turn's result.
-    const messages = interruptedTurn as SDKMessage[];
-    const waitsThenEnds: ScriptedTurn = { messages: [messages.find(isTextDelta)!, messages.find((message) => message.type === 'result')!], runsUntilInterrupted: true };
-    const cli = new ScriptedQuery([waitsThenEnds, completed]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
-    const stream = session.send('Edit the note')[Symbol.asyncIterator]();
-    await stream.next();
-    const pending = cli.options!.canUseTool!('Edit', {}, { toolUseID: 'edit-1', requestId: 'request-1', signal: new AbortController().signal });
-    await nextApproval(stream);
-    await stream.return?.();
-    expect(await pending).toMatchObject({ behavior: 'deny' });
-    const events = await collect(session.send('Next question'));
-    expect(events.at(-1)).toMatchObject({ type: 'done', status: 'completed' });
-    await session.close();
-  });
+    async function running(): Promise<{ cli: FakeClaude; session: AgentSession; events: AgentEvent[] }> {
+      const cli = new FakeClaude().manual();
+      const { session, events } = await open(cli);
+      session.send({ id: 'A', text: 'Edit the note' });
+      await until(() => cli.sent.length === 1);
+      cli.emit(replay(cli.sent[0]!));
+      await until(() => events.length === 1);
+      return { cli, session, events };
+    }
 
-  it('declines a permission request that arrives with no turn running', async () => {
-    const cli = new ScriptedQuery([]);
-    await new ClaudeAgent(cli.query).openSession(SESSION);
-    expect(await cli.options!.canUseTool!('Edit', {}, { toolUseID: 'edit-1', requestId: 'request-1', signal: new AbortController().signal })).toMatchObject({ behavior: 'deny' });
+    it('asks the student and passes the answer to the CLI', async () => {
+      const { cli, events } = await running();
+      const pending = ask(cli);
+      approvalOf(events).answer(true);
+      expect(await pending).toMatchObject({ behavior: 'allow' });
+    });
+
+    it('cancels a pending request when the turn is interrupted', async () => {
+      const { cli, session, events } = await running();
+      const pending = ask(cli);
+      session.interrupt();
+      expect(approvalOf(events).signal.aborted).toBe(true);
+      expect(await pending).toMatchObject({ behavior: 'deny', interrupt: true });
+    });
+
+    it('cancels a pending request when the session closes', async () => {
+      const { cli, session, events } = await running();
+      const pending = ask(cli);
+      await session.close();
+      expect(approvalOf(events).signal.aborted).toBe(true);
+      approvalOf(events).answer(true);
+      expect(await pending).toMatchObject({ behavior: 'deny', interrupt: true });
+    });
+
+    it('cancels a pending request when its turn ends', async () => {
+      const { cli, events } = await running();
+      const pending = ask(cli);
+      cli.emit(RESULT);
+      expect(await pending).toMatchObject({ behavior: 'deny', interrupt: true });
+      expect(events.at(-1)).toEqual({ type: 'done', status: 'completed' });
+    });
+
+    it('starts a CLI turn for a request that comes while none runs', async () => {
+      const cli = new FakeClaude().manual();
+      const { events } = await open(cli);
+      const pending = ask(cli);
+      approvalOf(events).answer(false);
+      expect(await pending).toMatchObject({ behavior: 'deny', interrupt: false });
+      cli.emit(RESULT);
+      await until(() => doneCount(events) === 1);
+      expect(lines(events)).toEqual(['approval', 'usage', 'done completed']);
+    });
+
+    it('declines a request once the session is closed', async () => {
+      const cli = new FakeClaude();
+      const { session } = await open(cli);
+      await session.close();
+      expect(await ask(cli)).toMatchObject({ behavior: 'deny' });
+    });
+
+    it('asks the student a question in the running turn', async () => {
+      const { cli, events } = await running();
+      const pending = cli.options!.canUseTool!('AskUserQuestion', { questions: [{ question: 'Which proof?', header: 'Proof', options: [{ label: 'Induction' }], multiSelect: false }] }, {
+        toolUseID: 'ask', requestId: 'request', signal: new AbortController().signal,
+      });
+      const question = events.find((e) => e.type === 'question');
+      expect(question).toBeDefined();
+      if (question?.type === 'question') question.answer([['Induction']]);
+      expect(await pending).toMatchObject({ behavior: 'allow', updatedInput: { answers: { 'Which proof?': 'Induction' } } });
+    });
   });
 
   it('starts a conversation under a fresh id that a later session can resume', async () => {
-    const cli = new ScriptedQuery([]);
+    const cli = new FakeClaude();
 
     const first = await new ClaudeAgent(cli.query).openSession(SESSION);
 
@@ -414,7 +612,7 @@ describe('ClaudeAgent session', () => {
   it('rejects, and closes the process, when the CLI no longer has the session to resume', async () => {
     const configDir = mkdtempSync(path.join(tmpdir(), 'vicher-claude-config-'));
     try {
-      const cli = new ScriptedQuery([]);
+      const cli = new FakeClaude();
       cli.startError = new Error('Claude Code process exited with code 1');
 
       const opened = new ClaudeAgent(cli.query, undefined, () => ({ CLAUDE_CONFIG_DIR: configDir })).openSession({ ...SESSION, resume: 'gone' });
@@ -431,7 +629,7 @@ describe('ClaudeAgent session', () => {
     try {
       mkdirSync(path.join(configDir, 'projects', '-vault'), { recursive: true });
       writeFileSync(path.join(configDir, 'projects', '-vault', 'kept.jsonl'), '{}');
-      const cli = new ScriptedQuery([]);
+      const cli = new FakeClaude();
       cli.startError = new Error('No conversation found with session ID: kept');
 
       const opened = new ClaudeAgent(cli.query, undefined, () => ({ CLAUDE_CONFIG_DIR: configDir })).openSession({ ...SESSION, resume: 'kept' });
@@ -444,7 +642,7 @@ describe('ClaudeAgent session', () => {
   });
 
   it('leaves model and effort to the CLI when the chat picks Auto', async () => {
-    const cli = new ScriptedQuery([]);
+    const cli = new FakeClaude();
 
     await new ClaudeAgent(cli.query).openSession({ ...SESSION, model: undefined, effort: undefined });
 
@@ -453,7 +651,7 @@ describe('ClaudeAgent session', () => {
   });
 
   it('switches model and effort on the open session, and back to the defaults', async () => {
-    const cli = new ScriptedQuery([]);
+    const cli = new FakeClaude();
     const session = await new ClaudeAgent(cli.query).openSession(SESSION);
 
     await session.setModel('opus', 'xhigh');
@@ -466,73 +664,37 @@ describe('ClaudeAgent session', () => {
     expect(cli.queries).toBe(1);
   });
 
-  it('interrupts the turn when the caller aborts', async () => {
-    const cli = new ScriptedQuery([longRunning]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
-    const controller = new AbortController();
-
-    const events = await collect(session.send('Write ten lines.', controller.signal), (event) => {
-      if (event.type === 'text') controller.abort();
-    });
-
-    expect(cli.interrupts).toBe(1);
-    expect(events.at(-1)).toEqual({ type: 'done', status: 'interrupted' });
-  });
-
-  it('keeps a turn the caller stopped reading from leaking into the next turn', async () => {
-    const cli = new ScriptedQuery([longRunning, completed]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
-    for await (const event of session.send('abandoned')) {
-      if (event.type === 'text') break;
-    }
-
-    const next = await collect(session.send('next event'));
-
-    expect(cli.interrupts).toBe(1);
-    expect(textOf(next)).toBe(streamedText(completed.messages));
-    expect(next.at(-1)).toEqual({ type: 'done', status: 'completed' });
-  });
-
   it('fails the turn with the CLI\'s message when the user is logged out', async () => {
-    const cli = new ScriptedQuery([loggedOut]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
+    const cli = new FakeClaude([loggedOutTurn as SDKMessage[]]);
+    const { session, events } = await open(cli);
 
-    const events = await collect(session.send('hello'));
+    session.send({ id: 'A', text: 'hello' });
+    await until(() => doneCount(events) === 1);
 
-    expect(events).toEqual([{ type: 'done', status: 'failed', error: 'Not logged in · Please run /login' }]);
+    expect(events).toEqual([{ type: 'user', id: 'A' }, { type: 'done', status: 'failed', error: 'Not logged in · Please run /login' }]);
   });
 
-  it('fails the turn when the CLI exits before reporting a result', async () => {
-    const cli = new ScriptedQuery([{ messages: completed.messages.filter((m) => m.type !== 'result') }]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
+  it('says what the CLI wrote to stderr when it exits mid-turn', async () => {
+    const cli = new FakeClaude().manual();
+    const { session, events } = await open(cli);
+    const child = cli.options!.spawnClaudeCodeProcess!({
+      command: process.execPath, args: ['-e', 'process.stderr.write("Error: invalid API key")'], cwd: process.cwd(), env: {}, signal: new AbortController().signal,
+    }) as unknown as import('child_process').ChildProcess;
+    await new Promise((resolve) => child.on('close', resolve));
 
-    const events = await collect(session.send('hello'));
+    session.send({ id: 'A', text: 'Hi' });
+    await until(() => cli.sent.length === 1);
+    cli.emit(replay(cli.sent[0]!));
+    cli.exit();
+    await until(() => doneCount(events) === 1);
 
-    expect(events.at(-1)).toEqual({ type: 'done', status: 'failed', error: 'Claude Code exited before finishing the turn' });
-  });
-
-  it('rejects a second turn while one is running', async () => {
-    const cli = new ScriptedQuery([longRunning]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
-    const first = session.send('first')[Symbol.asyncIterator]();
-    await first.next();
-
-    await expect(collect(session.send('second'))).rejects.toThrow('A turn is already running');
-  });
-
-  it('closes the CLI process with the session', async () => {
-    const cli = new ScriptedQuery([]);
-    const session = await new ClaudeAgent(cli.query).openSession(SESSION);
-
-    await session.close();
-
-    expect(cli.closed).toBe(true);
+    expect(events.find((e) => e.type === 'done')).toEqual({ type: 'done', status: 'failed', error: 'Claude Code exited before finishing the turn', detail: 'Error: invalid API key' });
   });
 });
 
 describe('ClaudeAgent skills', () => {
   it('lists the student\'s skills from the open session, without Claude Code\'s own, and starts no other process', async () => {
-    const cli = new ScriptedQuery([]);
+    const cli = new FakeClaude();
     const session = await new ClaudeAgent(cli.query).openSession(SESSION);
 
     expect(await session.skills()).toEqual([
@@ -545,7 +707,7 @@ describe('ClaudeAgent skills', () => {
 
 describe('ClaudeAgent models', () => {
   it('lists each family once, on its latest version, with the default marked', async () => {
-    const cli = new ScriptedQuery([]);
+    const cli = new FakeClaude();
 
     const models = await new ClaudeAgent(cli.query).models(process.execPath);
 
@@ -559,7 +721,7 @@ describe('ClaudeAgent models', () => {
   });
 
   it('lists models from a process with no setting sources, then closes it', async () => {
-    const cli = new ScriptedQuery([]);
+    const cli = new FakeClaude();
 
     await new ClaudeAgent(cli.query).models(process.execPath);
 
@@ -573,17 +735,4 @@ it('mentions a file by its quoted path, and carries one whose path holds a quote
   const agent = new ClaudeAgent();
   expect(agent.fileMention('/v/My Notes.md')).toBe('@"/v/My Notes.md"');
   expect(agent.fileMention('/v/say "hi".md')).toBeUndefined();
-});
-
-it('says what the CLI wrote to stderr when it exits mid-turn', async () => {
-  const cli = new ScriptedQuery([{ messages: [] }]);
-  const session = await new ClaudeAgent(cli.query).openSession(SESSION);
-  const child = cli.options!.spawnClaudeCodeProcess!({
-    command: process.execPath, args: ['-e', 'process.stderr.write("Error: invalid API key")'], cwd: process.cwd(), env: {}, signal: new AbortController().signal,
-  }) as unknown as import('child_process').ChildProcess;
-  await new Promise((resolve) => child.on('close', resolve));
-
-  const events = await collect(session.send('Hi'));
-
-  expect(events.at(-1)).toEqual({ type: 'done', status: 'failed', error: 'Claude Code exited before finishing the turn', detail: 'Error: invalid API key' });
 });

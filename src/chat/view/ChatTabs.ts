@@ -12,7 +12,7 @@ export interface ChatTab {
 }
 
 export function chatTabStatus(tab: ChatTab): string {
-  return tab.waitingForApproval ? 'Needs approval' : tab.running ? 'Generating' : tab.failed ? 'Failed' : tab.unread ? 'Unread reply' : '';
+  return tab.waitingForApproval ? 'Needs approval' : tab.running ? 'Working' : tab.failed ? 'Failed' : tab.unread ? 'Unread reply' : '';
 }
 
 export interface ChatTabsHost {

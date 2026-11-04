@@ -1,6 +1,6 @@
 import { FileSystemAdapter, Notice, Plugin } from 'obsidian';
 
-import { AGENT_IDS, createAgents, PROVIDERS } from '@/agents/providers';
+import { AGENT_IDS, createAgents, PROVIDERS, releaseAgents } from '@/agents/providers';
 import type { AgentAdapter, AgentId, AuthState, ModelOption } from '@/agents/types';
 import { Chat, type ChatEvents } from '@/chat/Chat';
 import { ChatDefaults } from '@/chat/ChatDefaults';
@@ -99,6 +99,7 @@ export default class VicherPlugin extends Plugin {
   onunload(): void {
     this.stage.destroy();
     figureSandbox.destroy();
+    releaseAgents();
   }
 
   /** Waits for the workspace so the CLI processes do not slow Obsidian's startup. */

@@ -14,6 +14,8 @@ export class ToolGroup {
   private settledAt: number | null = null;
   private ticker: number | null = null;
   private finished = false;
+  /** Every call has ended, but the next may follow at once: the line stays active rather than hand over to a working line. */
+  private holding = false;
 
   constructor(private readonly el: HTMLElement) {
     const header = el.createEl('button', { cls: 'vicher-tools-header', attr: { 'aria-expanded': 'false' } });
@@ -26,8 +28,10 @@ export class ToolGroup {
       const open = !el.hasClass('is-open');
       el.toggleClass('is-open', open);
       header.setAttr('aria-expanded', String(open));
+      this.listEl.toggleAttribute('inert', !open);
     });
-    this.listEl = el.createDiv({ cls: 'vicher-tools-list' });
+    // The list's wrapper animates its height between none and all of it.
+    this.listEl = el.createDiv({ cls: 'vicher-tools-drawer' }).createDiv({ cls: 'vicher-tools-list', attr: { inert: '' } });
     this.renderSummary();
   }
 
@@ -61,6 +65,12 @@ export class ToolGroup {
     this.renderSummary();
   }
 
+  hold(on: boolean): void {
+    if (this.holding === on) return;
+    this.holding = on;
+    this.renderSummary();
+  }
+
   finish(): void {
     this.finished = true;
     this.renderSummary();
@@ -70,7 +80,7 @@ export class ToolGroup {
     const rows = [...this.rows.values()];
     const running = rows.filter((row) => row.status === 'running');
     const empty = rows.length === 0;
-    const active = !this.finished && (empty || running.length > 0);
+    const active = !this.finished && (empty || running.length > 0 || this.holding);
     this.el.toggleClass('is-running', active);
     this.el.toggleClass('is-empty', empty);
     this.track(active);
@@ -84,7 +94,8 @@ export class ToolGroup {
       return;
     }
     if (active) {
-      this.summaryEl.setText(`Using ${[...new Set(running.map((row) => row.name))].join(', ')}`);
+      const using = running.length ? running : rows.slice(-1);
+      this.summaryEl.setText(`Using ${[...new Set(using.map((row) => row.name))].join(', ')}`);
       return;
     }
     const failed = rows.filter((row) => row.status === 'failed').length;
@@ -119,8 +130,11 @@ const WORKING_PHRASES = [
   'Working through it',
 ];
 
-function formatElapsed(seconds: number): string {
-  return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+/** "45s", "2m 5s", "1h 2m". */
+export function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
 }
 
 const NAMED_KINDS = 3;
