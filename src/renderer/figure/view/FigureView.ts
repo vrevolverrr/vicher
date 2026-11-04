@@ -275,10 +275,12 @@ export class FigureView {
     let ranged = false;
     for (const step of figure.steps) walk(step.root, (node) => (ranged ||= viewOf(node.type)?.holdsRange === true));
     if (!ranged) return;
-    const before = JSON.stringify([...this.prepared]);
+    // Only what holds a param's range is compared: a Graph's layout is laid out again on every draw.
+    const snapshot = (): string => JSON.stringify([...this.prepared].filter(([key]) => viewOf(key.slice(0, key.indexOf(':')))?.holdsRange));
+    const before = snapshot();
     const runs = figure.params.flatMap((param) => rangeOf(param).map((value) => this.execute({ ...Object.fromEntries(this.values), [param.key]: value }, true)));
     for (const result of await Promise.all(runs)) if (result.ok) this.prepare(result.figure, true);
-    if (this.controller.signal.aborted || JSON.stringify([...this.prepared]) === before) return;
+    if (this.controller.signal.aborted || snapshot() === before) return;
     if (!this.rerunning && this.figure && this.body?.isConnected) void this.draw(this.figure, true);
   }
 
@@ -656,7 +658,7 @@ function pointerLanes(figure: FigureData): Map<string, Lane> {
     const pointers: Extract<FigureNode, { type: 'Pointer' }>[] = [];
     walk(step.root, (node, key) => {
       if (node.type === 'Pointer') pointers.push(node);
-      for (const id of NODE_DEFINITIONS.get(node.type)?.pointable?.(node).ids ?? []) owner.set(id, key);
+      for (const id of NODE_DEFINITIONS.get(node.type)?.pointable?.(node) ?? []) owner.set(id, key);
     });
     for (const pointer of pointers) {
       const key = owner.get(pointer.to);

@@ -46,8 +46,8 @@ export interface Definition<Name extends string = string, F extends Fields = Fie
   check?(node: CheckNode<Name, F, V, C>, ctx: CheckContext): void;
   /** Ids it owns besides its `field.id()` values, such as a Table's cells. */
   ids?(node: CheckNode<Name, F, V, C>): readonly string[];
-  /** Where a `Pointer` at one of these ids goes; the view keeps a lane for them over every step. */
-  pointable?(node: CheckNode<Name, F, V, C>): { ids: readonly string[]; side: 'below' | 'left' | 'right' };
+  /** Ids a `Pointer` marks beside this element; the view keeps a lane for them over every step. */
+  pointable?(node: CheckNode<Name, F, V, C>): readonly string[];
 }
 
 export function component<const Name extends string, const F extends Fields = Fields, const V extends Readonly<Record<string, Variant>> = Record<never, never>, const C extends readonly string[] | undefined = undefined>(definition: Definition<Name, F, V, C>): Definition<Name, F, V, C> {

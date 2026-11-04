@@ -8,7 +8,7 @@ export const Quiz = component({
     id: field.optional(field.id()),
     question: field.text(),
     options: field.list(field.text(), { min: 2, max: LIMITS.quizOptions }),
-    correct: field.text(),
+    correct: field.text({ copy: true }),
     explanation: field.optional(field.text()),
   },
   check(quiz, { fail }) {

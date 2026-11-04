@@ -23,5 +23,5 @@ export const Table = component({
     if (table.rowIds && table.rowIds.length !== table.rows.length) fail(`${table.rows.length} rows but ${table.rowIds.length} rowIds; give one id per row`);
   },
   ids: (table) => cells(table.rowIds, table.columns.length),
-  pointable: (table) => ({ ids: [...(table.rowIds ?? []), ...cells(table.rowIds, table.columns.length)], side: 'left' }),
+  pointable: (table) => [...(table.rowIds ?? []), ...cells(table.rowIds, table.columns.length)],
 });

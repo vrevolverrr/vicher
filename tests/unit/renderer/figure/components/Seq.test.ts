@@ -11,6 +11,7 @@ describe('Seq', () => {
     [{ items: [{ id: 'a b', label: 'x' }] }, 'Step 1 > Seq: items[0].id is "a b", which is not an id: 1 to 64 letters, digits and _.:- starting with a letter or digit'],
     [{ items: 'abc' }, 'Step 1 > Seq: items must be a list'],
     [{ items: [], index: 'x' }, 'Step 1 > Seq: index must be true or a list of labels'],
+    [{ items: [], index: Array.from({ length: 129 }, (_, i) => i) }, 'Step 1 > Seq: index holds 129; the limit is 128'],
   ])('refuses %j', (props, message) => {
     expect(read(el('Seq', props))).toBe(message);
   });

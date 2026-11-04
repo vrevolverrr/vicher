@@ -25,6 +25,8 @@ export interface Field<T = unknown, O extends boolean = boolean> {
   readonly options?: readonly Field[];
   readonly shape?: Readonly<Record<string, Field>>;
   readonly values?: readonly unknown[];
+  /** A copy of another prop's text, whose anchors that prop already claims. */
+  readonly copy?: boolean;
   doc(note: string): Field<T, O>;
   /** Never set: carries `T` for the node types. */
   readonly out?: T;
@@ -59,14 +61,18 @@ function leaf<T>(kind: Kind, guard: (value: unknown) => boolean, wrong: string, 
     z.transform((value, payload) => {
       const message = problem?.(value as never);
       if (message === undefined) return read(value as never);
-      payload.issues.push({ code: 'custom', message, input: value });
+      payload.issues.push({ code: 'custom', message, input: value, params: PROBLEM });
       return z.NEVER;
     }),
   );
   return make(kind, schema, false, more);
 }
 
-function textProblem(value: string, whole = false): string | undefined {
+/** Marks an issue as a fault in a value of the right type, which an `either` reports instead of its own message. */
+const PROBLEM = { problem: true };
+
+/** The text rule: the string limit, then the TeX rule wherever a string holds maths. */
+export function textProblem(value: string, whole = false): string | undefined {
   if (value.length > LIMITS.string) return `is ${count(value.length)} characters; the limit is ${count(LIMITS.string)}`;
   // Renderers pair `$` signs differently, so a forbidden command anywhere in a string with maths fails, whatever the pairing.
   const problem = whole || value.includes('$') ? texProblems(value) : undefined;
@@ -81,8 +87,8 @@ export const field = {
     leaf('id', (value) => typeof value === 'string', 'must be an id', (value: string) => (ID.test(value) ? undefined : `is ${JSON.stringify(value)}, which is not an id: 1 to 64 letters, digits and _.:- starting with a letter or digit`)),
 
   /** Markdown with `$…$` maths; a number is formatted to text. */
-  text: (): Field<string, false> =>
-    leaf('text', (value) => typeof value === 'string' || isNumber(value), 'must be text', (value: string | number) => (typeof value === 'string' ? textProblem(value) : undefined), (value: string | number) => formatFigure(value)),
+  text: ({ copy = false } = {}): Field<string, false> =>
+    leaf('text', (value) => typeof value === 'string' || isNumber(value), 'must be text', (value: string | number) => (typeof value === 'string' ? textProblem(value) : undefined), (value: string | number) => formatFigure(value), { copy }),
 
   /** A displayed formula: TeX as it is, not Markdown. */
   tex: (): Field<string, false> =>
@@ -132,7 +138,7 @@ export const field = {
           : length !== undefined && items.length !== length ? `must hold ${length}, not ${count(items.length)}`
             : items.length < min ? `needs at least ${min}` : undefined;
         if (message === undefined) return items;
-        payload.issues.push({ code: 'custom', message, input: value });
+        payload.issues.push({ code: 'custom', message, input: value, params: PROBLEM });
         return z.NEVER;
       }),
     ), z.array(of.schema));
@@ -167,6 +173,9 @@ function dropAbsent(value: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.keys(value).flatMap((key) => (value[key] === null || value[key] === undefined ? [] : [[key, value[key]]])));
 }
 
+/** Whether `field` reads `value`, for the step pass to walk the option of an either that matched. */
+export const accepts = (field: Field, value: unknown): boolean => z.safeParse(field.schema, value).success;
+
 /** Each element's props schema, built once. */
 const SCHEMAS = new WeakMap<Fields, z.ZodMiniType<Record<string, unknown>>>();
 
@@ -179,7 +188,15 @@ export function readFields(fields: Fields, props: Record<string, unknown>): { ok
   }
   const result = z.safeParse(schema, props);
   if (result.success) return { ok: true, value: result.data };
-  const issue = result.error.issues[0];
-  const prop = issue.path.map((part, i) => (typeof part === 'number' ? `[${part}]` : i === 0 ? String(part) : `.${String(part)}`)).join('');
+  let issue = result.error.issues[0];
+  let path = issue.path;
+  // An either that failed because a value of the right type broke a rule reports that rule, not that the type is wrong.
+  while (issue.code === 'invalid_union') {
+    const inner = issue.errors.flat().find((candidate) => candidate.code === 'invalid_union' || (candidate.code === 'custom' && candidate.params?.problem === true));
+    if (!inner) break;
+    issue = inner;
+    path = [...path, ...inner.path];
+  }
+  const prop = path.map((part, i) => (typeof part === 'number' ? `[${part}]` : i === 0 ? String(part) : `.${String(part)}`)).join('');
   return { ok: false, prop, message: issue.message };
 }

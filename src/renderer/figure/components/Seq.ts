@@ -12,5 +12,5 @@ export const Seq = component({
       .doc('`index` shows 0, 1, 2… above the cells, or an array of labels.'),
     tags: field.optional(field.tags()),
   },
-  pointable: (seq) => ({ ids: seq.items.map((item) => item.id), side: 'below' }),
+  pointable: (seq) => seq.items.map((item) => item.id),
 });

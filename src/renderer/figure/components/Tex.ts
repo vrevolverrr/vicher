@@ -5,5 +5,5 @@ export const Tex = component({
   name: 'Tex',
   summary: 'a displayed formula. Matrices, derivations and determinants are `Tex` in each step; there is no matrix element. All TeX follows the TeX rule below.',
   fields: { id: field.optional(field.id()), tex: field.tex() },
-  pointable: (tex) => ({ ids: [...(tex.id ? [tex.id] : []), ...texAnchors(tex.tex)], side: 'right' }),
+  pointable: (tex) => [...(tex.id ? [tex.id] : []), ...texAnchors(tex.tex)],
 });

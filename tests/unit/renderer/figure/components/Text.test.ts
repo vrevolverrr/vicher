@@ -4,6 +4,7 @@ describe('Text', () => {
   it('reads its text from a prop or from text children', () => {
     expect(read(el('Text', { text: 'a' }))).toEqual({ type: 'Text', text: 'a' });
     expect(read(el('Text', {}, 'n = ', 2))).toEqual({ type: 'Text', text: 'n = 2' });
+    expect(read(el('Text', { text: null }, 'hi'))).toEqual({ type: 'Text', text: 'hi' });
   });
 
   it.each([

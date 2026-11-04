@@ -10,6 +10,7 @@ describe('Table', () => {
     [{ columns: ['a'], rows: [[1], [2]], rowIds: ['r'] }, 'Step 1 > Table: 2 rows but 1 rowIds; give one id per row'],
     [{ columns: [], rows: [] }, 'Step 1 > Table: columns needs at least 1'],
     [{ columns: ['a'], rows: [[{}]] }, 'Step 1 > Table: rows[0][0] must be text, a number or null'],
+    [{ columns: ['a'], rows: [['a'.repeat(2001)]] }, 'Step 1 > Table: rows[0][0] is 2,001 characters; the limit is 2,000'],
     [{ columns: ['a'], rows: [], tags: { t: 'red' } }, 'Step 1 > Table: tags has a tag for "t" that is not one of active, done, match, new, dim, good, bad'],
   ])('refuses %j', (props, message) => {
     expect(read(el('Table', props))).toBe(message);

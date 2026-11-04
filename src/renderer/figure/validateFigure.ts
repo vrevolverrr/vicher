@@ -1,5 +1,5 @@
 import type { Context } from '@/renderer/figure/components/component';
-import { type Field, type Fields, readFields } from '@/renderer/figure/components/field';
+import { accepts, type Field, type Fields, readFields, textProblem } from '@/renderer/figure/components/field';
 import { BLOCK_NAMES } from '@/renderer/figure/components/names';
 import { type AnyDefinition, DEFINITIONS } from '@/renderer/figure/components/registry';
 import { type FigureData, type FigureNode, ID, LIMITS, type Param, type Step } from '@/renderer/figure/FigureData';
@@ -190,10 +190,8 @@ function readStep(frame: unknown, index: number, count: number, figure: { elemen
 
 /** Checks the maths in a caption or heading; its anchors cannot be pointed at, so they need only be ids. */
 function checkCaption(value: string, path: string, what: string): void {
-  if (value.length > LIMITS.string) fail(path, `${what} is ${over(value.length, 'characters', LIMITS.string)}`);
-  // Renderers pair `$` signs differently, so a forbidden command anywhere in a string with maths fails, whatever the pairing.
-  const problem = value.includes('$') ? texProblems(value) : undefined;
-  if (problem) fail(path, problem);
+  const problem = textProblem(value);
+  if (problem) fail(path, `${what} ${problem}`);
   for (const tex of texIn(value)) for (const anchor of texAnchors(tex)) if (!ID.test(anchor)) fail(path, `anchor "${anchor}" is not an id`);
 }
 
@@ -251,6 +249,7 @@ function readElement(raw: unknown, parent: string, depth: number, container: Any
   const variant = variants.find(([, candidate]) => candidate.dimension === inner.dimension);
   if (variants.length && !variant) fail(path, `${type} is ${variants.map(([, candidate]) => candidate.dimension).join(' or ')}D only; ${inner.why}`);
   const fields = variant ? variant[1].fields : definition.fields ?? {};
+  if (variant) onlyKeys(props, Object.keys(fields), path, `${type} here`);
   const read = readFields(fields, definition.textChildren ? withTextChildren(props, children, definition.textChildren, path) : props);
   if (!read.ok) fail(path, `${read.prop} ${read.message}`);
   const node: Node = { type: variant ? variant[0] : type, ...read.value };
@@ -269,7 +268,7 @@ function readElement(raw: unknown, parent: string, depth: number, container: Any
 /** `<Text>...</Text>`: text children read as the prop `key`. */
 function withTextChildren(props: Plain, children: unknown[], key: string, path: string): Plain {
   if (!children.length) return props;
-  if (own(props, key) !== undefined) fail(path, `give its ${key} as a prop or as children, not both`);
+  if (own(props, key) !== undefined && own(props, key) !== null) fail(path, `give its ${key} as a prop or as children, not both`);
   const joined = children.map((child) => (typeof child === 'number' ? formatFigure(child) : typeof child === 'string' ? child : fail(path, `${key} children must be text`))).join('');
   return { ...Object.fromEntries(Object.keys(props).map((name) => [name, props[name]])), [key]: joined };
 }
@@ -282,7 +281,7 @@ function walk(field: Field, value: unknown, key: string, path: string, context: 
       if (typeof value === 'string') claim(value, path, scope);
       return;
     case 'text':
-      if (typeof value === 'string') for (const tex of texIn(value)) anchors(texAnchors(tex), path, scope);
+      if (typeof value === 'string' && !field.copy) for (const tex of texIn(value)) anchors(texAnchors(tex), path, scope);
       return;
     case 'tex':
       if (typeof value === 'string') anchors(texAnchors(value), path, scope);
@@ -308,7 +307,11 @@ function walk(field: Field, value: unknown, key: string, path: string, context: 
       if (isObject(value)) for (const name of Object.keys(field.shape!)) walk((field.shape as Fields)[name], own(value, name), key, path, context, scope);
       return;
     case 'either':
-      for (const option of field.options!) walk(option, value, key, path, context, scope);
+      for (const option of field.options!) {
+        if (!accepts(option, value)) continue;
+        walk(option, value, key, path, context, scope);
+        return;
+      }
       return;
     default:
   }
