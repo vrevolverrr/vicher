@@ -1,4 +1,4 @@
-import type { AgentEvent, AgentId, BackgroundTask } from '@/agents/types';
+import type { AgentId, BackgroundTask, NoticeEvent } from '@/agents/types';
 import { appendAgentIcon } from '@/chat/view/agentIcons';
 import { formatElapsed } from '@/chat/view/ToolGroup';
 import { createIconButton } from '@/shared/view/iconButtons';
@@ -14,8 +14,6 @@ const ROW_LEAVE_MS = 400;
 const RESULT_SECONDS = 10;
 /** How long "Could not stop" shows before stop is offered again. */
 const STOP_ERROR_MS = 3000;
-
-export type TaskNotice = Extract<AgentEvent, { type: 'notice' }>;
 
 interface TaskLine {
   description: string;
@@ -44,7 +42,7 @@ interface TaskLine {
    * How the task ended. What it reported is not shown: Claude relays it in the chat, and a long report would break the
    * card. A failure stays until the student sends a message; any other result fades after a while.
    */
-  result?: Pick<TaskNotice, 'status'>;
+  result?: Pick<NoticeEvent, 'status'>;
 }
 
 /**
@@ -73,7 +71,6 @@ export class TaskRow {
     const controls = this.el.createDiv({ cls: 'vicher-task-controls' });
     this.moreEl = controls.createSpan({ cls: 'vicher-task-more' });
     this.toggleEl = createIconButton(controls, 'chevron-down', 'Show all tasks', 'vicher-task-toggle');
-    this.toggleEl.setAttr('aria-expanded', 'false');
     this.el.addEventListener('pointerenter', () => { this.hovered = true; });
     this.el.addEventListener('pointerleave', () => { this.hovered = false; });
     this.toggleEl.addEventListener('click', () => this.toggle());
@@ -104,7 +101,7 @@ export class TaskRow {
    * A task reported how it ended. It may come before or after `set` drops the task. The result is a new row entering at
    * the bottom, so the rows above shift up, and the running row it ends gives its place to the next task.
    */
-  notice({ task, description, status }: TaskNotice): void {
+  notice({ task, description, status }: NoticeEvent): void {
     const old = this.lines.get(task);
     const ran = old && !old.result ? old : undefined;
     if (old?.result) this.lines.set(`${task}\u0000${old.since}`, old);
@@ -113,7 +110,7 @@ export class TaskRow {
     line.done = true;
     line.result = { status };
     line.el.dataset.status = status;
-    this.mark(line, status === 'completed' ? 'circle-check' : status === 'failed' ? 'circle-alert' : 'circle-stop', status === 'completed');
+    this.mark(line, status === 'completed' ? 'circle-check' : status === 'failed' ? 'circle-alert' : 'circle-stop');
     this.lines.delete(task);
     this.lines.set(task, line);
     if (ran) this.replace(ran);
@@ -175,7 +172,7 @@ export class TaskRow {
   private finish(id: string, line: TaskLine): void {
     line.took = this.seconds(line);
     line.done = true;
-    this.mark(line, 'circle-check', true);
+    this.mark(line, 'circle-check');
     this.later(DONE_MS, () => {
       if (this.lines.get(id) !== line) return;
       this.lines.delete(id);
@@ -194,7 +191,7 @@ export class TaskRow {
     if (!this.expanded && next?.el.hasClass('is-folded') && !ran.el.hasClass('is-folded')) {
       this.listEl.insertBefore(next.el, ran.el);
       next.el.addClass('is-instant');
-      ran.el.style.setProperty('top', `${ran.el.offsetTop}px`);
+      ran.el.setCssProps({ top: `${ran.el.offsetTop}px` });
       ran.el.addClass('is-replaced');
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => next.el.removeClass('is-instant')));
     } else {
@@ -213,7 +210,7 @@ export class TaskRow {
       if (this.lines.get(id) !== line || !line.leaving) return;
       line.el.remove();
       this.lines.delete(id);
-      if (!this.lines.size && !this.el.hasClass('is-closing')) this.close();
+      if (!this.lines.size) this.close();
       this.render();
     });
   }
@@ -228,10 +225,14 @@ export class TaskRow {
       }
     }
     this.render();
+    // Nothing left to count: no running time, and no result fading. A failure waits for a send with no ticker.
+    const lines = [...this.lines.values()];
+    if (!lines.some((line) => !line.done || (line.result && line.result.status !== 'failed' && !line.leaving))) this.stopTicker();
   }
 
   /** A check circle draws itself in, once: the mark keeps its element after. */
-  private mark(line: TaskLine, icon: string, draw: boolean): void {
+  private mark(line: TaskLine, icon: string): void {
+    const draw = icon === 'circle-check';
     line.markEl.empty();
     setIcon(line.markEl, icon);
     line.markEl.toggleClass('is-drawing', draw);
@@ -253,12 +254,13 @@ export class TaskRow {
 
   /** Fades the card and shrinks it, gap included, so the transcript above grows smoothly instead of jumping. */
   private close(): void {
+    if (this.el.hasClass('is-closing')) return;
     this.stopTicker();
     this.expanded = false;
     // A height transition needs a number to start from.
-    this.el.style.height = `${this.el.offsetHeight}px`;
+    this.el.setCssProps({ height: `${this.el.offsetHeight}px` });
     void this.el.offsetHeight;
-    this.el.style.height = '0px';
+    this.el.setCssProps({ height: '0px' });
     this.el.addClass('is-closing');
     this.later(LEAVE_MS, () => {
       if (!this.el.hasClass('is-closing')) return;
@@ -273,7 +275,6 @@ export class TaskRow {
     // Results waiting to be read, and always the running slot: the first task still running, or one just ended.
     const top = staying.find((line) => !line.result);
     const shown = staying.filter((line) => line.result || line === top);
-    if (!shown.length) shown.push(...staying.slice(0, 1));
     const more = staying.length - shown.length;
     if (more <= 0) this.expanded = false;
     this.el.toggleClass('is-expanded', this.expanded);
@@ -286,6 +287,7 @@ export class TaskRow {
       const folded = line.leaving || (!this.expanded && !shown.includes(line));
       line.el.toggleClass('is-folded', folded);
       line.el.toggleClass('is-leaving', line.leaving);
+      line.el.toggleClass('is-top', line === top);
       line.el.toggleAttribute('inert', folded);
       line.el.toggleClass('is-running', !line.done);
       line.el.toggleClass('is-done', line.done);

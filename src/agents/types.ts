@@ -112,6 +112,8 @@ export type AgentEvent =
   | { type: 'background'; tasks: BackgroundTask[] }
   | { type: 'notice'; task: string; description: string; status: NoticeStatus; text: string };
 
+export type NoticeEvent = Extract<AgentEvent, { type: 'notice' }>;
+
 export type NoticeStatus = 'completed' | 'failed' | 'stopped';
 
 /** One list per question, in the order asked. */

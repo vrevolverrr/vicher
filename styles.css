@@ -3999,9 +3999,9 @@
 .vicher-task :is(.vicher-task-stop, .vicher-task-dismiss).clickable-icon {
   position: absolute;
   top: calc((var(--vicher-task-line) - 24px) / 2);
-  right: calc(var(--size-4-2) + var(--vicher-task-controls));
+  right: var(--size-4-2);
   height: 24px;
-  padding: 0 var(--size-2-2);
+  padding: 0 var(--size-2-1);
   border-radius: var(--radius-s);
   background: transparent;
   color: var(--text-muted);
@@ -4018,7 +4018,7 @@
   color: var(--text-normal);
 }
 
-.vicher-task.is-running:not(.is-stopping) .vicher-task-inner:is(:hover, :focus-within) .vicher-task-stop {
+.vicher-task-inner:is(:hover, :focus-within) :is(.vicher-task-stop, .vicher-task-dismiss) {
   opacity: 1;
 }
 
@@ -4027,14 +4027,14 @@
   display: none;
 }
 
-/* Results sit below the running rows, so the controls are never on a result's line: its x takes the chevron's column. */
-.vicher-task .vicher-task-dismiss.clickable-icon {
-  right: var(--size-4-2);
-  padding: 0 var(--size-2-1);
+/* A row's buttons take the chevron's column, except on the top row while the card's controls sit there. */
+.vicher-task-row:has(.vicher-task-toggle:not([hidden])) .vicher-task.is-top .vicher-task-stop.clickable-icon {
+  right: calc(var(--size-4-2) + var(--vicher-task-controls));
 }
 
-.vicher-task.is-result .vicher-task-inner:is(:hover, :focus-within) .vicher-task-dismiss {
-  opacity: 1;
+/* Open, the controls are only the chevron, so the button sits right beside it. */
+.vicher-task-row.is-expanded:has(.vicher-task-toggle:not([hidden])) .vicher-task.is-top .vicher-task-stop.clickable-icon {
+  right: calc(var(--size-4-2) + 28px);
 }
 
 .vicher-task-row.is-expanded .vicher-task-inner:hover {

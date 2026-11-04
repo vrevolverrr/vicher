@@ -1,9 +1,10 @@
 /** @jest-environment jsdom */
-import { TaskRow, type TaskNotice } from '@/chat/view/TaskRow';
+import type { NoticeEvent } from '@/agents/types';
+import { TaskRow } from '@/chat/view/TaskRow';
 
 jest.mock('obsidian', () => ({ setIcon: jest.fn() }), { virtual: true });
 
-const done = (task: string, description: string, text: string, status: TaskNotice['status'] = 'completed'): TaskNotice =>
+const done = (task: string, description: string, text: string, status: NoticeEvent['status'] = 'completed'): NoticeEvent =>
   ({ type: 'notice', task, description, status, text });
 
 function setup() {
