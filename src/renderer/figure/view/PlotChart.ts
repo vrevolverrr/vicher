@@ -1,8 +1,9 @@
 import { div, reducedMotion, svg, tagInk } from '@/renderer/figure/view/dom';
 import { isPlain } from '@/renderer/figure/figureText';
 import type { Layer, PlotModel, Point } from '@/renderer/figure/plot/PlotModel';
-import { categoriesOf, mixModel, modelDistance, type ResolvedModel, sameShape } from '@/renderer/figure/plot/mixModel';
-import { barSteps, minus, niceTicks, tickText, wrapLabel } from '@/renderer/figure/plot/plotMath';
+import { mixModel, modelDistance, type ResolvedModel, sameShape } from '@/renderer/figure/plot/mixModel';
+import { type CategoryLabels, layoutPlot, TICK_CHAR_WIDTH, TICK_GAP } from '@/renderer/figure/plot/layoutPlot';
+import { barSteps, minus, tickText } from '@/renderer/figure/plot/plotMath';
 import { fitY } from '@/renderer/figure/plot/range';
 import { type LabelBox, placeLabels } from '@/renderer/figure/placeLabels';
 
@@ -10,10 +11,6 @@ const SERIES = 6;
 const MIN_WIDTH = 260;
 const FALLBACK_WIDTH = 480;
 const HEIGHT = 300;
-const MIN_LEFT_MARGIN = 28;
-const TICK_CHAR_WIDTH = 7.5;
-const TICK_GAP = 8;
-const Y_TITLE_WIDTH = 20;
 /** How quickly a changed plot catches up with its new data, in milliseconds, and how close counts as arrived. */
 const CATCH_UP_MS = 70;
 const ARRIVED = 0.0015;
@@ -143,39 +140,8 @@ export class PlotChart {
   /** Draws `model` as it is. Hover is added only for a plot at rest, since it is rebuilt with every frame. */
   private paint(model: ResolvedModel, interactive: boolean): void {
     const width = this.measure();
-    let height = Math.round(this.height(width));
-    const narrow = width < 480;
-    const cats = categoriesOf(model.x);
-    const range = cats ? ([0, cats.length] as [number, number]) : (model.x as [number, number]);
-    const [x0, x1] = range;
-    const [y0, y1] = model.y;
-    const xTicks = cats ? [] : niceTicks(x0, x1, narrow ? 4 : 7);
-    const margin = { top: 14, right: narrow ? 12 : 20, bottom: model.xLabel ? 46 : 32, left: 0 };
-    // Only visible tick labels need room; interpolated range endpoints can have extra decimal places.
-    const yTicks = (ph: number) => niceTicks(y0, y1, Math.max(3, Math.round(ph / 50)));
-    const widest = Math.max(...yTicks(height - margin.top - margin.bottom).map((v) => tickText(v).length));
-    margin.left = Math.max(MIN_LEFT_MARGIN, Math.ceil(widest * TICK_CHAR_WIDTH) + TICK_GAP + 4) + (model.yLabel ? Y_TITLE_WIDTH : 0);
-    let pw = width - margin.left - margin.right;
-    // A tick label is centred on its tick, so the last one needs room past the plot's right edge.
-    const last = xTicks[xTicks.length - 1];
-    if (last !== undefined && last > x0) pw = Math.min(pw, (width - margin.left - (tickText(last).length * TICK_CHAR_WIDTH) / 2) / ((last - x0) / (x1 - x0)));
-    // Category names wrap to their slot, or tilt when a word will not fit, so neighbours never run together.
-    const labels = cats ? this.categoryLabels(cats, pw / cats.length) : null;
-    if (labels) margin.bottom = labels.tilted ? 62 : 20 + 13 * Math.max(...labels.lines.map((l) => l.length));
-    let ph = height - margin.top - margin.bottom;
-    // At equal scale the plot keeps the larger scale that fits both ranges: it is centred across the spare width, or
-    // drawn shorter than asked.
-    let shift = 0;
-    if (model.equal && !cats) {
-      const scale = Math.min(pw / (x1 - x0), ph / (y1 - y0));
-      shift = (pw - (x1 - x0) * scale) / 2;
-      margin.left += shift;
-      pw -= 2 * shift;
-      height -= Math.round(ph - (y1 - y0) * scale);
-      ph = height - margin.top - margin.bottom;
-    }
-    const sx = (x: number) => margin.left + ((x - x0) / (x1 - x0)) * pw;
-    const sy = (y: number) => margin.top + (1 - (y - y0) / (y1 - y0)) * ph;
+    const layout = layoutPlot(model, width, Math.round(this.height(width)));
+    const { height, margin, pw, ph, shift, x0, x1, y0, y1, cats, labels, xTicks, sx, sy } = layout;
 
     const root = this.canvas;
     root.replaceChildren();
@@ -188,7 +154,7 @@ export class PlotChart {
     const colors = this.assignColors(model.layers);
     this.drawLegend(model, colors);
 
-    for (const v of yTicks(ph)) {
+    for (const v of layout.yTicks) {
       svg('line', { x1: margin.left, x2: margin.left + pw, y1: sy(v), y2: sy(v), class: v === 0 ? 'vicher-plot-axis' : 'vicher-plot-grid' }, root);
       svg('text', { x: margin.left - TICK_GAP, y: sy(v) + 4, 'text-anchor': 'end', class: 'vicher-plot-tick' }, root, tickText(v));
     }
@@ -345,13 +311,7 @@ export class PlotChart {
     svg('text', { x, y, 'text-anchor': anchor, class: `vicher-plot-label${strong ? ' is-strong' : ''}` }, parent, text);
   }
 
-  private categoryLabels(cats: string[], band: number): { lines: string[][]; tilted: boolean } {
-    const wrapped = cats.map((name) => wrapLabel(name, Math.max(4, Math.floor(band / 5.8))));
-    const tilted = wrapped.some((w) => !w.fits);
-    return { tilted, lines: tilted ? cats.map((name) => [name.length > 14 ? `${name.slice(0, 13)}…` : name]) : wrapped.map((w) => w.lines) };
-  }
-
-  private drawBars(layer: Extract<Layer, { kind: 'bars' }>, color: string, cats: string[], labels: { lines: string[][]; tilted: boolean }, g: { margin: { top: number; left: number }; pw: number; ph: number; sy: (y: number) => number }): void {
+  private drawBars(layer: Extract<Layer, { kind: 'bars' }>, color: string, cats: string[], labels: CategoryLabels, g: { margin: { top: number; left: number }; pw: number; ph: number; sy: (y: number) => number }): void {
     const steps = barSteps(layer.values, layer.mode).slice(0, cats.length);
     const band = g.pw / cats.length;
     const barWidth = Math.min(28, band * 0.6);
