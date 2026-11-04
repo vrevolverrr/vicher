@@ -14,7 +14,7 @@ export default function ({ n }) {
 \`\`\`
 
 - The default export is a function of the parameters (an object; \`{}\` when there are none). It returns \`<Figure>\` or, for a static drawing, one element tree (drawn as a single step without playback).
-- \`<Figure steps caption heading? render title?>\`: \`steps\` is an array of 1 to 64 plain values, one per step. \`render(step, i)\` returns the tree for that step. \`caption(step, i)\` returns the step's caption: Markdown with \`$...$\` maths, required when there are two or more steps. \`heading(step, i)\` optionally names the step in a few words, shown bold over its caption. \`title\` is optional text over the figure.
+- \`<Figure steps caption heading? render title?>\`: \`steps\` is a non-empty array of plain values, one per step. \`render(step, i)\` returns the tree for that step. \`caption(step, i)\` returns the step's caption: Markdown with \`$...$\` maths, required when there are two or more steps. \`heading(step, i)\` optionally names the step in a few words, shown bold over its caption. \`title\` is optional text over the figure.
 - Ordinary JavaScript: loops, local functions, arrays, \`Math\`, template strings. No imports, no DOM, no network, no React. The elements below exist already; nothing else does. The data the figure shows is written into the program as literals, and every number shown is computed by the program from them.
 - Name the step parameter \`step\` (not \`f\`, which models then reuse for a curve function). Do not declare a variable with an element's name.
 - Group several elements without a box, in a \`.map\` callback or a \`Plot\` or \`Diagram\`, with a fragment: \`<>...</>\`.
@@ -101,7 +101,7 @@ with \`<Pointer to="r2" name="R2 − 2R1" />\` beside it.
 - Every id in one step is unique across elements, rows, items, nodes, edges and TeX anchors; prefix ids when two objects show the same thing (\`row-B\`, \`node-B\`).
 - Every \`Arrow\`, \`Pointer\` and tag key names an id that exists in that step. Graph edges join known nodes. A \`Region\` names an \`Fn\` of its own Plot.
 - Layers go only inside \`Plot\` or \`Diagram\`, as listed. \`Figure\` is returned once, outermost.
-- Limits: 64 steps; 4,000 elements per step and 20,000 per figure; 2,000 characters per string and 512 KiB of text per figure; ids of 1 to 64 characters matching \`[A-Za-z0-9][A-Za-z0-9_.:-]*\`; Table 64 rows by 16 columns; 64 TeX anchors per step; Seq 128 items; Graph 128 nodes and 512 edges; Plot and Diagram 256 layers each, 2,000 points per layer, 256 points per shape, 4 surfaces per Plot; 8 parameters, 12 options each; Quiz 8 options; nesting depth 32; program source 64 KiB; 2 s of run time. A figure over a limit fails with the limit named.
+- An id is 1 to 64 characters matching \`[A-Za-z0-9][A-Za-z0-9_.:-]*\`.
 
 ### Example, to copy the form of and not its topic
 
