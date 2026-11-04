@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { TAGS } from '@/renderer/figure/FigureData';
+import { TAGS } from '@/renderer/figure/Tag';
 
 const css = readFileSync(path.join(__dirname, '../../../../styles.css'), 'utf8');
 const selectors = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{/g)].map((match) => match[1].trim());

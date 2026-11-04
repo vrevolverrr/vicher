@@ -2,6 +2,7 @@
 // scanner configuration"): its security rules are errors that block a submission; it leaves the rest as advice.
 import { defineConfig, globalIgnores } from 'eslint/config';
 import obsidianmd from 'eslint-plugin-obsidianmd';
+import layers from './scripts/eslintLayers.js';
 
 const warn = (setting) => (Array.isArray(setting) ? ['warn', ...setting.slice(1)] : setting === 'off' || setting === 0 ? setting : 'warn');
 const advisory = obsidianmd.configs.recommended.map((config) =>
@@ -42,6 +43,11 @@ export default defineConfig([
       'obsidianmd/validate-license': 'off',
       'obsidianmd/ui/sentence-case': ['warn', { enforceCamelCaseLower: true, ignoreWords: ['Vicher'] }],
     },
+  },
+  {
+    files: ['src/**/*.ts'],
+    plugins: { vicher: layers },
+    rules: { 'vicher/layers': 'error', 'vicher/no-dom': 'error', 'vicher/provider-names': 'error' },
   },
   globalIgnores([
     'main.js',

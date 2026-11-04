@@ -78,7 +78,7 @@ const dimensions = (testCase: FigureCase) => code('plot3', async (output) => {
   if (!testCase.plot3) return !plots.length || 'drew a 3D Plot where the case is 2D';
   if (!plots.length) return 'drew no 3D Plot';
   const kind = testCase.plot3 === 'graph' ? 'zs' : 'pts';
-  if (!plots.some((plot) => plot.children.some((layer) => layer.type === 'Fn' && kind in layer))) return `drew no ${testCase.plot3} surface`;
+  if (!plots.some((plot) => plot.children.some((layer) => layer.type === 'Surface' && kind in layer))) return `drew no ${testCase.plot3} surface`;
   const f = testCase.onSurface;
   if (f) {
     for (const plot of plots) for (const layer of plot.children) {

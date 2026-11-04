@@ -1,4 +1,4 @@
-import type { Point3, View } from '@/renderer/figure/FigureData';
+import type { Point3, View } from '@/renderer/figure/packages/plot3/Plot3Model';
 
 /**
  * Paints the faces in `order` at a grid of sample points and compares each point's last face with the nearest face there,

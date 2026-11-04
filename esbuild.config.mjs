@@ -157,6 +157,10 @@ const context = await esbuild.context({
   minify: prod,
   sourcemap: prod ? false : 'inline',
   treeShaking: true,
+  // The Claude SDK's lazy import reaches zod, so esbuild wraps zod in a lazy initializer; honouring zod's
+  // `sideEffects: false` then drops that initializer from our static imports, and figure components built at load
+  // find zod uninitialized ("is not a constructor"). Ignoring the annotations keeps the initializer.
+  ignoreAnnotations: true,
   outfile: 'main.js',
 });
 

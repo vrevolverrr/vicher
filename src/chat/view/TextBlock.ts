@@ -3,8 +3,8 @@ import { parser } from '@lezer/markdown';
 import type { ReplySegment } from '@/chat/splitReply';
 import { fenceFor, splitReply } from '@/chat/splitReply';
 import { LIMITS } from '@/renderer/figure/FigureData';
-import { figureSandbox } from '@/renderer/figure/FigureSandbox';
-import { type FigureHost, FigureView } from '@/renderer/figure/FigureView';
+import { figureSandbox } from '@/renderer/figure/view/FigureSandbox';
+import { type FigureHost, FigureView } from '@/renderer/figure/view/FigureView';
 import { canAnimate } from '@/shared/view/iconButtons';
 
 /** What a reply needs to draw Markdown and maths; the chat pane provides it. `diagrams` also draws its Mermaid fences. */
