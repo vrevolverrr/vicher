@@ -1,6 +1,6 @@
-import type { Plot3Model, Point3, View } from '@/renderer/figure/plot3/Plot3Model';
+import type { Plot3Model, Point3, View } from '@/renderer/figure/packages/plot3/Plot3Model';
 import type { Tag } from '@/renderer/figure/Tag';
-import { niceTicks, tickText } from '@/renderer/figure/plot/plotMath';
+import { niceTicks, tickText } from '@/renderer/figure/packages/plot/plotMath';
 
 export type Xy = [number, number];
 export type Rgb = readonly [number, number, number];

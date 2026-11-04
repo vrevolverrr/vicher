@@ -6,7 +6,7 @@ const path = require('path');
  * code in an `obsidian/` folder (and `main.ts`). A module (`attachments/`, `tour/`, `settings/`, `renderer/markdown/`,
  * `renderer/mermaid/`) is split into `module` (its root: no host, no DOM), `module/view` (DOM widgets) and `module/obsidian`.
  * Modules sit above the chat model and context, which never import one. `renderer/figure/` is split into `figure` (pure:
- * no DOM) and `figure/view`; it sits at the bottom, since context describes its language. Its `plot/` and `plot3/` are
+ * no DOM) and `figure/view`; it sits at the bottom, since context describes its language. Its `packages/plot/` and `packages/plot3/` are
  * self-contained packages (`plot3` builds on `plot`) that the figure root adapts to. Each zone lists the zones it may
  * import; anything else fails.
  */
@@ -57,14 +57,14 @@ function moduleOf(file) {
 }
 
 function zoneOf(file) {
-  const [top, second, third] = file.split('/');
+  const [top, second, third, fourth] = file.split('/');
   if (file === 'main.ts') return 'main';
   if (top === 'chat') return second === 'view' || second === 'obsidian' ? `chat/${second}` : 'chat';
   if (top === 'shared') return second === 'view' || second === 'obsidian' ? `shared/${second}` : 'shared';
   if (top === 'context') return second === 'obsidian' ? 'context/obsidian' : 'context';
   if (top === 'renderer' && second === 'figure') {
     if (third === 'view') return 'figure/view';
-    return third === 'plot' || third === 'plot3' ? third : 'figure';
+    return third === 'packages' && (fourth === 'plot' || fourth === 'plot3') ? fourth : 'figure';
   }
   const owner = moduleOf(file);
   if (owner) {

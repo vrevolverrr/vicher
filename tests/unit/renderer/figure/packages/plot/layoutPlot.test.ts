@@ -1,4 +1,4 @@
-import { layoutPlot } from '@/renderer/figure/plot/layoutPlot';
+import { layoutPlot } from '@/renderer/figure/packages/plot/layoutPlot';
 
 describe('layoutPlot', () => {
   it('maps the ranges onto the plotting area inside the margins', () => {

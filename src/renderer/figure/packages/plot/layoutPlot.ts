@@ -1,5 +1,5 @@
-import { categoriesOf, type ResolvedModel } from '@/renderer/figure/plot/mixModel';
-import { niceTicks, tickText, wrapLabel } from '@/renderer/figure/plot/plotMath';
+import { categoriesOf, type ResolvedModel } from '@/renderer/figure/packages/plot/mixModel';
+import { niceTicks, tickText, wrapLabel } from '@/renderer/figure/packages/plot/plotMath';
 
 const MIN_LEFT_MARGIN = 28;
 export const TICK_CHAR_WIDTH = 7.5;

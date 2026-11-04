@@ -1,5 +1,5 @@
 import { type FigureNode, LIMITS } from '@/renderer/figure/FigureData';
-import type { Plot3Model } from '@/renderer/figure/plot3/Plot3Model';
+import type { Plot3Model } from '@/renderer/figure/packages/plot3/Plot3Model';
 import { plot3Model, plotModel } from '@/renderer/figure/plotModels';
 import { validateFigure } from '@/renderer/figure/validateFigure';
 

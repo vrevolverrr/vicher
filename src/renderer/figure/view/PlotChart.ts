@@ -1,10 +1,10 @@
 import { div, reducedMotion, svg, tagInk } from '@/renderer/figure/view/dom';
 import { isPlain } from '@/renderer/figure/figureText';
-import type { Layer, PlotModel, Point } from '@/renderer/figure/plot/PlotModel';
-import { mixModel, modelDistance, type ResolvedModel, sameShape } from '@/renderer/figure/plot/mixModel';
-import { type CategoryLabels, layoutPlot, TICK_CHAR_WIDTH, TICK_GAP } from '@/renderer/figure/plot/layoutPlot';
-import { barSteps, minus, tickText } from '@/renderer/figure/plot/plotMath';
-import { fitY } from '@/renderer/figure/plot/range';
+import type { Layer, PlotModel, Point } from '@/renderer/figure/packages/plot/PlotModel';
+import { mixModel, modelDistance, type ResolvedModel, sameShape } from '@/renderer/figure/packages/plot/mixModel';
+import { type CategoryLabels, layoutPlot, TICK_CHAR_WIDTH, TICK_GAP } from '@/renderer/figure/packages/plot/layoutPlot';
+import { barSteps, minus, tickText } from '@/renderer/figure/packages/plot/plotMath';
+import { fitY } from '@/renderer/figure/packages/plot/range';
 import { type LabelBox, placeLabels } from '@/renderer/figure/placeLabels';
 
 const SERIES = 6;

@@ -1,5 +1,5 @@
 import type { NodeOf } from '@/renderer/figure/components/registry';
-import type { View } from '@/renderer/figure/plot3/Plot3Model';
+import type { View } from '@/renderer/figure/packages/plot3/Plot3Model';
 import { plot3Model, plotModel } from '@/renderer/figure/plotModels';
 import type { DrawContext, Drawn, ElementView } from '@/renderer/figure/view/components/ElementView';
 import { PlotChart } from '@/renderer/figure/view/PlotChart';

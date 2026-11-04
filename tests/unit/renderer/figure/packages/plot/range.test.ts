@@ -1,4 +1,4 @@
-import { fitY } from '@/renderer/figure/plot/range';
+import { fitY } from '@/renderer/figure/packages/plot/range';
 
 describe('fitY', () => {
   it('keeps zero as the floor of data that never goes below it', () => {

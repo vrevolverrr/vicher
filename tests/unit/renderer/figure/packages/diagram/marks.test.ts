@@ -1,4 +1,4 @@
-import { angleMark, dimensionMark, rightAngleMark, tickMarks } from '@/renderer/figure/diagram/marks';
+import { angleMark, dimensionMark, rightAngleMark, tickMarks } from '@/renderer/figure/packages/diagram/marks';
 
 describe('geometry marks', () => {
   it('spans an angle counter-clockwise with its label on the bisector, outside the arc', () => {

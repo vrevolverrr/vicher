@@ -1,4 +1,4 @@
-import type { Point3 } from '@/renderer/figure/plot3/Plot3Model';
+import type { Point3 } from '@/renderer/figure/packages/plot3/Plot3Model';
 
 /** A surface function that returns the wrong kind of value at `at`, the (u, v) where it was found. */
 export class SurfaceError extends Error {

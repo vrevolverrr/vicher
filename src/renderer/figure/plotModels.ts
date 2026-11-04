@@ -1,7 +1,7 @@
 import type { Point as DataPoint, FigureNode, Plot3Layer, PlotLayer, Point3 } from '@/renderer/figure/FigureData';
-import { breakJumps, type Layer, type PlotModel, type Point } from '@/renderer/figure/plot/PlotModel';
-import { fitRange } from '@/renderer/figure/plot/range';
-import { clampElevation, DEFAULT_VIEW, type Layer3, type Plot3Model, type Range } from '@/renderer/figure/plot3/Plot3Model';
+import { breakJumps, type Layer, type PlotModel, type Point } from '@/renderer/figure/packages/plot/PlotModel';
+import { fitRange } from '@/renderer/figure/packages/plot/range';
+import { clampElevation, DEFAULT_VIEW, type Layer3, type Plot3Model, type Range } from '@/renderer/figure/packages/plot3/Plot3Model';
 
 // The boundary between a validated figure and the plot packages: axes the program left out are fitted, and text is formatted.
 

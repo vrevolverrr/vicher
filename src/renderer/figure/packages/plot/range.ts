@@ -1,6 +1,6 @@
-import { categoriesOf } from '@/renderer/figure/plot/mixModel';
-import { barSteps, niceDomain } from '@/renderer/figure/plot/plotMath';
-import type { PlotModel } from '@/renderer/figure/plot/PlotModel';
+import { categoriesOf } from '@/renderer/figure/packages/plot/mixModel';
+import { barSteps, niceDomain } from '@/renderer/figure/packages/plot/plotMath';
+import type { PlotModel } from '@/renderer/figure/packages/plot/PlotModel';
 
 /** Past this a fitted span can overflow to Infinity; data that large is left out of the fit. */
 const HUGE = 1e300;

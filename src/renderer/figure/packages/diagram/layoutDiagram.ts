@@ -1,5 +1,5 @@
-import { angleMark, dimensionMark, rightAngleMark, tickMarks } from '@/renderer/figure/diagram/marks';
-import { bounds, type Extent, pointsOf, type Room, widen } from '@/renderer/figure/diagram/diagramExtent';
+import { angleMark, dimensionMark, rightAngleMark, tickMarks } from '@/renderer/figure/packages/diagram/marks';
+import { bounds, type Extent, pointsOf, type Room, widen } from '@/renderer/figure/packages/diagram/diagramExtent';
 import type { DiagramLayer, FigureNode, Point } from '@/renderer/figure/FigureData';
 import type { Tag } from '@/renderer/figure/Tag';
 import { type LabelBox, placeLabels } from '@/renderer/figure/placeLabels';

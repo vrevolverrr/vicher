@@ -1,7 +1,7 @@
-import type { Layer3, Plot3Model, Point3, View } from '@/renderer/figure/plot3/Plot3Model';
-import { clipLine, meshOf, paintOrder, projection, scene3, textWidth, type Colours, type TextBox } from '@/renderer/figure/plot3/scene3';
+import type { Layer3, Plot3Model, Point3, View } from '@/renderer/figure/packages/plot3/Plot3Model';
+import { clipLine, meshOf, paintOrder, projection, scene3, textWidth, type Colours, type TextBox } from '@/renderer/figure/packages/plot3/scene3';
 
-import { depthErrors } from '../../../../depthErrors';
+import { depthErrors } from '../../../../../depthErrors';
 
 const SIDE = 49;
 const SIZE = { width: 480, height: 320 };

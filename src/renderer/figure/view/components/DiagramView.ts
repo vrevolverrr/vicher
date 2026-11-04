@@ -1,5 +1,5 @@
 import type { NodeOf } from '@/renderer/figure/components/registry';
-import { diagramExtent, type Extent, type Room, widen } from '@/renderer/figure/diagram/diagramExtent';
+import { diagramExtent, type Extent, type Room, widen } from '@/renderer/figure/packages/diagram/diagramExtent';
 import type { ElementView } from '@/renderer/figure/view/components/ElementView';
 import { drawDiagram } from '@/renderer/figure/view/drawDiagram';
 

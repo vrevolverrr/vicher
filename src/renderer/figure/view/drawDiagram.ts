@@ -1,5 +1,5 @@
-import { type Extent, type Room } from '@/renderer/figure/diagram/diagramExtent';
-import { estimateLabel, labelOf, layoutDiagram, type LabelSize } from '@/renderer/figure/diagram/layoutDiagram';
+import { type Extent, type Room } from '@/renderer/figure/packages/diagram/diagramExtent';
+import { estimateLabel, labelOf, layoutDiagram, type LabelSize } from '@/renderer/figure/packages/diagram/layoutDiagram';
 import { arrowHeads, div, type Markdown, svg, tagInk } from '@/renderer/figure/view/dom';
 import type { DiagramLayer, FigureNode } from '@/renderer/figure/FigureData';
 

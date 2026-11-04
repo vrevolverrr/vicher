@@ -1,4 +1,4 @@
-import { circleThrough, foot, intersect, rotate } from '@/renderer/figure/diagram/construct';
+import { circleThrough, foot, intersect, rotate } from '@/renderer/figure/packages/diagram/construct';
 
 describe('construction functions', () => {
   it('intersects lines, and gives null for parallel ones', () => {

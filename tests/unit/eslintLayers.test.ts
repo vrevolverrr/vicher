@@ -14,7 +14,7 @@ tester.run('layers', rules.layers as never, {
     { filename: at('chat/view/TextBlock.ts'), code: "import { FigureView } from '@/renderer/figure/view/FigureView';" },
     { filename: at('agents/claude/ClaudeAgent.ts'), code: "import { x } from './ClaudeModelAdapter';" },
     { filename: at('shared/view/icon.ts'), code: "export { setIcon } from 'obsidian';" },
-    { filename: at('renderer/figure/plot3/scene3.ts'), code: "import { TAGS } from '@/renderer/figure/Tag'; import { niceTicks } from '@/renderer/figure/plot/plotMath';" },
+    { filename: at('renderer/figure/packages/plot3/scene3.ts'), code: "import { TAGS } from '@/renderer/figure/Tag'; import { niceTicks } from '@/renderer/figure/packages/plot/plotMath';" },
   ],
   invalid: [
     { filename: at('renderer/figure/geometry.ts'), code: "import { svg } from '@/renderer/figure/view/dom';", errors: 1 },
@@ -25,8 +25,8 @@ tester.run('layers', rules.layers as never, {
     { filename: at('agents/claude/ClaudeToolAdapter.ts'), code: "import { x } from '@/agents/claude/ClaudeModelAdapter';", errors: 1 },
     { filename: at('chat/view/Card.ts'), code: "import { Notice } from 'obsidian';", errors: 1 },
     { filename: at('shared/view/icon.ts'), code: "export { setIcon, Notice } from 'obsidian';", errors: 1 },
-    { filename: at('renderer/figure/plot/plotMath.ts'), code: "import { LIMITS } from '@/renderer/figure/FigureData';", errors: 1 },
-    { filename: at('renderer/figure/plot/plotMath.ts'), code: "import { scene3 } from '@/renderer/figure/plot3/scene3';", errors: 1 },
+    { filename: at('renderer/figure/packages/plot/plotMath.ts'), code: "import { LIMITS } from '@/renderer/figure/FigureData';", errors: 1 },
+    { filename: at('renderer/figure/packages/plot/plotMath.ts'), code: "import { scene3 } from '@/renderer/figure/packages/plot3/scene3';", errors: 1 },
   ],
 });
 

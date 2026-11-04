@@ -1,6 +1,6 @@
 import type { NodeOf } from '@/renderer/figure/components/registry';
-import { layoutGraph } from '@/renderer/figure/network/layoutGraph';
-import type { NetworkLayout } from '@/renderer/figure/network/layoutNetwork';
+import { layoutGraph } from '@/renderer/figure/packages/network/layoutGraph';
+import type { NetworkLayout } from '@/renderer/figure/packages/network/layoutNetwork';
 import type { ElementView } from '@/renderer/figure/view/components/ElementView';
 import { drawGraph } from '@/renderer/figure/view/drawGraph';
 

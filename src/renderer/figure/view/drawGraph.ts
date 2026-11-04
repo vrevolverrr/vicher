@@ -2,8 +2,8 @@ import { arrowHeads, div, lineInk, type Markdown, svg } from '@/renderer/figure/
 import type { FigureNode } from '@/renderer/figure/FigureData';
 import type { Tag } from '@/renderer/figure/Tag';
 import { type Point, status } from '@/renderer/figure/geometry';
-import { edgeKeys } from '@/renderer/figure/network/layoutGraph';
-import type { NetworkLayout } from '@/renderer/figure/network/layoutNetwork';
+import { edgeKeys } from '@/renderer/figure/packages/network/layoutGraph';
+import type { NetworkLayout } from '@/renderer/figure/packages/network/layoutNetwork';
 
 type Graph = Extract<FigureNode, { type: 'Graph' }>;
 

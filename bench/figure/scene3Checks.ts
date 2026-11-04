@@ -1,9 +1,9 @@
 // Checks a figure's 3D Plots straight from `scene3`, with no window: finite geometry, ticks and overlays inside the
 // frame, and paint order against a depth buffer, over many views and widths. The canvas paints exactly this order.
 import type { FigureNode } from '@/renderer/figure/FigureData';
-import type { Plot3Model, View } from '@/renderer/figure/plot3/Plot3Model';
+import type { Plot3Model, View } from '@/renderer/figure/packages/plot3/Plot3Model';
 import { plot3Model } from '@/renderer/figure/plotModels';
-import { meshOf, paintOrder, scene3, textWidth, type Xy } from '@/renderer/figure/plot3/scene3';
+import { meshOf, paintOrder, scene3, textWidth, type Xy } from '@/renderer/figure/packages/plot3/scene3';
 import { depthErrors } from '../../tests/depthErrors';
 import type { Finding } from './checks';
 import { runFigure } from './runProgram';

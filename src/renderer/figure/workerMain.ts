@@ -2,11 +2,11 @@
 // Nothing here is trusted by the host, which validates what this posts; this only samples functions and makes the tree plain.
 import { transform } from 'sucrase';
 
-import { along, circleThrough, dist, foot, intersect, rotate } from '@/renderer/figure/diagram/construct';
+import { along, circleThrough, dist, foot, intersect, rotate } from '@/renderer/figure/packages/diagram/construct';
 import { ELEMENT_NAMES } from '@/renderer/figure/components/names';
 import { LIMITS } from '@/renderer/figure/FigureData';
-import { sampleFn } from '@/renderer/figure/plot/sampleFn';
-import { sampleSurface, SurfaceError } from '@/renderer/figure/plot3/sampleSurface';
+import { sampleFn } from '@/renderer/figure/packages/plot/sampleFn';
+import { sampleSurface, SurfaceError } from '@/renderer/figure/packages/plot3/sampleSurface';
 
 declare const self: { onmessage: ((event: { data: unknown }) => void) | null; postMessage(message: unknown): void; __run?: (module: unknown, exports: unknown) => void; __probe?: number };
 declare function importScripts(...urls: string[]): void;

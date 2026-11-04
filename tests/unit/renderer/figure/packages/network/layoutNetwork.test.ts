@@ -1,4 +1,4 @@
-import { layoutNetwork } from '@/renderer/figure/network/layoutNetwork';
+import { layoutNetwork } from '@/renderer/figure/packages/network/layoutNetwork';
 
 type Box = { x: number; y: number; width: number; height: number };
 const overlap = (a: Box, b: Box): boolean => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;

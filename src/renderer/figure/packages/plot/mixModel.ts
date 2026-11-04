@@ -1,4 +1,4 @@
-import type { Layer, PlotModel, Point } from '@/renderer/figure/plot/PlotModel';
+import type { Layer, PlotModel, Point } from '@/renderer/figure/packages/plot/PlotModel';
 
 /** A plot whose vertical range is fixed, so a change of it can be animated too. */
 export type ResolvedModel = PlotModel & { y: [number, number] };

@@ -1,4 +1,4 @@
-import { sampleSurface, SurfaceError } from '@/renderer/figure/plot3/sampleSurface';
+import { sampleSurface, SurfaceError } from '@/renderer/figure/packages/plot3/sampleSurface';
 
 describe('sampleSurface', () => {
   it('returns heights for a graph and points for a parametric surface, with holes as null', () => {

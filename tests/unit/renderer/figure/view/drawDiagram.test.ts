@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { diagramExtent } from '@/renderer/figure/diagram/diagramExtent';
+import { diagramExtent } from '@/renderer/figure/packages/diagram/diagramExtent';
 import { drawDiagram } from '@/renderer/figure/view/drawDiagram';
 import type { DiagramLayer, FigureNode } from '@/renderer/figure/FigureData';
 

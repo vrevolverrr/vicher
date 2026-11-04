@@ -1,5 +1,5 @@
 import type { FigureNode, GraphEdge, GraphNode } from '@/renderer/figure/FigureData';
-import { layoutNetwork, type NetworkLayout } from '@/renderer/figure/network/layoutNetwork';
+import { layoutNetwork, type NetworkLayout } from '@/renderer/figure/packages/network/layoutNetwork';
 
 type Graph = Extract<FigureNode, { type: 'Graph' }>;
 

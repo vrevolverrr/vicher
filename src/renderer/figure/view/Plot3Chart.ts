@@ -1,8 +1,8 @@
 import { computedColour, div, parseColour, svg, tagInk } from '@/renderer/figure/view/dom';
-import { clampElevation, type Plot3Model, type View } from '@/renderer/figure/plot3/Plot3Model';
+import { clampElevation, type Plot3Model, type View } from '@/renderer/figure/packages/plot3/Plot3Model';
 import { isPlain } from '@/renderer/figure/figureText';
 import { type Box, type LabelBox, placeLabels } from '@/renderer/figure/placeLabels';
-import { type Colours, type Overlay, type Scene3, scene3, textWidth, type Xy } from '@/renderer/figure/plot3/scene3';
+import { type Colours, type Overlay, type Scene3, scene3, textWidth, type Xy } from '@/renderer/figure/packages/plot3/scene3';
 
 const FALLBACK_WIDTH = 480;
 const RAMP = 5;

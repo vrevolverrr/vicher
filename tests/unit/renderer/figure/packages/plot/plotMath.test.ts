@@ -1,4 +1,4 @@
-import { barSteps, niceDomain, niceTicks, tickText, wrapLabel } from '@/renderer/figure/plot/plotMath';
+import { barSteps, niceDomain, niceTicks, tickText, wrapLabel } from '@/renderer/figure/packages/plot/plotMath';
 
 describe('niceTicks', () => {
   it('steps by round numbers that stay inside the range', () => {
