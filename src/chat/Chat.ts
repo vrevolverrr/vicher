@@ -542,7 +542,8 @@ export class Chat {
     });
     this.session = session;
     if (this.tasks.length) {
-      // The old process takes its tasks with it.
+      // The old process takes its tasks with it, so they show as stopped rather than done.
+      for (const { id, description } of this.tasks) this.view?.notice({ type: 'notice', task: id, description, status: 'stopped', text: 'The agent restarted' });
       this.tasks = [];
       this.view?.background([]);
     }

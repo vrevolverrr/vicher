@@ -287,6 +287,17 @@ describe('Chat', () => {
     expect(settled).toBe(true);
   });
 
+  it('reports the tasks a restart ends as stopped, not finished', async () => {
+    const { chat, session } = setup();
+    const view = recordingView();
+    chat.attach(view);
+    chat.open(); await settle();
+    session().emit({ type: 'background', tasks: [{ id: 't1', description: 'Review ch6' }] });
+    view.calls.length = 0;
+    await chat.restart(); await settle();
+    expect(view.calls).toEqual(['notice:Review ch6', 'background:0']);
+  });
+
   it('stops the running turn through the session and a task by its id, leaving pending messages to run', async () => {
     const { chat, session } = setup();
     chat.open(); await settle();
