@@ -1,10 +1,9 @@
 import type { FigureNode, GraphEdge, GraphNode } from '@/renderer/figure/FigureData';
-import { formatFigure } from '@/renderer/figure/formatFigure';
 import { layoutNetwork, type NetworkLayout } from '@/renderer/figure/network/layoutNetwork';
 
 type Graph = Extract<FigureNode, { type: 'Graph' }>;
 
-const nodeText = (node: GraphNode): string => [formatFigure(node.label ?? node.id), node.sub === undefined ? '' : formatFigure(node.sub)].filter(Boolean).join('\n');
+const nodeText = (node: GraphNode): string => [node.label ?? node.id, node.sub ?? ''].filter(Boolean).join('\n');
 
 /** Each edge's key across steps: its id, or its ends and how many edges with the same ends come before it. */
 export function edgeKeys(edges: readonly GraphEdge[]): string[] {
@@ -33,7 +32,7 @@ export function layoutGraph(uses: readonly Graph[]): NetworkLayout {
     edgeKeys(graph.edges).forEach((key, i) => {
       const edge = graph.edges[i];
       if (!edges.has(key)) edges.set(key, { id: key, from: edge.from, to: edge.to });
-      if (edge.label !== undefined) edgeLabels.push(formatFigure(edge.label));
+      if (edge.label !== undefined) edgeLabels.push(edge.label);
     });
   }
   return layoutNetwork({ nodes: [...nodes].map((id) => ({ id })), edges: [...edges.values()], nodeLabels, edgeLabels });

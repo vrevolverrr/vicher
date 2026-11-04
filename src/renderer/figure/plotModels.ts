@@ -1,5 +1,4 @@
 import type { Point as DataPoint, FigureNode, Plot3Layer, PlotLayer, Point3 } from '@/renderer/figure/FigureData';
-import { formatFigure } from '@/renderer/figure/formatFigure';
 import { breakJumps, type Layer, type PlotModel, type Point } from '@/renderer/figure/plot/PlotModel';
 import { fitRange } from '@/renderer/figure/plot/range';
 import { clampElevation, DEFAULT_VIEW, type Layer3, type Plot3Model, type Range } from '@/renderer/figure/plot3/Plot3Model';
@@ -19,7 +18,7 @@ export function plotModel(plot: Plot): PlotModel {
   const curve = (id: string): Point[] => breakJumps(fns.get(id)!.pts.map(([x, y]): Point => [x, y]), box);
   const layers = plot.children.flatMap((layer): Layer[] => {
     const marks = { ...(layer.tag ? { tag: layer.tag } : {}) };
-    const label = 'label' in layer && layer.label !== undefined ? formatFigure(layer.label) : undefined;
+    const label = 'label' in layer ? layer.label : undefined;
     switch (layer.type) {
       case 'Fn':
         return [{ kind: 'line', points: breakJumps(layer.pts.map(([x, y]): Point => [x, y]), box), label, ...marks }];
@@ -43,7 +42,7 @@ export function plotModel(plot: Plot): PlotModel {
       case 'Points':
         return layer.pts.map(([x, y], i): Layer => ({ kind: 'dot', x, y, label: i === 0 ? label : undefined, ...marks }));
       case 'Label':
-        return [{ kind: 'note', x: layer.at[0], y: layer.at[1], text: formatFigure(layer.text), ...marks }];
+        return [{ kind: 'note', x: layer.at[0], y: layer.at[1], text: layer.text, ...marks }];
     }
     return [];
   });
@@ -88,8 +87,8 @@ export function plot3Model(plot: Plot3): Plot3Model {
   // apart are data in different units, which one scale would squash to a sliver.
   const solid = plot.x === undefined && plot.y === undefined && plot.z === undefined && Math.max(...spans) <= 10 * Math.min(...spans);
   const children = plot.children.map((layer): Layer3 => {
-    if (layer.type === 'Label') return { type: 'Label', at: layer.at, text: formatFigure(layer.text), ...(layer.tag ? { tag: layer.tag } : {}) };
-    const marks = { ...(layer.id ? { id: layer.id } : {}), ...(layer.tag ? { tag: layer.tag } : {}), ...(layer.label === undefined ? {} : { label: formatFigure(layer.label) }) };
+    if (layer.type === 'Label') return { type: 'Label', at: layer.at, text: layer.text, ...(layer.tag ? { tag: layer.tag } : {}) };
+    const marks = { ...(layer.id ? { id: layer.id } : {}), ...(layer.tag ? { tag: layer.tag } : {}), ...(layer.label === undefined ? {} : { label: layer.label }) };
     switch (layer.type) {
       case 'Surface':
         return layer.zs ? { type: 'Fn', zs: layer.zs, x: [layer.from ?? x[0], layer.to ?? x[1]], y, ...marks } : { type: 'Fn', pts: layer.pts!, ...marks };

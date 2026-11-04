@@ -1,7 +1,6 @@
 import { arrowHeads, div, lineInk, type Markdown, svg } from '@/renderer/figure/view/dom';
 import type { FigureNode } from '@/renderer/figure/FigureData';
 import type { Tag } from '@/renderer/figure/Tag';
-import { formatFigure } from '@/renderer/figure/formatFigure';
 import { type Point, status } from '@/renderer/figure/geometry';
 import { edgeKeys } from '@/renderer/figure/network/layoutGraph';
 import type { NetworkLayout } from '@/renderer/figure/network/layoutNetwork';
@@ -36,7 +35,7 @@ export function drawGraph(parent: HTMLElement, graph: Graph, layout: NetworkLayo
     position(label, geometry.label);
     label.style.width = `${geometry.label.width}px`;
     label.style.height = `${geometry.label.height}px`;
-    markdown(label.appendChild(createSpan()), `${status(tag ?? '')}${formatFigure(edge.label)}`);
+    markdown(label.appendChild(createSpan()), `${status(tag ?? '')}${edge.label}`);
   }
 
   const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
@@ -50,7 +49,7 @@ export function drawGraph(parent: HTMLElement, graph: Graph, layout: NetworkLayo
     position(el, box);
     el.style.width = `${box.width}px`;
     el.style.height = `${box.height}px`;
-    markdown(el.appendChild(div('vicher-network-node-label')), `${status(tag ?? '')}${formatFigure(node.label ?? node.id)}`);
+    markdown(el.appendChild(div('vicher-network-node-label')), `${status(tag ?? '')}${node.label ?? node.id}`);
     if (node.sub !== undefined) markdown(el.appendChild(div('vicher-network-node-sub')), node.sub);
   }
 }

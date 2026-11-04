@@ -2,7 +2,6 @@ import { angleMark, dimensionMark, rightAngleMark, tickMarks } from '@/renderer/
 import { bounds, type Extent, pointsOf, type Room, widen } from '@/renderer/figure/diagram/diagramExtent';
 import type { DiagramLayer, FigureNode, Point } from '@/renderer/figure/FigureData';
 import type { Tag } from '@/renderer/figure/Tag';
-import { formatFigure } from '@/renderer/figure/formatFigure';
 import { type LabelBox, placeLabels } from '@/renderer/figure/placeLabels';
 
 type Diagram = Extract<FigureNode, { type: 'Diagram' }>;
@@ -31,10 +30,10 @@ export interface DiagramLayout {
 export type LabelSize = { width: number; height: number };
 
 /** A label's estimated size before it is rendered and measured. */
-export const estimateLabel = (text: string | number): LabelSize => ({ width: formatFigure(text).length * CHAR_WIDTH + 8, height: 18 });
+export const estimateLabel = (text: string): LabelSize => ({ width: text.length * CHAR_WIDTH + 8, height: 18 });
 
 /** The text a layer writes as its label, if any. */
-export const labelOf = (layer: DiagramLayer): string | number | undefined => (layer.type === 'Label' ? layer.text : 'label' in layer ? layer.label : undefined);
+export const labelOf = (layer: DiagramLayer): string | undefined => (layer.type === 'Label' ? layer.text : 'label' in layer ? layer.label : undefined);
 
 /**
  * Lays out a Diagram showing `extent` within `available` pixels of width, y upwards, scaled to fit, with each label at

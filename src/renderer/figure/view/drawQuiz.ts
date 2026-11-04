@@ -1,5 +1,4 @@
 import type { FigureNode } from '@/renderer/figure/FigureData';
-import { formatFigure } from '@/renderer/figure/formatFigure';
 
 type Quiz = Extract<FigureNode, { type: 'Quiz' }>;
 
@@ -74,7 +73,7 @@ export function drawQuiz(parent: HTMLElement, quiz: Quiz, markdown: (el: HTMLEle
   submit.addEventListener('click', () => {
     if (chosen === null || locked) return;
     const verdict = chosen === right ? ' (correct)' : ' (not correct)';
-    const message = `My answer: ${plain(formatFigure(quiz.options[chosen]))}${verdict}. Question: ${plain(quiz.question)}`;
+    const message = `My answer: ${plain(quiz.options[chosen])}${verdict}. Question: ${plain(quiz.question)}`;
     if (send && !send(message)) {
       note.textContent = 'Wait for the reply to finish, then submit.';
       return;
