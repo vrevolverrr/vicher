@@ -123,8 +123,10 @@ async function open(cli: FakeClaude, options: Partial<AgentSessionOptions> = {})
   return { session, events };
 }
 
-async function until(check: () => boolean): Promise<void> {
-  for (let i = 0; i < 200 && !check(); i++) await new Promise((resolve) => setImmediate(resolve));
+/** Waits on time, not turns of the event loop: a send that reads an image file waits on real I/O, slower under load. */
+async function until(check: () => boolean, ms = 2000): Promise<void> {
+  const end = Date.now() + ms;
+  while (!check() && Date.now() < end) await new Promise((resolve) => setImmediate(resolve));
   if (!check()) throw new Error('Timed out');
 }
 
