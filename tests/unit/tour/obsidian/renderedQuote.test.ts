@@ -1,5 +1,5 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 import { renderedQuote } from '@/tour/obsidian/renderedQuote';
 

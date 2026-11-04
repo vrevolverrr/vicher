@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 import { LIMITS } from '@/renderer/figure/FigureData';
 import { FigureSandbox, type RunResult } from '@/renderer/figure/view/FigureSandbox';
 import { SANDBOX_URL } from '@/renderer/figure/sandboxSource';
@@ -6,7 +6,7 @@ import { SANDBOX_URL } from '@/renderer/figure/sandboxSource';
 type Posted = { type: string; id: number; request: { kind: string; source?: string } };
 
 const SAFE_PROBE = { require: 'undefined', process: 'undefined', importWorks: true, fetchBlocked: true };
-const flush = (): Promise<void> => jest.advanceTimersByTimeAsync(0);
+const flush = async (): Promise<void> => { await vi.advanceTimersByTimeAsync(0); };
 
 /** Drives the iframe's side of the protocol: jsdom does not load the `data:` document. */
 function frame(): { iframe: HTMLIFrameElement; posts: Posted[]; say(data: unknown, source?: Window): void } {
@@ -38,13 +38,13 @@ const runs = (side: ReturnType<typeof frame>): Posted[] => side.posts.filter((po
 let sandbox: FigureSandbox;
 
 beforeEach(() => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
   sandbox = new FigureSandbox();
 });
 
 afterEach(() => {
   sandbox.destroy();
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 describe('FigureSandbox', () => {
@@ -75,12 +75,12 @@ describe('FigureSandbox', () => {
     const result = sandbox.run('x', {}, () => 0).finally(() => {
       settled = true;
     });
-    await jest.advanceTimersByTimeAsync(LIMITS.startMs);
+    await vi.advanceTimersByTimeAsync(LIMITS.startMs);
     expect(settled).toBe(false);
     const second = document.querySelector('iframe')!;
     expect(second).not.toBe(side.iframe);
     if (load) second.dispatchEvent(new Event('load'));
-    await jest.advanceTimersByTimeAsync(LIMITS.startMs);
+    await vi.advanceTimersByTimeAsync(LIMITS.startMs);
     await expect(result).resolves.toEqual({ ok: false, error: 'The figure could not run', repairable: false });
     expect(document.querySelector('iframe')).toBeNull();
   });
@@ -142,7 +142,7 @@ describe('FigureSandbox', () => {
     const side = await started(sandbox);
     const result = sandbox.run('x', {}, () => 0);
     await flush();
-    await jest.advanceTimersByTimeAsync(LIMITS.replyWaitMs);
+    await vi.advanceTimersByTimeAsync(LIMITS.replyWaitMs);
     const iframes = document.querySelectorAll('iframe');
     expect(iframes).toHaveLength(1);
     expect(iframes[0]).not.toBe(side.iframe);
@@ -156,7 +156,7 @@ describe('FigureSandbox', () => {
     const [rerun] = runs(again);
     expect(rerun.request.source).toBe('x');
     // Silent a second time, it fails without another try.
-    await jest.advanceTimersByTimeAsync(LIMITS.replyWaitMs);
+    await vi.advanceTimersByTimeAsync(LIMITS.replyWaitMs);
     await expect(result).resolves.toEqual({ ok: false, error: 'The figure could not run', repairable: false });
   });
 
@@ -165,7 +165,7 @@ describe('FigureSandbox', () => {
     [{ ...SAFE_PROBE, fetchBlocked: false }, 'Figures are disabled: the sandbox is not isolated in this Obsidian build'],
     [{ ...SAFE_PROBE, importWorks: false }, 'Figures are disabled: this Obsidian build blocks running them'],
   ])('disables runs after a failed probe', async (probe, error) => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const side = await started(sandbox, probe);
     await expect(sandbox.run('x', {}, () => 0)).resolves.toEqual({ ok: false, error, repairable: false });
     expect(runs(side)).toHaveLength(0);

@@ -1,15 +1,16 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
+import type { Mock, Mocked } from 'vitest';
 import { ContextChips, type ContextChipsHost } from '@/chat/view/ContextChips';
 import type { OpenDocumentState } from '@/context/NoteContext';
 
-jest.mock('obsidian', () => ({ setIcon: jest.fn() }), { virtual: true });
+vi.mock('obsidian', () => ({ setIcon: vi.fn() }));
 
 const NOTE = { path: 'Physics/Waves.md', icon: 'file-text', label: 'Waves', excluded: false };
 
 describe('ContextChips', () => {
-  let host: jest.Mocked<ContextChipsHost>;
+  let host: Mocked<ContextChipsHost>;
   let chips: ContextChips;
 
   const chipEls = () => [...document.querySelectorAll<HTMLElement>('.vicher-context-chip')];
@@ -18,7 +19,7 @@ describe('ContextChips', () => {
 
   beforeEach(() => {
     document.body.replaceChildren();
-    host = { toggleNote: jest.fn(), removeSelection: jest.fn() };
+    host = { toggleNote: vi.fn(), removeSelection: vi.fn() };
     chips = new ContextChips(document.body, host);
   });
 
@@ -67,13 +68,13 @@ describe('ContextChips', () => {
 
   describe('with animation', () => {
     let finish: (() => void)[];
-    let animate: jest.Mock;
+    let animate: Mock;
 
     beforeEach(() => {
       finish = [];
-      animate = jest.fn(() => ({ finished: new Promise<void>((resolve) => finish.push(resolve)) }));
+      animate = vi.fn(() => ({ finished: new Promise<void>((resolve) => finish.push(resolve)) }));
       Object.defineProperty(HTMLElement.prototype, 'animate', { configurable: true, value: animate });
-      window.matchMedia = jest.fn(() => ({ matches: false })) as unknown as typeof window.matchMedia;
+      window.matchMedia = vi.fn(() => ({ matches: false })) as unknown as typeof window.matchMedia;
     });
 
     afterEach(() => {

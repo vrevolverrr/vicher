@@ -1,11 +1,11 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 import type { ChatSummary } from '@/chat/ChatRecord';
 import type { HistoryMenuHost } from '@/chat/view/HistoryMenu';
 import { HistoryMenu } from '@/chat/view/HistoryMenu';
 
-jest.mock('obsidian', () => ({ setIcon: jest.fn() }), { virtual: true });
+vi.mock('obsidian', () => ({ setIcon: vi.fn() }));
 
 function chat(id: string, title: string): ChatSummary {
   return { id, agent: 'claude', title, updatedAt: Date.now(), text: '' };
@@ -13,10 +13,10 @@ function chat(id: string, title: string): ChatSummary {
 
 function setup(chats: ChatSummary[], current?: string, tabs?: HistoryMenuHost['tabs']) {
   const host: HistoryMenuHost = {
-    chats: jest.fn(async () => chats),
+    chats: vi.fn(async () => chats),
     current: () => current,
-    open: jest.fn(),
-    showAll: jest.fn(),
+    open: vi.fn(),
+    showAll: vi.fn(),
     tabs,
   };
   const anchor = document.body.appendChild(document.createElement('button'));
@@ -29,7 +29,7 @@ const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 beforeEach(() => {
   document.body.replaceChildren();
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 describe('HistoryMenu', () => {
@@ -113,22 +113,22 @@ describe('HistoryMenu', () => {
   });
 
   it('stays open while the pointer moves from the button onto the menu', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     const { anchor, menu } = setup([chat('a', 'First')]);
     anchor.dispatchEvent(new Event('pointerenter'));
     anchor.dispatchEvent(new Event('pointerleave'));
     document.querySelector('.vicher-history-menu')!.dispatchEvent(new Event('pointerenter'));
-    jest.advanceTimersByTime(500);
+    vi.advanceTimersByTime(500);
     expect(anchor.getAttribute('aria-expanded')).toBe('true');
     menu.close();
   });
 
   it('closes shortly after the pointer leaves', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     const { anchor } = setup([chat('a', 'First')]);
     anchor.dispatchEvent(new Event('pointerenter'));
     anchor.dispatchEvent(new Event('pointerleave'));
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
     expect(anchor.getAttribute('aria-expanded')).toBe('false');
   });
 

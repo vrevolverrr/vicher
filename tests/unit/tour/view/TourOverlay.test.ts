@@ -1,5 +1,5 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 import { TourOverlay } from '@/tour/view/TourOverlay';
 
@@ -8,15 +8,15 @@ describe('TourOverlay', () => {
 
   beforeEach(() => {
     frames = [];
-    jest.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => frames.push(callback));
-    jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined);
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => frames.push(callback));
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined);
   });
 
   function setup() {
     const parent = document.body.appendChild(document.createElement('div'));
     const pane = parent.appendChild(document.createElement('div'));
-    jest.spyOn(pane, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, right: 400, bottom: 300, width: 400, height: 300, x: 0, y: 0, toJSON: () => ({}) });
-    const hold = jest.fn();
+    vi.spyOn(pane, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, right: 400, bottom: 300, width: 400, height: 300, x: 0, y: 0, toJSON: () => ({}) });
+    const hold = vi.fn();
     return { overlay: new TourOverlay(parent, hold), hold, layer: parent.querySelector<HTMLElement>('.vicher-tour')!, pane };
   }
 

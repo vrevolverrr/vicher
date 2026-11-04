@@ -10,7 +10,7 @@ describeUnix('login shell PATH for GUI-launched processes', () => {
   let loginBin: string;
 
   beforeEach(() => {
-    jest.resetModules();
+    vi.resetModules();
     directory = mkdtempSync(path.join(tmpdir(), 'vicher login shell '));
     loginBin = path.join(directory, 'login only bin');
     mkdirSync(loginBin);

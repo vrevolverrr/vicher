@@ -1,5 +1,6 @@
 import type { App } from 'obsidian';
 import { Component, finishRenderMath, Notice, renderMath, setIcon } from 'obsidian';
+import { mount, unmount } from 'svelte';
 
 import type { AgentSession } from '@/agents/types';
 import { PROVIDERS } from '@/agents/providers';
@@ -13,12 +14,12 @@ import { type NoteQuote, quoteOf } from '@/context/NoteContext';
 import type { Chat, ChatEvents, ChatView } from '@/chat/Chat';
 import type { AgentTurn, Rating, UserTurn } from '@/chat/ChatRecord';
 import { usesStoredFile } from '@/chat/ChatRecord';
-import { TaskRow } from '@/chat/view/TaskRow';
+import TaskRow from '@/chat/view/TaskRow.svelte';
 import { ToolGroup } from '@/chat/view/ToolGroup';
 import { type ChatAttachment, isMention, mentionPaths, type StoredAttachment } from '@/context/ChatAttachment';
 import type { VaultAttachments } from '@/attachments/obsidian/VaultAttachments';
 import type { VaultFileIndex } from '@/attachments/obsidian/VaultFileIndex';
-import { ApprovalCard } from '@/chat/view/ApprovalCard';
+import Approvals from '@/chat/view/Approvals.svelte';
 import { type AfterRender, MarkdownContentRenderer } from '@/renderer/markdown/obsidian/MarkdownContentRenderer';
 import { renderMermaidDiagrams } from '@/renderer/mermaid/obsidian/mermaidDiagrams';
 import type { HighlightTour, TourEvent } from '@/tour/HighlightTour';
@@ -43,8 +44,8 @@ export interface ChatHost {
 export class ChatPane extends Component {
   private messagesEl!: HTMLElement;
   private composer!: Composer;
-  private approvals!: ApprovalCard;
-  private tasks!: TaskRow;
+  private approvals!: ReturnType<typeof Approvals>;
+  private tasks!: ReturnType<typeof TaskRow>;
   /** Bubbles of messages sent and not yet taken in, by message id. Only one that waits behind other work says "Queued". */
   private readonly queued = new Map<string, { turnEl: HTMLElement; labelEl?: HTMLElement; message: string }>();
   /**
@@ -120,11 +121,17 @@ export class ChatPane extends Component {
       finishRenderMath,
     };
     this.registerDomEvent(this.messagesEl, 'click', (event) => this.openInternalLink(event));
-    this.tasks = new TaskRow(root, () => this.chat.agent, (id) => this.chat.stopTask(id).catch((error: unknown) => {
-      new Notice(`Could not stop this task: ${messageOf(error)}`);
-      throw error;
-    }));
-    this.approvals = new ApprovalCard(root, () => this.refreshTab());
+    this.tasks = mount(TaskRow, {
+      target: root,
+      props: {
+        agent: () => this.chat.agent,
+        stop: (id: string) => this.chat.stopTask(id).catch((error: unknown) => {
+          new Notice(`Could not stop this task: ${messageOf(error)}`);
+          throw error;
+        }),
+      },
+    });
+    this.approvals = mount(Approvals, { target: root, props: { changed: () => this.refreshTab() } });
     const composerArea = root.createDiv({ cls: 'vicher-chat-composer-area' });
     this.composer = new Composer(this, composerArea, {
       mentions: (query) => this.host.files.find(query, MENTION_LIMIT),
@@ -143,7 +150,7 @@ export class ChatPane extends Component {
     this.chat.open();
   }
 
-  get waitingForApproval(): boolean { return this.approvals.size > 0; }
+  get waitingForApproval(): boolean { return this.approvals.size() > 0; }
 
   activate(active: boolean): void {
     this.contentEl.hidden = !active;
@@ -199,7 +206,8 @@ export class ChatPane extends Component {
     this.walkers.clear();
     this.unpin?.();
     this.composer.dispose();
-    this.tasks.destroy();
+    void unmount(this.tasks);
+    void unmount(this.approvals);
     await closing;
     for (const reply of this.replies.values()) reply.destroy();
     this.replies.clear();
@@ -229,7 +237,6 @@ export class ChatPane extends Component {
     if (context.selection) document.sent(context.selection);
     // A dropped message is drawn as not sent; nothing else waits on it.
     this.chat.send(context).catch(() => undefined);
-    this.tasks.sent();
   }
 
   /** What the chat draws on: bubbles, the reply being written, the tour, the context meter, the task row. */

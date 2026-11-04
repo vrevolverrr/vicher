@@ -1,17 +1,17 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 import type { ChatSummary } from '@/chat/ChatRecord';
 import type { ChatPickerActions } from '@/chat/obsidian/ChatPicker';
 import { ChatPicker } from '@/chat/obsidian/ChatPicker';
 
-jest.mock(
+vi.mock(
   'obsidian',
   () => ({
     Modal: class {
       contentEl = document.createElement('div');
       modalEl = document.createElement('div');
-      close = jest.fn();
+      close = vi.fn();
     },
     TextComponent: class {
       inputEl: HTMLInputElement;
@@ -20,16 +20,15 @@ jest.mock(
       setValue(value: string): this { this.inputEl.value = value; return this; }
       onChange(callback: (value: string) => void): this { this.inputEl.addEventListener('input', () => callback(this.inputEl.value)); return this; }
     },
-    Notice: jest.fn(),
-    setIcon: jest.fn(),
-  }),
-  { virtual: true },
+    Notice: vi.fn(),
+    setIcon: vi.fn(),
+  })
 );
 
 const HOUR = 3_600_000;
 
 // jsdom does not implement scrolling.
-HTMLElement.prototype.scrollIntoView = jest.fn();
+HTMLElement.prototype.scrollIntoView = vi.fn();
 
 function chats(count: number, text = ''): ChatSummary[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -42,7 +41,7 @@ function chats(count: number, text = ''): ChatSummary[] {
 }
 
 function open(list: ChatSummary[], actions: Partial<ChatPickerActions> = {}) {
-  const full: ChatPickerActions = { open: jest.fn(), remove: jest.fn(async () => undefined), ...actions };
+  const full: ChatPickerActions = { open: vi.fn(), remove: vi.fn(async () => undefined), ...actions };
   const picker = new ChatPicker({} as never, list, full);
   picker.onOpen();
   const el = picker.modalEl;
@@ -112,14 +111,14 @@ describe('ChatPicker', () => {
   });
 
   it('puts a day heading above each group once, even when a group spans pages', () => {
-    jest.useFakeTimers({ now: new Date(2026, 9, 31, 12).getTime() });
+    vi.useFakeTimers({ now: new Date(2026, 9, 31, 12).getTime() });
     try {
       const view = open(chats(120));
       view.listEl.dispatchEvent(new Event('scroll'));
 
       expect(view.headings()).toEqual(['Today', 'Yesterday', 'Previous 7 days', 'Older']);
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
@@ -165,7 +164,7 @@ describe('ChatPicker', () => {
   });
 
   it('keeps the chat and the row when the delete fails', async () => {
-    const view = open(chats(3), { remove: jest.fn(async () => Promise.reject(new Error('locked'))) });
+    const view = open(chats(3), { remove: vi.fn(async () => Promise.reject(new Error('locked'))) });
 
     view.listEl.querySelector<HTMLElement>('.vicher-chat-delete')!.click();
     view.listEl.querySelector<HTMLElement>('.is-confirming .mod-warning')!.click();

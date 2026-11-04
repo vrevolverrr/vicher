@@ -1,7 +1,8 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
+import type { Mock } from 'vitest';
 import { ChatTabs, type ChatTab } from '@/chat/view/ChatTabs';
 
-jest.mock('obsidian', () => ({ setIcon: jest.fn() }), { virtual: true });
+vi.mock('obsidian', () => ({ setIcon: vi.fn() }));
 
 let resize: () => void;
 const tab = (id: string, fields: Partial<ChatTab> = {}): ChatTab => ({ id, title: `Topic ${id}`, agent: 'claude', running: false, unread: false, failed: false, ...fields });
@@ -15,7 +16,7 @@ beforeEach(() => {
 });
 
 it('updates status and selection without replacing focused buttons', () => {
-  const host = { create: jest.fn(), select: jest.fn(), close: jest.fn() };
+  const host = { create: vi.fn(), select: vi.fn(), close: vi.fn() };
   const tabs = new ChatTabs(document.body.createDiv(), host);
   tabs.set([tab('a'), tab('b')], 'a');
   const first = tabs.el.querySelector<HTMLButtonElement>('button')!;
@@ -33,7 +34,7 @@ it('fits the composer strip, keeps the selected tab visible and restores tabs as
   const header = document.body.createDiv();
   let width = 92;
   Object.defineProperty(header, 'clientWidth', { get: () => width });
-  const tabs = new ChatTabs(header, { create: jest.fn(), select: jest.fn(), close: jest.fn() });
+  const tabs = new ChatTabs(header, { create: vi.fn(), select: vi.fn(), close: vi.fn() });
   tabs.set(['a', 'b', 'c', 'd'].map((id) => tab(id)), 'd');
   const visible = () => [...tabs.el.querySelectorAll<HTMLButtonElement>('[role="tab"]')].filter((button) => !button.hidden).map((button) => button.textContent);
   expect(visible()).toEqual(['1Topic a', '4Topic d']);
@@ -49,7 +50,7 @@ it('fits the composer strip, keeps the selected tab visible and restores tabs as
 });
 
 it('supports arrow navigation and closing without changing chats on hover', () => {
-  const host = { create: jest.fn(), select: jest.fn(), close: jest.fn() };
+  const host = { create: vi.fn(), select: vi.fn(), close: vi.fn() };
   const tabs = new ChatTabs(document.body.createDiv(), host);
   tabs.set([tab('a'), tab('b')], 'a');
   const first = tabs.el.querySelector<HTMLButtonElement>('button')!;
@@ -70,7 +71,7 @@ it('supports arrow navigation and closing without changing chats on hover', () =
 });
 
 it('keeps replacement order for numbering, overflow and keyboard navigation, with a trailing new-tab button', () => {
-  const host = { create: jest.fn(), select: jest.fn(), close: jest.fn() };
+  const host = { create: vi.fn(), select: vi.fn(), close: vi.fn() };
   const tabs = new ChatTabs(document.body.createDiv(), host);
   tabs.set([tab('a'), tab('b'), tab('c')], 'b');
   tabs.set([tab('a'), tab('d'), tab('c')], 'd');
@@ -89,7 +90,7 @@ describe('tab motion', () => {
   let originalAnimate: PropertyDescriptor | undefined;
   let originalMatchMedia: PropertyDescriptor | undefined;
   let reduced: boolean;
-  let played: Array<{ frames: Keyframe[]; finish: () => void; cancel: jest.Mock }>;
+  let played: Array<{ frames: Keyframe[]; finish: () => void; cancel: Mock }>;
 
   beforeEach(() => {
     originalAnimate = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'animate');
@@ -101,7 +102,7 @@ describe('tab motion', () => {
       let finish!: () => void;
       let reject!: (error: Error) => void;
       const finished = new Promise<void>((resolve, fail) => { finish = resolve; reject = fail; });
-      const cancel = jest.fn(() => reject(new Error('Animation cancelled')));
+      const cancel = vi.fn(() => reject(new Error('Animation cancelled')));
       played.push({ frames, finish, cancel });
       return { finished, cancel };
     } });
@@ -115,7 +116,7 @@ describe('tab motion', () => {
   });
 
   it('expands a new tab and its gap once, without replaying on status changes', async () => {
-    const tabs = new ChatTabs(document.body.createDiv(), { create: jest.fn(), select: jest.fn(), close: jest.fn() });
+    const tabs = new ChatTabs(document.body.createDiv(), { create: vi.fn(), select: vi.fn(), close: vi.fn() });
     tabs.set([tab('a')], 'a');
     expect(played).toHaveLength(0);
     tabs.set([tab('a'), tab('b')], 'b');
@@ -131,7 +132,7 @@ describe('tab motion', () => {
   });
 
   it('keeps a removed tab in its slot while it shrinks, with survivors immediately numbered and focus restored', async () => {
-    const tabs = new ChatTabs(document.body.createDiv(), { create: jest.fn(), select: jest.fn(), close: jest.fn() });
+    const tabs = new ChatTabs(document.body.createDiv(), { create: vi.fn(), select: vi.fn(), close: vi.fn() });
     tabs.set([tab('a'), tab('b'), tab('c')], 'b');
     const middle = tabs.el.querySelectorAll<HTMLButtonElement>('[role="tab"]')[1]!;
     middle.focus();
@@ -154,7 +155,7 @@ describe('tab motion', () => {
   });
 
   it('handles removal during expansion and cancels unfinished motion on destroy', async () => {
-    const tabs = new ChatTabs(document.body.createDiv(), { create: jest.fn(), select: jest.fn(), close: jest.fn() });
+    const tabs = new ChatTabs(document.body.createDiv(), { create: vi.fn(), select: vi.fn(), close: vi.fn() });
     tabs.set([tab('a')], 'a');
     tabs.set([tab('a'), tab('b')], 'b');
     tabs.set([tab('a')], 'a');
@@ -169,7 +170,7 @@ describe('tab motion', () => {
 
   it('adds and removes immediately under reduced motion', () => {
     reduced = true;
-    const tabs = new ChatTabs(document.body.createDiv(), { create: jest.fn(), select: jest.fn(), close: jest.fn() });
+    const tabs = new ChatTabs(document.body.createDiv(), { create: vi.fn(), select: vi.fn(), close: vi.fn() });
     tabs.set([tab('a')], 'a');
     tabs.set([tab('a'), tab('b')], 'b');
     tabs.set([tab('a')], 'a');

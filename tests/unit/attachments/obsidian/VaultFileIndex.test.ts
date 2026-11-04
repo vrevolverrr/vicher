@@ -2,7 +2,7 @@ import { FileSystemAdapter, TFile, TFolder } from 'obsidian';
 
 import { VaultFileIndex } from '@/attachments/obsidian/VaultFileIndex';
 
-jest.mock(
+vi.mock(
   'obsidian',
   () => {
     class TAbstractFile {
@@ -20,8 +20,7 @@ jest.mock(
       }
     }
     return { TFile, TFolder, FileSystemAdapter };
-  },
-  { virtual: true },
+  }
 );
 
 type Handler = (...args: unknown[]) => void;
@@ -33,11 +32,11 @@ function setup(files: string[], folders: string[] = [], recent: string[] = []) {
   const handlers: Record<string, Handler> = {};
   const vault = {
     adapter: new FileSystemAdapter(),
-    getFiles: jest.fn(() => files.map(file)),
-    getAllFolders: jest.fn(() => folders.map(folder)),
+    getFiles: vi.fn(() => files.map(file)),
+    getAllFolders: vi.fn(() => folders.map(folder)),
     on: (name: string, handler: Handler) => (handlers[name] = handler),
   };
-  const index = new VaultFileIndex({ vault, workspace: { getLastOpenFiles: () => recent } } as never, { registerEvent: jest.fn() } as never);
+  const index = new VaultFileIndex({ vault, workspace: { getLastOpenFiles: () => recent } } as never, { registerEvent: vi.fn() } as never);
   const names = (query: string): string[] => index.find(query, 8).map((file) => file.name);
   return { index, vault, handlers, names };
 }

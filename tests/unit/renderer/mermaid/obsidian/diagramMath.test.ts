@@ -1,6 +1,7 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
+import type { Mock } from 'vitest';
 import { readFileSync } from 'fs';
 import { renderMath } from 'obsidian';
 import * as path from 'path';
@@ -8,7 +9,7 @@ import type * as Pele from 'pele';
 
 import { diagramMath } from '@/renderer/mermaid/obsidian/diagramMath';
 
-jest.mock('obsidian', () => ({ renderMath: jest.fn() }), { virtual: true });
+vi.mock('obsidian', () => ({ renderMath: vi.fn() }));
 
 // Pele is ESM only; the global build is the script Obsidian ships and Vicher loads.
 // The script is strict, so its top-level `var pele` stays local to eval; a script tag would make it global.
@@ -19,8 +20,8 @@ const FORMULA = '<mjx-container><svg viewBox="0 0 10 5"><path d="M0 0"/></svg></
 
 /** jsdom does no layout, so the formula's measured box is set by hand. */
 function drawsFormulaAs(width: number, height: number): void {
-  jest.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ width, height } as DOMRect);
-  (renderMath as jest.Mock).mockImplementation(() => {
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ width, height } as DOMRect);
+  (renderMath as Mock).mockImplementation(() => {
     const holder = document.createElement('div');
     holder.innerHTML = FORMULA;
     return holder.firstElementChild;
@@ -29,12 +30,12 @@ function drawsFormulaAs(width: number, height: number): void {
 
 beforeEach(() => {
   // jsdom has no canvas, so Pele measures label text with its own estimate.
-  jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
 });
 
 afterEach(() => {
-  jest.restoreAllMocks();
-  (renderMath as jest.Mock).mockReset();
+  vi.restoreAllMocks();
+  (renderMath as Mock).mockReset();
   document.body.replaceChildren();
 });
 
@@ -51,7 +52,7 @@ describe('diagramMath', () => {
   it('draws the formula at the label font size, and leaves nothing in the page', () => {
     drawsFormulaAs(30, 14);
     let fontSize = '';
-    (renderMath as jest.Mock).mockImplementation(() => {
+    (renderMath as Mock).mockImplementation(() => {
       fontSize = document.body.querySelector('div')!.style.fontSize;
       const holder = document.createElement('div');
       holder.innerHTML = FORMULA;
@@ -66,8 +67,8 @@ describe('diagramMath', () => {
 
   /** Makes MathJax answer with `svg`, sized 30 by 14. */
   function drawsSvg(svg: string): void {
-    jest.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ width: 30, height: 14 } as DOMRect);
-    (renderMath as jest.Mock).mockImplementation(() => {
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ width: 30, height: 14 } as DOMRect);
+    (renderMath as Mock).mockImplementation(() => {
       const holder = document.createElement('div');
       holder.innerHTML = `<mjx-container>${svg}</mjx-container>`;
       return holder.firstElementChild;
@@ -110,7 +111,7 @@ describe('diagramMath', () => {
     drawsFormulaAs(0, 0);
     expect(diagramMath('x^2', 14)).toBeNull();
 
-    (renderMath as jest.Mock).mockImplementation(() => {
+    (renderMath as Mock).mockImplementation(() => {
       throw new Error('MathJax is not loaded');
     });
     expect(diagramMath('x^2', 14)).toBeNull();

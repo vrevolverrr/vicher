@@ -27,7 +27,7 @@ export function runFigureWorker(workerSource: string, request: unknown, timeoutM
         if (text === undefined) throw new Error(`importScripts: no blob at ${url}`);
         vm.runInContext(text, context, { filename: url, timeout: timeoutMs });
       },
-      postMessage: (message: unknown) => resolve(inThisRealm(structuredClone(message))),
+      postMessage: (message: unknown) => resolve(structuredClone(message)),
       __request: request,
     };
     context.self = context;
@@ -39,11 +39,4 @@ export function runFigureWorker(workerSource: string, request: unknown, timeoutM
       reject(error instanceof Error ? error : new Error(String(error)));
     }
   });
-}
-
-/** The clone's arrays and objects rebuilt here: Jest's `structuredClone` returns them from Node's own realm. */
-function inThisRealm(value: unknown): unknown {
-  if (Array.isArray(value)) return Array.from(value, inThisRealm);
-  if (typeof value !== 'object' || value === null) return value;
-  return Object.fromEntries(Object.keys(value).map((key) => [key, inThisRealm((value as Record<string, unknown>)[key])]));
 }

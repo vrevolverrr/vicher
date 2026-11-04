@@ -70,3 +70,8 @@ if (typeof HTMLElement !== 'undefined') {
     },
   });
 }
+
+// jsdom has no matchMedia, and `svelte/motion` reads it when it loads.
+if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && !window.matchMedia) {
+  window.matchMedia = (media: string) => ({ media, matches: false, addEventListener() {}, removeEventListener() {} }) as unknown as MediaQueryList;
+}

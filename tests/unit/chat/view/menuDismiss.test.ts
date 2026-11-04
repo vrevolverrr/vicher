@@ -1,5 +1,5 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 import { dismissOnOutside, menuLabelId, removeMenu } from '@/chat/view/menuDismiss';
 
@@ -7,7 +7,7 @@ function setup() {
   const anchor = document.body.appendChild(document.createElement('button'));
   const menu = document.body.appendChild(document.createElement('div'));
   const inside = menu.appendChild(document.createElement('button'));
-  const close = jest.fn();
+  const close = vi.fn();
   const stop = dismissOnOutside(anchor, menu, close);
   return { anchor, menu, inside, close, stop };
 }
@@ -68,15 +68,15 @@ describe('menuLabelId', () => {
 
 describe('removeMenu', () => {
   it('marks the menu as closing, then removes it', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     const menu = document.body.appendChild(document.createElement('div'));
 
     removeMenu(menu);
     expect(menu.classList.contains('is-closing')).toBe(true);
     expect(menu.isConnected).toBe(true);
 
-    jest.advanceTimersByTime(200);
+    vi.advanceTimersByTime(200);
     expect(menu.isConnected).toBe(false);
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 });

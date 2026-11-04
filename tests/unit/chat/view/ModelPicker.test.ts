@@ -1,12 +1,12 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 import type { AgentId, ModelOption } from '@/agents/types';
 import type { ModelPickerHost } from '@/chat/view/ModelPicker';
 import type { ModelChoice } from '@/chat/ChatDefaults';
 import { effortMenu, modelMenu, Popover } from '@/chat/view/ModelPicker';
 
-jest.mock('obsidian', () => ({ setIcon: jest.fn() }), { virtual: true });
+vi.mock('obsidian', () => ({ setIcon: vi.fn() }));
 
 const MODELS: Record<AgentId, ModelOption[]> = {
   claude: [

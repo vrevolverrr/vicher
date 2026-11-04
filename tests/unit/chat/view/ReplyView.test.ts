@@ -1,5 +1,5 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 import type { ToolStatus } from '@/agents/types';
 import { ReplyView } from '@/chat/view/ReplyView';
@@ -8,12 +8,12 @@ import { figureSandbox } from '@/renderer/figure/view/FigureSandbox';
 import type { TourEvent } from '@/tour/HighlightTour';
 import type { WalkthroughHost } from '@/tour/view/Walkthrough';
 
-jest.mock('obsidian', () => ({ setIcon: jest.fn() }), { virtual: true });
+vi.mock('obsidian', () => ({ setIcon: vi.fn() }));
 // A figure's fence here holds the payload a program would return, as JSON; `!` starts one that fails.
-jest.mock('@/renderer/figure/view/FigureSandbox', () => ({
+vi.mock('@/renderer/figure/view/FigureSandbox', () => ({
   figureSandbox: {
-    warm: jest.fn(),
-    run: jest.fn((source: string) => Promise.resolve(source.startsWith('!') ? { ok: false, error: source.slice(1), repairable: true } : { ok: true, payload: JSON.parse(source) as unknown })),
+    warm: vi.fn(),
+    run: vi.fn((source: string) => Promise.resolve(source.startsWith('!') ? { ok: false, error: source.slice(1), repairable: true } : { ok: true, payload: JSON.parse(source) as unknown })),
   },
 }));
 
@@ -54,16 +54,16 @@ describe('ReplyView', () => {
     reply.appendText('```figure\n' + stepped + '\n```');
     reply.finish();
     await settle();
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
-      const idle = jest.getTimerCount();
+      const idle = vi.getTimerCount();
       el.querySelector<HTMLButtonElement>('[aria-label="Play"]')!.click();
-      expect(jest.getTimerCount()).toBeGreaterThan(idle);
+      expect(vi.getTimerCount()).toBeGreaterThan(idle);
       reply.destroy();
-      expect(jest.getTimerCount()).toBe(idle);
-      jest.advanceTimersByTime(1000);
+      expect(vi.getTimerCount()).toBe(idle);
+      vi.advanceTimersByTime(1000);
       expect(el.querySelector('.vicher-player')).toBeNull();
-    } finally { jest.useRealTimers(); }
+    } finally { vi.useRealTimers(); }
   });
   let el: HTMLElement;
   let reply: ReplyView;
@@ -132,14 +132,14 @@ describe('ReplyView', () => {
 
   function withFakeTimers(run: () => void): void {
     reply.finish();
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
       el = document.createElement('div');
       host = hostOf();
     reply = new ReplyView(el, markdown, host);
       run();
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   }
 
@@ -149,16 +149,16 @@ describe('ReplyView', () => {
       const time = () => el.querySelector('.vicher-tools-time')!.textContent;
       expect(time()).toBe('');
 
-      jest.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(3000);
       expect(time()).toBe('3s');
 
-      jest.advanceTimersByTime(62_000);
+      vi.advanceTimersByTime(62_000);
       expect(time()).toBe('1m 5s');
 
       reply.finish();
-      jest.advanceTimersByTime(5000);
+      vi.advanceTimersByTime(5000);
       expect(time()).toBe('1m 5s');
-      expect(jest.getTimerCount()).toBe(0);
+      expect(vi.getTimerCount()).toBe(0);
     });
   });
 
@@ -181,7 +181,7 @@ describe('ReplyView', () => {
 
   it('settles a longer working line as the time spent thinking', () => {
     withFakeTimers(() => {
-      jest.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(3000);
       reply.appendText('Look at line 3.');
       reply.finish();
       expect(blocks(el)).toEqual(['vicher-tools: Thought for 3s', 'vicher-reply-text: Look at line 3.']);
@@ -196,7 +196,7 @@ describe('ReplyView', () => {
     withFakeTimers(() => {
       tool('a', 'Read', 'running');
       tool('a', 'Read', 'done');
-      jest.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(3000);
       reply.appendText('It tracks active users.');
       reply.finish();
       expect(blocks(el)).toEqual(['vicher-tools: Used 1 Read', 'vicher-reply-text: It tracks active users.']);
@@ -216,7 +216,7 @@ describe('ReplyView', () => {
   });
 
   it('keeps a run that just ended active, so a call that follows at once joins it with no working line between', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
       reply = new ReplyView(el = document.createElement('div'), markdown, host, undefined, true);
       tool('a', 'Read', 'running');
@@ -229,7 +229,7 @@ describe('ReplyView', () => {
       expect(blocks(el)).toEqual(['vicher-tools: Using Grep']);
 
       tool('b', 'Grep', 'done');
-      jest.advanceTimersByTime(600);
+      vi.advanceTimersByTime(600);
       expect(blocks(el)).toEqual(['vicher-tools: Used 1 Read and 1 Grep', expect.stringMatching(/^vicher-tools: \w.+\w$/)]);
       tool('c', 'Read', 'running');
       expect(blocks(el)).toEqual(['vicher-tools: Using Read']);
@@ -239,7 +239,7 @@ describe('ReplyView', () => {
       reply.appendText('Found it.');
       expect(el.querySelector('.vicher-tools')?.classList.contains('is-running')).toBe(false);
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
@@ -268,7 +268,7 @@ describe('ReplyView', () => {
     Object.defineProperty(window, 'matchMedia', { configurable: true, value: () => ({ matches: false }) });
     let finish!: () => void;
     const finished = new Promise<Animation>((resolve) => { finish = () => resolve({} as Animation); });
-    Object.defineProperty(HTMLElement.prototype, 'animate', { configurable: true, value: jest.fn(() => ({ finished })) });
+    Object.defineProperty(HTMLElement.prototype, 'animate', { configurable: true, value: vi.fn(() => ({ finished })) });
     try {
       const source = kind === 'mermaid' ? 'flowchart LR\nA --> B' : figure(node('Total'));
       reply.appendText(`\`\`\`${kind}\n${source}\n`);
@@ -309,7 +309,7 @@ describe('ReplyView', () => {
   });
 
   it('shows a drawing card while a figure streams, and draws it once the fence closes', async () => {
-    const run = jest.mocked(figureSandbox.run);
+    const run = vi.mocked(figureSandbox.run);
     run.mockClear();
     const frame = () => el.querySelector('.vicher-reply-figure')!;
     reply.appendText('```figure\n' + figure(node('Total')) + '\n');
@@ -396,7 +396,7 @@ describe('ReplyView', () => {
   });
 
   it('adds one copy button when the reply ends, which copies the text as written', async () => {
-    const writeText = jest.fn().mockResolvedValue(undefined);
+    const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
     reply.appendText('Look at **line 3**.');
     tool('a', 'Read', 'done');
@@ -467,18 +467,18 @@ describe('ReplyView', () => {
     });
 
     it('animates clicks when selecting and clearing a thumb', () => {
-      window.matchMedia = jest.fn().mockReturnValue({ matches: false });
+      window.matchMedia = vi.fn().mockReturnValue({ matches: false });
       const { up } = rated();
-      up.animate = jest.fn();
+      up.animate = vi.fn();
       up.click();
       up.click();
       expect(up.animate).toHaveBeenCalledTimes(2);
     });
 
     it('keeps the selected state without animation when reduced motion is preferred', () => {
-      window.matchMedia = jest.fn().mockReturnValue({ matches: true });
+      window.matchMedia = vi.fn().mockReturnValue({ matches: true });
       const { down } = rated();
-      down.animate = jest.fn();
+      down.animate = vi.fn();
       down.click();
       expect(down.animate).not.toHaveBeenCalled();
       expect(down.classList.contains('is-active')).toBe(true);
@@ -580,7 +580,7 @@ describe('ReplyView', () => {
     });
 
     it('keeps stops out of the copied text', () => {
-      const writeText = jest.fn().mockResolvedValue(undefined);
+      const writeText = vi.fn().mockResolvedValue(undefined);
       Object.assign(navigator, { clipboard: { writeText } });
       reply.appendText('The answer.');
       reply.highlight(stop('first', { comment: 'Look' }));
@@ -636,7 +636,7 @@ describe('ReplyView', () => {
   });
 
   it('does not draw a finished figure again while later text streams in', async () => {
-    const run = jest.mocked(figureSandbox.run);
+    const run = vi.mocked(figureSandbox.run);
     run.mockClear();
     const streamEl = document.createElement('div');
     const streaming = new ReplyView(streamEl, markdown, hostOf());

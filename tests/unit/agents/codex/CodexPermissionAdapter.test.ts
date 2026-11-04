@@ -32,7 +32,7 @@ const nativeDefaults = {
 };
 
 it('restores every native sandbox field on resumed Inherit', async () => {
-  const probe = jest.fn().mockResolvedValue(nativeDefaults);
+  const probe = vi.fn().mockResolvedValue(nativeDefaults);
   const prepared = await CodexPermissionAdapter.prepare('inherit', 'saved', probe);
   expect(probe).toHaveBeenCalledTimes(1);
   expect(prepared.thread).toEqual({ approvalPolicy: 'on-request', approvalsReviewer: 'user' });
@@ -41,7 +41,7 @@ it('restores every native sandbox field on resumed Inherit', async () => {
 });
 
 it.each([undefined, 'inherit'] as const)('does not probe fresh native defaults for %s', async (policy) => {
-  const probe = jest.fn();
+  const probe = vi.fn();
   const prepared = await CodexPermissionAdapter.prepare(policy, undefined, probe);
   expect(probe).not.toHaveBeenCalled();
   expect(prepared.thread).toEqual({});
@@ -53,7 +53,7 @@ it.each([
   ['auto', { approvalPolicy: 'on-request', approvalsReviewer: 'auto_review', sandbox: 'workspace-write' }],
   ['bypass', { approvalPolicy: 'never', approvalsReviewer: 'user', sandbox: 'danger-full-access' }],
 ] as const)('encodes explicit %s without probing even on resume', async (policy, settings) => {
-  const probe = jest.fn();
+  const probe = vi.fn();
   expect((await CodexPermissionAdapter.prepare(policy, 'saved', probe)).thread).toEqual(settings);
   expect(probe).not.toHaveBeenCalled();
 });

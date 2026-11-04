@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 import type { AgentId } from '@/agents/types';
 import { appendAgentIcon } from '@/chat/view/agentIcons';
 

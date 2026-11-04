@@ -1,4 +1,7 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
+import * as obsidianMock from 'obsidian';
+import { flushSync } from 'svelte';
+import type { Mock } from 'vitest';
 import { webcrypto } from 'node:crypto';
 import { TextEncoder } from 'node:util';
 import type { App, DataAdapter, WorkspaceLeaf } from 'obsidian';
@@ -13,8 +16,9 @@ import { ChatStore } from '@/chat/ChatStore';
 import { VaultAttachments } from '@/attachments/obsidian/VaultAttachments';
 import type { VaultFileIndex } from '@/attachments/obsidian/VaultFileIndex';
 import { HighlightTour } from '@/tour/HighlightTour';
+import { installFakeAnimate } from '../../../fakeAnimate';
 
-jest.mock('obsidian', () => {
+vi.mock('obsidian', () => {
   class Component {
     loaded = false;
     children: Component[] = [];
@@ -41,10 +45,10 @@ jest.mock('obsidian', () => {
   return {
     Component, ItemView, FileView: class extends ItemView {}, MarkdownView: class extends ItemView {}, FileSystemAdapter,
     Modal: class {}, TFile: class {}, TFolder: class {}, Menu: class {},
-    Notice: jest.fn(), setIcon: jest.fn(), finishRenderMath: jest.fn(),
-    MarkdownRenderer: { render: jest.fn(async (_app, text, el) => { el.textContent = text; }) },
+    Notice: vi.fn(), setIcon: vi.fn(), renderMath: vi.fn(), finishRenderMath: vi.fn(),
+    MarkdownRenderer: { render: vi.fn(async (_app, text, el) => { el.textContent = text; }) },
   };
-}, { virtual: true });
+});
 
 /**
  * A session that takes each message in at once, as an idle agent does. `events.push` emits on it; `signal` is the
@@ -55,12 +59,12 @@ interface FakeSession extends AgentSession {
   /** Messages sent, by id; set `hold` to keep them pending until the test takes them in. */
   sent: string[];
   hold: boolean;
-  stopTask: jest.Mock;
+  stopTask: Mock;
   options: AgentSessionOptions;
   readonly signal: AbortSignal | undefined;
   events: { push(event: AgentEvent): void; close(): void };
-  setModel: jest.Mock;
-  close: jest.Mock;
+  setModel: Mock;
+  close: Mock;
 }
 
 function fakeSession(id: string, options: AgentSessionOptions): FakeSession {
@@ -91,9 +95,9 @@ function fakeSession(id: string, options: AgentSessionOptions): FakeSession {
       turn = undefined;
       emit({ type: 'done', status: 'interrupted' });
     },
-    stopTask: jest.fn(async () => undefined),
+    stopTask: vi.fn(async () => undefined),
     started: async () => undefined,
-    title: async () => 'A conversation', skills: async () => [], setModel: jest.fn(async () => undefined), close: jest.fn(async () => turn?.abort()),
+    title: async () => 'A conversation', skills: async () => [], setModel: vi.fn(async () => undefined), close: vi.fn(async () => turn?.abort()),
   };
 }
 
@@ -108,7 +112,7 @@ function setup() {
   const agent: AgentAdapter = {
     id: 'claude', skillSyntax: { prefix: '/', atStart: true }, fileMention: (path) => `@"${path}"`, toolsOnResume: true,
     authState: async () => 'logged-in', models: async () => [],
-    openSession: jest.fn(async (options) => {
+    openSession: vi.fn(async (options) => {
       const session = fakeSession(`session-${sessions.length}`, options);
       sessions.push(session);
       return session;
@@ -125,14 +129,14 @@ function setup() {
     remove: async (path: string) => { disk.delete(path); },
   };
   const store = new ChatStore(files);
-  const vault = Object.assign(new (jest.requireMock('obsidian').FileSystemAdapter)(), {
+  const vault = Object.assign(new ((obsidianMock as any).FileSystemAdapter)(), {
     ...files, exists: async (path: string) => disk.has(path), mkdir: async () => undefined,
   });
   const images = new VaultAttachments(vault as DataAdapter, 'attachments');
-  const app = { vault: { adapter: vault }, workspace: { getMostRecentLeaf: () => null, rootSplit: {}, on: jest.fn(), requestSaveLayout: jest.fn() } } as unknown as App;
-  const stage = { show: jest.fn(async () => true), clear: jest.fn(), timing: jest.fn(), rest: jest.fn() };
+  const app = { vault: { adapter: vault }, workspace: { getMostRecentLeaf: () => null, rootSplit: {}, on: vi.fn(), requestSaveLayout: vi.fn() } } as unknown as App;
+  const stage = { show: vi.fn(async () => true), clear: vi.fn(), timing: vi.fn(), rest: vi.fn() };
   const tour = new HighlightTour(stage);
-  const leaf = { app, updateHeader: jest.fn() } as unknown as WorkspaceLeaf;
+  const leaf = { app, updateHeader: vi.fn() } as unknown as WorkspaceLeaf;
   const view: ChatView = new ChatView(leaf, {
     files: { find: () => [] } as unknown as VaultFileIndex, images, tour,
     openChat: (options) => view.openChat(options), pickChat: async () => undefined,
@@ -182,11 +186,11 @@ describe('permission relay', () => {
     expect(panel().textContent).toContain('Allowed once (demo only).');
     expect(panel().querySelector('.vicher-approval-value')?.textContent).toContain('network');
     panel().querySelectorAll<HTMLButtonElement>('.vicher-approval-card button')[0]!.click(); await settle(); await frame();
-    expect(panel().querySelector('.vicher-question .vicher-approval-title')?.textContent).toContain('irrationality of √2');
+    expect(panel().querySelector('.vicher-approval-card .vicher-approval-title')?.textContent).toContain('irrationality of √2');
     panel().querySelector<HTMLButtonElement>('.vicher-approval-card .vicher-approval-deny')!.click();
     await running;
     expect(panel().textContent).toContain('Skipped (demo only).');
-    expect(panel().querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
+    expect(panel().querySelector('.vicher-approval-card')).toBeNull();
     expect(panel().textContent).toContain('Demo complete.');
     expect(sessions.every((session) => session.input.length === 0)).toBe(true);
     expect(replies(await store.load(view.chatId!))[0]?.status).toBe('completed');
@@ -203,7 +207,7 @@ describe('permission relay', () => {
     else await view.closeChat(id);
     await running;
     stale.click(); await settle();
-    expect(originalPanel.querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
+    expect(originalPanel.querySelector('.vicher-approval-card')).toBeNull();
     expect(originalPanel.textContent).not.toContain('Sample 2');
     expect(replies(await store.load(id))[0]?.status).toBe('interrupted');
   });
@@ -222,12 +226,12 @@ describe('permission relay', () => {
     expect(view.contentEl.querySelector('[role="tab"]')?.getAttribute('aria-label')).toContain('Needs approval');
     await view.openChat({ fresh: true }); await settle();
     expect(panel()).not.toBe(firstPanel);
-    expect(panel().querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
+    expect(panel().querySelector('.vicher-approval-card')).toBeNull();
     select(0);
     expect(panel()).toBe(firstPanel);
     panel().querySelectorAll<HTMLButtonElement>('.vicher-approval-card button')[1]!.click();
     expect(await pending).toBe(true);
-    expect(panel().querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
+    expect(panel().querySelector('.vicher-approval-card')).toBeNull();
   });
 
   it('declines a pending request on Stop and ignores its stale button', async () => {
@@ -236,10 +240,10 @@ describe('permission relay', () => {
     const pending = ask(sessions[0]!); await settle();
     const stale = panel().querySelectorAll<HTMLButtonElement>('.vicher-approval-card button')[1]!;
     panel().querySelector<HTMLButtonElement>('.vicher-send')!.click(); await settle();
-    expect(panel().querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
+    expect(panel().querySelector('.vicher-approval-card')).toBeNull();
     expect(await pending).toBe(false);
     stale.click(); await settle();
-    expect(panel().querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
+    expect(panel().querySelector('.vicher-approval-card')).toBeNull();
   });
 
   it('saves policy changes and applies them after the current turn, including returning to Inherit', async () => {
@@ -295,7 +299,7 @@ describe('concurrent chat tabs', () => {
     const strip = view.contentEl.querySelector<HTMLElement>('.vicher-chat-tab-bar')!;
     let release!: () => void;
     const opening = new Promise<void>((resolve) => { release = resolve; });
-    jest.spyOn(store, 'load').mockImplementationOnce(async () => { await opening; return null; });
+    vi.spyOn(store, 'load').mockImplementationOnce(async () => { await opening; return null; });
     const closing = view.closeChat(previous);
     try {
       await settle();
@@ -362,16 +366,16 @@ describe('concurrent chat tabs', () => {
 
   it('shows the open-note chip without entrance animation when opening and switching tabs', async () => {
     const { start, view, select, panel } = setup();
-    const note = new (jest.requireMock('obsidian').FileView)({ app: view.app });
+    const note = new ((obsidianMock as any).FileView)({ app: view.app });
     Object.assign(note, {
       file: { path: 'Waves.md', name: 'Waves.md', basename: 'Waves', extension: 'md' },
       containerEl: note.contentEl,
       getIcon: () => 'file-text', getViewType: () => 'file',
     });
-    jest.spyOn(view.app.workspace, 'getMostRecentLeaf').mockReturnValue({ view: note } as unknown as WorkspaceLeaf);
+    vi.spyOn(view.app.workspace, 'getMostRecentLeaf').mockReturnValue({ view: note } as unknown as WorkspaceLeaf);
     const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'animate');
     const originalMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia');
-    const animate = jest.fn(() => ({ finished: Promise.resolve(), cancel: jest.fn() }));
+    const animate = vi.fn(() => ({ finished: Promise.resolve(), cancel: vi.fn() }));
     Object.defineProperty(HTMLElement.prototype, 'animate', { configurable: true, value: animate });
     Object.defineProperty(window, 'matchMedia', { configurable: true, value: () => ({ matches: false }) });
     try {
@@ -636,7 +640,7 @@ describe('agent stream', () => {
     expect(order).toEqual(['First', 'One.', 'The review is back.', 'Second']);
     const result = panel().querySelector('.vicher-task.is-result')!;
     expect(result.querySelector('.vicher-task-description')?.textContent).toBe('Review ch6');
-    expect(result.querySelector('.vicher-task-note')?.textContent).toBe('');
+    expect(result.querySelector('.vicher-task-note')).toBeNull();
   });
 
   it('marks a dropped message as not sent and puts its text back in an empty composer', async () => {
@@ -657,27 +661,29 @@ describe('agent stream', () => {
     session.events.push({ type: 'background', tasks: [{ id: 't1', description: 'Review ch6' }, { id: 't2', description: 'Review ch7' }] });
     session.events.push({ type: 'done', status: 'completed' }); await settle();
     const row = panel().querySelector<HTMLElement>('.vicher-task-row')!;
-    expect(row.hidden).toBe(false);
     const shown = (): string[] => [...row.querySelectorAll('.vicher-task:not(.is-folded) .vicher-task-description')].map((el) => el.textContent ?? '');
     expect(shown()).toEqual(['Review ch6']);
     expect(row.querySelector('.vicher-task-more')?.textContent).toBe('+\u20091 other');
     expect(view.contentEl.querySelector('[role="tab"]')?.getAttribute('aria-label')).toContain('Working');
     row.querySelector<HTMLElement>('.vicher-task-toggle')!.click();
+    flushSync();
     expect(row.classList.contains('is-expanded')).toBe(true);
     expect(shown()).toEqual(['Review ch6', 'Review ch7']);
     row.querySelectorAll<HTMLButtonElement>('.vicher-task-stop')[1]!.click(); await settle();
     expect(session.stopTask).toHaveBeenCalledWith('t2');
-    expect(row.querySelectorAll('.vicher-task-time')[1]!.textContent).toBe('Stopping');
+    expect(row.querySelectorAll('.vicher-task-time')[1]!.textContent?.trim()).toBe('Stopping');
     expect(row.querySelectorAll('.vicher-task-time')[1]!.querySelector('.vicher-task-spinner')).not.toBeNull();
-    jest.useFakeTimers();
+    vi.useFakeTimers();
+    const removeAnimate = installFakeAnimate();
     try {
       session.events.push({ type: 'background', tasks: [] });
+      flushSync();
       expect(row.querySelectorAll('.vicher-task.is-done')).toHaveLength(2);
-      jest.advanceTimersByTime(1200);
-      expect(row.querySelectorAll('.vicher-task')).toHaveLength(0);
-      expect(row.hidden).toBe(true);
+      await vi.advanceTimersByTimeAsync(1200);
+      expect(panel().querySelector('.vicher-task-row')).toBeNull();
     } finally {
-      jest.useRealTimers();
+      removeAnimate();
+      vi.useRealTimers();
     }
   });
 });

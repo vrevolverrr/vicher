@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import type { App, TFile } from 'obsidian';
 
 import { replaceImageEmbedsWithHTML } from '@/renderer/markdown/obsidian/imageEmbed';

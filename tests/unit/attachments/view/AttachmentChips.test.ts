@@ -1,16 +1,17 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
+import type { Mock } from 'vitest';
 import { AttachmentChips } from '@/attachments/view/AttachmentChips';
 
-jest.mock('obsidian', () => ({ setIcon: jest.fn() }), { virtual: true });
+vi.mock('obsidian', () => ({ setIcon: vi.fn() }));
 
 const IMAGE = { key: 'a.png', name: 'a.png', src: 'app://a' };
 const FILE = { key: '/Users/me/week1.pdf', name: 'week1.pdf', title: '/Users/me/week1.pdf' };
 
 describe('AttachmentChips', () => {
   let tray: HTMLElement;
-  let onRemove: jest.Mock;
+  let onRemove: Mock;
   let chips: AttachmentChips;
 
   const chipEls = () => [...tray.querySelectorAll<HTMLElement>('.vicher-attachment-chip')];
@@ -20,7 +21,7 @@ describe('AttachmentChips', () => {
     document.body.replaceChildren();
     tray = document.body.appendChild(document.createElement('div'));
     tray.createDiv({ cls: 'vicher-context-chip' }).createSpan({ cls: 'vicher-context-label', text: 'Waves' });
-    onRemove = jest.fn();
+    onRemove = vi.fn();
     chips = new AttachmentChips(tray, onRemove);
   });
 
@@ -53,13 +54,13 @@ describe('AttachmentChips', () => {
 
   describe('with animation', () => {
     let finish: (() => void)[];
-    let animate: jest.Mock;
+    let animate: Mock;
 
     beforeEach(() => {
       finish = [];
-      animate = jest.fn(() => ({ finished: new Promise<void>((resolve) => finish.push(resolve)) }));
+      animate = vi.fn(() => ({ finished: new Promise<void>((resolve) => finish.push(resolve)) }));
       Object.defineProperty(HTMLElement.prototype, 'animate', { configurable: true, value: animate });
-      window.matchMedia = jest.fn(() => ({ matches: false })) as unknown as typeof window.matchMedia;
+      window.matchMedia = vi.fn(() => ({ matches: false })) as unknown as typeof window.matchMedia;
     });
 
     afterEach(() => {

@@ -1,8 +1,28 @@
-/** @jest-environment jsdom */
-import type { AgentQuestion, ToolApprovalRequest } from '@/agents/types';
-import { ApprovalCard } from '@/chat/view/ApprovalCard';
+/** @vitest-environment jsdom */
+import { flushSync, mount, unmount } from 'svelte';
 
-jest.mock('obsidian', () => ({ setIcon: jest.fn() }), { virtual: true });
+import type { AgentQuestion, QuestionAnswers, ToolApprovalRequest } from '@/agents/types';
+import Approvals from '@/chat/view/Approvals.svelte';
+
+vi.mock('obsidian', () => ({ setIcon: vi.fn() }));
+
+const cards: ReturnType<typeof Approvals>[] = [];
+afterEach(() => { for (const card of cards.splice(0)) void unmount(card); });
+
+/** Mounts a card whose calls draw at once, as the pane sees them. */
+function open(host: HTMLElement, changed: () => void = () => undefined) {
+  const card = mount(Approvals, { target: host, props: { changed } });
+  cards.push(card);
+  const drawn = <T,>(answer: Promise<T>): Promise<T> => {
+    flushSync();
+    return answer.then((value) => { flushSync(); return value; });
+  };
+  return {
+    ask: (request: ToolApprovalRequest, signal: AbortSignal): Promise<boolean> => drawn(card.ask(request, signal)),
+    askQuestions: (questions: AgentQuestion[], signal: AbortSignal): Promise<QuestionAnswers | undefined> => drawn(card.askQuestions(questions, signal)),
+    size: (): number => card.size(),
+  };
+}
 
 const request = (): ToolApprovalRequest => ({
   description: 'these file changes', input: { path: '<img src=x onerror=alert(1)>', old: 'before', new: 'after' },
@@ -10,8 +30,8 @@ const request = (): ToolApprovalRequest => ({
 });
 
 it('shows plain-text details and exactly Deny and Allow once buttons', async () => {
-  const host = document.createElement('div');
-  const card = new ApprovalCard(host, () => undefined);
+  const host = document.body.createDiv();
+  const card = open(host);
   const answer = card.ask(request(), new AbortController().signal);
   expect(host.querySelector('img')).toBeNull();
   expect(host.textContent).toContain('<img src=x onerror=alert(1)>');
@@ -20,16 +40,16 @@ it('shows plain-text details and exactly Deny and Allow once buttons', async () 
   expect(region.getAttribute('aria-labelledby')).toBe(host.querySelector('.vicher-approval-title')!.id);
   const buttons = host.querySelectorAll('button');
   expect([...buttons].map((button) => button.textContent)).toEqual(['Deny', 'Allow once']);
-  expect(host.querySelector('.vicher-approval-card > .vicher-approval-actions')?.contains(buttons[0]!)).toBe(true);
+  expect(host.querySelector('.vicher-approval-actions')?.contains(buttons[0]!)).toBe(true);
   expect(host.querySelector('.vicher-approval-body')?.contains(buttons[0]!)).toBe(false);
   buttons[1]!.click();
   expect(await answer).toBe(true);
-  expect(host.querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
+  expect(host.querySelector('.vicher-approval-card')).toBeNull();
 });
 
 it('renders normalized command fields and keeps the opaque original input available', () => {
-  const host = document.createElement('div');
-  const card = new ApprovalCard(host, () => undefined);
+  const host = document.body.createDiv();
+  const card = open(host);
   const controller = new AbortController();
   const input = { unfamiliar: 'opaque native request', command: 'not the displayed command' };
   void card.ask({
@@ -45,8 +65,8 @@ it('renders normalized command fields and keeps the opaque original input availa
 });
 
 it('shows unfamiliar tool inputs expanded and does not interpret markup in any field', () => {
-  const host = document.createElement('div');
-  const card = new ApprovalCard(host, () => undefined);
+  const host = document.body.createDiv();
+  const card = open(host);
   const controller = new AbortController();
   void card.ask({ description: '<img src=x>', decisionReason: '<script>alert(1)</script>', input: { custom: '<svg onload=alert(1)>' }, fields: [], changes: [] }, controller.signal);
   expect(host.querySelector('details')!.open).toBe(true);
@@ -56,8 +76,8 @@ it('shows unfamiliar tool inputs expanded and does not interpret markup in any f
 });
 
 it('shows normalized file changes as inline edits with one decision for the whole request', () => {
-  const host = document.createElement('div');
-  const card = new ApprovalCard(host, () => undefined);
+  const host = document.body.createDiv();
+  const card = open(host);
   const controller = new AbortController();
   const input = { unfamiliar: 'original native request' };
   void card.ask({ description: 'these file changes', input, fields: [], changes: [
@@ -77,8 +97,8 @@ it('shows normalized file changes as inline edits with one decision for the whol
 });
 
 it('renders proposed contents without inventing old text', () => {
-  const host = document.createElement('div');
-  const card = new ApprovalCard(host, () => undefined);
+  const host = document.body.createDiv();
+  const card = open(host);
   const controller = new AbortController();
   void card.ask({ description: 'writing this file', input: {}, fields: [], changes: [
     { path: 'note.md', kind: 'write', note: 'Proposed contents; previous contents were not supplied.', blocks: [{ text: 'Proposed text' }] },
@@ -90,8 +110,8 @@ it('renders proposed contents without inventing old text', () => {
 });
 
 it('renders a normalized fallback field without attempting to parse its input', () => {
-  const host = document.createElement('div');
-  const card = new ApprovalCard(host, () => undefined);
+  const host = document.body.createDiv();
+  const card = open(host);
   const controller = new AbortController();
   const changes = [{ path: 'a.md', diff: '-before\n+after' }, { path: 'b.md', unsupported: 'keep this visible' }];
   void card.ask({ description: 'these file changes', input: { changes }, changes: [], fields: [{ kind: 'changes', value: JSON.stringify(changes, null, 2) }] }, controller.signal);
@@ -101,29 +121,29 @@ it('renders a normalized fallback field without attempting to parse its input', 
 });
 
 it('queues concurrent requests and prevents old buttons from answering the next request', async () => {
-  const host = document.createElement('div');
-  const card = new ApprovalCard(host, () => undefined);
+  const host = document.body.createDiv();
+  const card = open(host);
   const first = card.ask(request(), new AbortController().signal);
   const stale = host.querySelectorAll('button')[1]!;
   const second = card.ask(request(), new AbortController().signal);
   stale.click();
   expect(await first).toBe(true);
   stale.click();
-  expect(card.size).toBe(1);
+  expect(card.size()).toBe(1);
   host.querySelector('button')!.click();
   expect(await second).toBe(false);
 });
 
 it('drops a request when its signal aborts', async () => {
-  const host = document.createElement('div');
-  const changed = jest.fn();
-  const card = new ApprovalCard(host, changed);
+  const host = document.body.createDiv();
+  const changed = vi.fn();
+  const card = open(host, changed);
   const controller = new AbortController();
   const first = card.ask(request(), controller.signal);
   controller.abort();
   expect(await first).toBe(false);
-  expect(host.querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
-  expect(card.size).toBe(0);
+  expect(host.querySelector('.vicher-approval-card')).toBeNull();
+  expect(card.size()).toBe(0);
   expect(changed).toHaveBeenCalledTimes(2);
   expect(await card.ask(request(), AbortSignal.abort())).toBe(false);
 });
@@ -135,35 +155,40 @@ describe('questions', () => {
   });
   const card = (questions: AgentQuestion[], signal = new AbortController().signal) => {
     const host = document.body.createDiv();
-    const answer = new ApprovalCard(host, () => undefined).askQuestions(questions, signal);
+    const answer = open(host).askQuestions(questions, signal);
     const submit = host.querySelector<HTMLButtonElement>('button[type=submit]')!;
     const type = (input: HTMLInputElement, value: string): void => {
       input.value = value;
       input.dispatchEvent(new Event('input', { bubbles: true }));
+      flushSync();
     };
     const pick = (input: HTMLInputElement): void => {
       input.checked = true;
       input.dispatchEvent(new Event('change', { bubbles: true }));
+      flushSync();
     };
     return { host, answer, submit, type, pick };
   };
 
   it('shows one question at a time and submits every answer from the last, drawing text as plain text', async () => {
     const { host, answer, submit, pick } = card([question(), question({ header: '', question: 'Which topics?', multiSelect: true })]);
-    const visible = () => [...host.querySelectorAll<HTMLElement>('.vicher-question')].filter((pane) => !pane.hidden);
+    const title = (): string | null | undefined => host.querySelector('.vicher-approval-title')?.textContent;
+    const label = (): string | null | undefined => host.querySelector('.vicher-approval-label')?.textContent;
     expect(host.querySelector('b')).toBeNull();
-    expect(visible().map((pane) => pane.querySelector('.vicher-approval-title')?.textContent)).toEqual(['Which <b>proof</b>?']);
-    expect(visible()[0]!.querySelector('.vicher-approval-label')?.textContent).toBe('Proof · 1 of 2');
+    expect(title()).toBe('Which <b>proof</b>?');
+    expect(label()).toBe('Proof · 1 of 2');
     expect([submit.textContent, submit.disabled]).toEqual(['Next', true]);
-    pick(visible()[0]!.querySelector('input')!);
+    pick(host.querySelector('input')!);
     expect(submit.disabled).toBe(false);
     submit.click();
-    expect(visible().map((pane) => pane.querySelector('.vicher-approval-label')?.textContent)).toEqual(['2 of 2']);
+    flushSync();
+    expect([title(), label()]).toEqual(['Which topics?', '2 of 2']);
+    expect(document.activeElement).toBe(host.querySelector('input'));
     expect([submit.textContent, submit.disabled]).toEqual(['Submit', true]);
-    for (const box of visible()[0]!.querySelectorAll<HTMLInputElement>('input[type=checkbox]')) pick(box);
+    for (const box of host.querySelectorAll<HTMLInputElement>('input[type=checkbox]')) pick(box);
     submit.click();
     expect(await answer).toEqual([['Induction'], ['Induction', 'Contradiction']]);
-    expect(host.querySelector<HTMLElement>('.vicher-approval-card')!.hidden).toBe(true);
+    expect(host.querySelector('.vicher-approval-card')).toBeNull();
   });
 
   it('lets typed text replace a single choice and hides a secret', async () => {
@@ -189,15 +214,15 @@ describe('questions', () => {
   });
 
   it('waits behind an earlier approval in the same queue', async () => {
-    const host = document.createElement('div');
-    const approvals = new ApprovalCard(host, () => undefined);
+    const host = document.body.createDiv();
+    const approvals = open(host);
     const approved = approvals.ask(request(), new AbortController().signal);
     const answered = approvals.askQuestions([question()], new AbortController().signal);
-    expect(approvals.size).toBe(2);
-    expect(host.querySelector('form')).toBeNull();
+    expect(approvals.size()).toBe(2);
+    expect(host.querySelector('.vicher-question-options')).toBeNull();
     host.querySelector<HTMLButtonElement>('.vicher-approval-allow')!.click();
     expect(await approved).toBe(true);
-    expect(host.querySelector('form')).not.toBeNull();
+    expect(host.querySelector('.vicher-question-options')).not.toBeNull();
     host.querySelector<HTMLButtonElement>('.vicher-approval-deny')!.click();
     expect(await answered).toBeUndefined();
   });

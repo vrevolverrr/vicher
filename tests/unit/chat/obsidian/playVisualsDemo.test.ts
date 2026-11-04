@@ -6,7 +6,7 @@ import { validateFigure } from '@/renderer/figure/validateFigure';
 
 import { runFigureWorker } from '../../../runFigureWorker';
 
-jest.mock('obsidian', () => ({ Notice: jest.fn() }), { virtual: true });
+vi.mock('obsidian', () => ({ Notice: vi.fn() }));
 
 const figures = VISUALS_DEMO_TURNS.flatMap((turn) => splitReply(turn.reply, true).filter((segment) => segment.kind === 'figure').map((segment) => segment.text));
 

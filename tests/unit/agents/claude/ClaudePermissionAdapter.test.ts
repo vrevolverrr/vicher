@@ -51,7 +51,7 @@ describe('AskUserQuestion', () => {
   });
 
   it('declines input of an unknown shape without asking', async () => {
-    const push = jest.fn();
+    const push = vi.fn();
     const adapter = nativeAdapter(() => ({ signal: new AbortController().signal, push }));
     expect(await adapter.canUseTool('AskUserQuestion', { questions: [{ question: 'Hm?' }] }, nativeOptions())).toMatchObject({ behavior: 'deny' });
     expect(push).not.toHaveBeenCalled();

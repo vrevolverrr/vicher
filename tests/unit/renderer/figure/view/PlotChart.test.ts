@@ -1,10 +1,10 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 import type { PlotModel } from '@/renderer/figure/packages/plot/PlotModel';
 import { PlotChart } from '@/renderer/figure/view/PlotChart';
 
 /** A chart whose frame is `width` pixels wide; jsdom lays nothing out. */
 function chart(width: number, model: PlotModel): { chart: PlotChart; written: string[] } {
-  jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(width);
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(width);
   const written: string[] = [];
   const plot = new PlotChart(document.body.appendChild(document.createElement('div')));
   plot.writeLabel = (el, text) => {
@@ -18,7 +18,7 @@ function chart(width: number, model: PlotModel): { chart: PlotChart; written: st
 const texts = (plot: PlotChart): SVGTextElement[] => [...plot.el.querySelectorAll<SVGTextElement>('svg text')];
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
   document.body.replaceChildren();
 });
 

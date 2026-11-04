@@ -1,4 +1,4 @@
-import { inlineDiff, type ApprovalDiffPart } from '@/chat/view/inlineDiff';
+import { inlineDiff, type ApprovalDiffPart } from '@/chat/view/InlineDiff.svelte';
 
 const versions = (parts: readonly ApprovalDiffPart[]) => ({
   before: parts.filter((part) => part.kind !== 'added').map((part) => part.text).join(''),

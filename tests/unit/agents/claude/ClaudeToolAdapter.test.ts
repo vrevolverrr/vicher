@@ -13,9 +13,9 @@ const call = (name: string, input: object, id = 'call') => message('assistant', 
 const result = (id = 'call', failed = false) => message('user', [{ type: 'tool_result', tool_use_id: id, is_error: failed }]);
 
 it('builds the MCP enum schema, allow-list and executable result', async () => {
-  const tool = jest.fn((_name: string, _description: string, _schema: unknown, run: (args: unknown) => Promise<unknown>) => ({ run }));
+  const tool = vi.fn((_name: string, _description: string, _schema: unknown, run: (args: unknown) => Promise<unknown>) => ({ run }));
   const server = { type: 'sdk', name: 'vicher' };
-  const createSdkMcpServer = jest.fn(() => server);
+  const createSdkMcpServer = vi.fn(() => server);
   const sdk = { tool, createSdkMcpServer } as unknown as Pick<typeof ClaudeSDK, 'tool' | 'createSdkMcpServer'>;
   const registration = await ClaudeToolAdapter.createServer([custom], sdk, new ClaudeToolAdapter('/vault', [custom]));
   expect(registration).toEqual({ mcpServers: { vicher: server }, allowedTools: ['mcp__vicher__lookup'] });

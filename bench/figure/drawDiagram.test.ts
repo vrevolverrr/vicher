@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 import { VISUALS_DEMO_TURNS } from '@/chat/obsidian/playVisualsDemo';
 import { splitReply } from '@/chat/splitReply';
 import { diagramExtent } from '@/renderer/figure/packages/diagram/diagramExtent';
@@ -10,7 +10,7 @@ import { validateFigure } from '@/renderer/figure/validateFigure';
 
 import { runFigureWorker } from '../../tests/runFigureWorker';
 
-jest.mock('obsidian', () => ({ Notice: jest.fn() }), { virtual: true });
+vi.mock('obsidian', () => ({ Notice: vi.fn() }));
 // jsdom has no structuredClone; figure data is plain JSON.
 globalThis.structuredClone ??= (value) => JSON.parse(JSON.stringify(value));
 
@@ -43,7 +43,7 @@ test('drawDiagram on the visuals demo incline, at every slider angle', async () 
 
   const real = labels.placeLabels;
   let placing = 0;
-  jest.spyOn(labels, 'placeLabels').mockImplementation((...args) => {
+  vi.spyOn(labels, 'placeLabels').mockImplementation((...args) => {
     const start = performance.now();
     const out = real(...args);
     placing += performance.now() - start;

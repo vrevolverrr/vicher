@@ -2,12 +2,21 @@
 // scanner configuration"): its security rules are errors that block a submission; it leaves the rest as advice.
 import { defineConfig, globalIgnores } from 'eslint/config';
 import obsidianmd from 'eslint-plugin-obsidianmd';
+import svelte from 'eslint-plugin-svelte';
+import ts from 'typescript-eslint';
 import layers from './scripts/eslintLayers.js';
+import svelteConfig from './svelte.config.js';
 
 const warn = (setting) => (Array.isArray(setting) ? ['warn', ...setting.slice(1)] : setting === 'off' || setting === 0 ? setting : 'warn');
 const advisory = obsidianmd.configs.recommended.map((config) =>
   config.rules ? { ...config, rules: Object.fromEntries(Object.entries(config.rules).map(([rule, setting]) => [rule, warn(setting)])) } : config,
 );
+// The scanner's TypeScript entries skip `.svelte`; the same rules on components, keeping svelte-eslint-parser as the parser.
+const SVELTE_FILES = ['**/*.svelte', '**/*.svelte.ts'];
+const TS_FILES = '**/*.{ts,cts,mts,tsx}';
+const advisorySvelte = advisory
+  .filter((config) => config.files?.flat().includes(TS_FILES))
+  .map(({ languageOptions, files, ...config }) => ({ ...config, files: ['**/*.svelte'] }));
 
 export default defineConfig([
   {
@@ -15,13 +24,20 @@ export default defineConfig([
       parserOptions: {
         projectService: { allowDefaultProject: ['eslint.config.*', 'manifest.json'] },
         tsconfigRootDir: import.meta.dirname,
-        extraFileExtensions: ['.json'],
+        extraFileExtensions: ['.json', '.svelte'],
       },
     },
   },
   ...advisory,
+  ...advisorySvelte,
+  // Its rules entry has no `files`, and its rules fail on non-Svelte files such as package.json.
+  ...svelte.configs.recommended.map((config) => (config.files ? config : { ...config, files: SVELTE_FILES })),
   {
-    files: ['**/*.{ts,cts,mts,tsx,js,cjs,mjs,jsx}'],
+    files: SVELTE_FILES,
+    languageOptions: { parserOptions: { parser: ts.parser, svelteConfig } },
+  },
+  {
+    files: ['**/*.{ts,cts,mts,tsx,js,cjs,mjs,jsx,svelte}'],
     rules: {
       'no-eval': 'error',
       'no-implied-eval': 'error',
@@ -45,7 +61,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['src/**/*.ts'],
+    files: ['src/**/*.{ts,svelte}'],
     plugins: { vicher: layers },
     rules: { 'vicher/layers': 'error', 'vicher/no-dom': 'error', 'vicher/provider-names': 'error', 'vicher/composer-area': 'error' },
   },
@@ -55,6 +71,8 @@ export default defineConfig([
     'bench',
     'coverage',
     'esbuild.config.mjs',
+    'vitest.config.mts',
+    'svelte.config.js',
     '**/*.test.*',
     'tests',
     '**/*.cjs',

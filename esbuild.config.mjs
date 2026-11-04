@@ -1,4 +1,5 @@
 import esbuild from 'esbuild';
+import sveltePlugin from 'esbuild-svelte';
 import { copyFileSync, existsSync, mkdirSync, promises as fsPromises, readFileSync } from 'fs';
 import { builtinModules } from 'node:module';
 import path from 'path';
@@ -6,6 +7,7 @@ import process from 'process';
 
 import figureWorkerHelpers from './scripts/buildFigureWorker.js';
 import rendererSafeUnrefHelpers from './scripts/rendererSafeUnref.js';
+import svelteConfig from './svelte.config.js';
 
 const { findUnsafeTimerUnrefSites, patchRendererUnsafeUnrefSites } = rendererSafeUnrefHelpers;
 const { buildFigureWorker } = figureWorkerHelpers;
@@ -124,6 +126,19 @@ const figureWorker = {
   },
 };
 
+// Component CSS lands in main.css beside main.js; Obsidian loads only styles.css, so join them there.
+const writeStyles = {
+  name: 'write-styles',
+  setup(build) {
+    build.onEnd(async (result) => {
+      if (result.errors.length > 0) return;
+      const components = existsSync('main.css') ? await fsPromises.readFile('main.css', 'utf8') : '';
+      await fsPromises.writeFile('styles.css', (await fsPromises.readFile('src/styles.css', 'utf8')) + components);
+      await fsPromises.rm('main.css', { force: true });
+    });
+  },
+};
+
 const vault = process.env.OBSIDIAN_VAULT;
 const pluginDir = vault && existsSync(vault) ? path.join(vault, '.obsidian', 'plugins', 'vicher') : null;
 
@@ -145,8 +160,16 @@ const copyToObsidian = {
 
 const context = await esbuild.context({
   entryPoints: ['src/main.ts'],
+  // Svelte's browser build: its default export is the server renderer, which cannot mount.
+  conditions: ['svelte', 'browser'],
   bundle: true,
-  plugins: [figureWorker, patchSdkImportMeta, omitUnusedClaudeSdkPeers, englishOnlyZodLocales, patchRendererUnsafeUnref, copyToObsidian],
+  plugins: [
+    sveltePlugin({ compilerOptions: { ...svelteConfig.compilerOptions, css: 'external' } }),
+    figureWorker,
+    patchSdkImportMeta, omitUnusedClaudeSdkPeers, englishOnlyZodLocales, patchRendererUnsafeUnref,
+    writeStyles,
+    copyToObsidian,
+  ],
   // Obsidian provides CodeMirror and the lezer core at runtime, as its sample plugin's build config assumes. A second
   // copy of CodeMirror in the bundle would not recognise the editor's own extensions and state.
   external: ['obsidian', 'electron', '@codemirror/state', '@codemirror/view', '@lezer/common', '@lezer/highlight', ...builtinModules, 'node:*'],

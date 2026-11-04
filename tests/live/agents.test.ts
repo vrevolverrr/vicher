@@ -1,5 +1,5 @@
 // Drives the developer's installed CLIs against their own subscriptions: npm run test:live
-// Runs under tsx and node:test because the Claude SDK is ESM-only and jest cannot load it.
+// Runs under tsx and node:test, outside `npm test`, because it drives the real agent CLIs.
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';

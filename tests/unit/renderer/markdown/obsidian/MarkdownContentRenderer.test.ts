@@ -1,12 +1,14 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
+import * as obsidianMock from 'obsidian';
+import type { Mock } from 'vitest';
 import type { App, Component } from 'obsidian';
 import { MarkdownRenderer } from 'obsidian';
 
 import { MarkdownContentRenderer } from '@/renderer/markdown/obsidian/MarkdownContentRenderer';
 
-jest.mock('obsidian', () => {
+vi.mock('obsidian', () => {
   class Component {
     private children: Component[] = [];
     private callbacks: Array<() => void> = [];
@@ -27,10 +29,10 @@ jest.mock('obsidian', () => {
       this.callbacks.push(callback);
     }
   }
-  return { Component, Modal: class {}, setIcon: jest.fn(), MarkdownRenderer: { render: jest.fn() }, finishRenderMath: jest.fn(), loadPrism: jest.fn().mockRejectedValue(new Error('none')) };
-}, { virtual: true });
+  return { Component, Modal: class {}, setIcon: vi.fn(), MarkdownRenderer: { render: vi.fn() }, finishRenderMath: vi.fn(), loadPrism: vi.fn().mockRejectedValue(new Error('none')) };
+});
 
-const render = MarkdownRenderer.render as jest.Mock;
+const render = MarkdownRenderer.render as Mock;
 
 // Stands in for Obsidian plus a plugin post-processor that executes inline code by prefix, like Dataview.
 function renderAndRunInlineProcessors(executed: string[]) {
@@ -46,7 +48,7 @@ function renderAndRunInlineProcessors(executed: string[]) {
 }
 
 function createRenderer() {
-  const { Component: MockComponent } = jest.requireMock('obsidian') as { Component: new () => Component };
+  const { Component: MockComponent } = (obsidianMock as any) as { Component: new () => Component };
   const root = document.createElement('div');
   return { root, renderer: new MarkdownContentRenderer({} as App, new MockComponent(), () => 'notes/Lecture.md') };
 }

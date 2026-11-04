@@ -1,15 +1,12 @@
-import type * as osType from 'os';
-import type * as pathType from 'path';
-
-const os = jest.requireActual<typeof osType>('os');
-const path = jest.requireActual<typeof pathType>('path');
+import * as os from 'os';
+import * as path from 'path';
 
 import { normalizeConfiguredCLIPath, parsePathEntries } from '@/agents/process/cliPath';
 
 const isWindows = process.platform === 'win32';
 
 describe('parsePathEntries', () => {
-  it.each([undefined, ''])('returns empty array for %p', (value) => {
+  it.each([undefined, ''])('returns empty array for %j', (value) => {
     expect(parsePathEntries(value)).toEqual([]);
   });
 

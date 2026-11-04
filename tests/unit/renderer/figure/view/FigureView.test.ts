@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 import type { FigureSandbox, RunResult } from '@/renderer/figure/view/FigureSandbox';
 import { type FigureHost, FigureView } from '@/renderer/figure/view/FigureView';
 
@@ -335,7 +335,7 @@ describe('FigureView', () => {
     const ran = view.run('src');
     await flush();
     const box = HTMLElement.prototype.getBoundingClientRect;
-    const rendered = jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    const rendered = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       return this.classList.contains('vicher-figure-diagram-label') ? ({ width: 900, height: 60 } as DOMRect) : box.call(this);
     });
     markdown.finish();
@@ -353,7 +353,7 @@ describe('FigureView', () => {
     const view = new FigureView(document.body, host(), sandbox(() => payload([{ caption: 'a', root: el('Tex', { id: 't', tex: 'x' }) }, { caption: 'b', root: el('Tex', { id: 't', tex: 'y' }) }])));
     Object.defineProperty(view.el, 'clientWidth', { get: () => width });
     const box = HTMLElement.prototype.getBoundingClientRect;
-    const laidOut = jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    const laidOut = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       return this.classList.contains('vicher-figure-tex') ? ({ width: Math.max(width, parseFloat(this.style.minWidth) || 0), height: 40 } as DOMRect) : box.call(this);
     });
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
