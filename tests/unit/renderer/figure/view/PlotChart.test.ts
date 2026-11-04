@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
-import { type PlotModel, PlotChart } from '@/renderer/figure/plot/PlotChart';
+import type { PlotModel } from '@/renderer/figure/plot/PlotModel';
+import { PlotChart } from '@/renderer/figure/view/PlotChart';
 
 /** A chart whose frame is `width` pixels wide; jsdom lays nothing out. */
 function chart(width: number, model: PlotModel): { chart: PlotChart; written: string[] } {

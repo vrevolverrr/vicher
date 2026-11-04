@@ -1,4 +1,6 @@
 import { type FigureNode, LIMITS } from '@/renderer/figure/FigureData';
+import type { Plot3Model } from '@/renderer/figure/plot3/Plot3Model';
+import { plot3Model, plotModel } from '@/renderer/figure/plotModels';
 import { validateFigure } from '@/renderer/figure/validateFigure';
 
 type El = { type: string; props: Record<string, unknown>; children: unknown[] };
@@ -188,6 +190,7 @@ describe('validateFigure on a 3D Plot', () => {
     if (!result.ok) throw new Error(result.error);
     return result.figure.steps[0].root as Extract<FigureNode, { type: 'Plot3' }>;
   };
+  const model3 = (root: El): Plot3Model => plot3Model(read(root));
 
   it('turns 3D for a two-variable Fn or a point with three coordinates, and stays 2D otherwise', () => {
     expect(read(plot3({ x: [0, 1], y: [0, 2] }, graph())).type).toBe('Plot3');
@@ -222,20 +225,20 @@ describe('validateFigure on a 3D Plot', () => {
   });
 
   it('fits every axis of a parametric-only Plot, at equal scale', () => {
-    const shown = read(plot3({}, parametric(), el('Points', { pts: [[0, 0, 1.6]] })));
+    const shown = model3(plot3({}, parametric(), el('Points', { pts: [[0, 0, 1.6]] })));
     expect([shown.x, shown.y, shown.z]).toEqual([[-1, 1], [-1, 1], [-1, 2]]);
     expect(shown.equal).toBe(true);
     expect(shown.view).toEqual({ azimuth: 30, elevation: 25 });
   });
 
   it('keeps a 3D Plot that gives no axis at equal scale only while its spans are within 10× of each other', () => {
-    expect(read(plot3({}, el('Points', { pts: [[0, 0, 0], [6, 6, 2]] }))).equal).toBe(true);
-    expect(read(plot3({}, el('Points', { pts: [[0, 0, 0], [2, 100, 100000]] }))).equal).toBe(false);
-    expect(read(plot3({ equal: true }, el('Points', { pts: [[0, 0, 0], [2, 100, 100000]] }))).equal).toBe(true);
+    expect(model3(plot3({}, el('Points', { pts: [[0, 0, 0], [6, 6, 2]] }))).equal).toBe(true);
+    expect(model3(plot3({}, el('Points', { pts: [[0, 0, 0], [2, 100, 100000]] }))).equal).toBe(false);
+    expect(model3(plot3({ equal: true }, el('Points', { pts: [[0, 0, 0], [2, 100, 100000]] }))).equal).toBe(true);
   });
 
   it('fits z of a graph to its heights and its holes do not count, and narrows the graph to from and to', () => {
-    const shown = read(plot3({ x: [-3, 3], y: [-3, 3], view: { azimuth: 120, elevation: 95 } }, graph({ zs: zs((i) => (i === 0 ? null : i * 0.7)), from: -1 })));
+    const shown = model3(plot3({ x: [-3, 3], y: [-3, 3], view: { azimuth: 120, elevation: 95 } }, graph({ zs: zs((i) => (i === 0 ? null : i * 0.7)), from: -1 })));
     expect(shown.z).toEqual([0, 35]);
     expect(shown.equal).toBe(false);
     expect(shown.view).toEqual({ azimuth: 120, elevation: 89 });
@@ -244,7 +247,10 @@ describe('validateFigure on a 3D Plot', () => {
 
   it('fits x of a 2D Plot without an Fn to its layers', () => {
     const result = validateFigure(figure(plot3({}, el('Points', { pts: [[2, 0], [9.5, 1]] }))));
-    expect(result.ok && result.figure.steps[0].root).toMatchObject({ type: 'Plot', x: [2, 10] });
+    if (!result.ok) throw new Error(result.error);
+    const root = result.figure.steps[0].root;
+    expect(root).toMatchObject({ type: 'Plot' });
+    expect(root.type === 'Plot' && plotModel(root).x).toEqual([2, 10]);
   });
 
   it('accepts four surfaces and names the limit at five', () => {
@@ -263,7 +269,7 @@ describe('validateFigure on extreme numbers in a 3D Plot', () => {
 
   it('fits z without the heights past ±1e9, so the range stays finite', () => {
     const result = validateFigure({ params: {}, frames: [{ caption: '', root: el('Plot', { x: [0, 1], y: [0, 1] }, el('Fn', { zs: [...zs(1.7e308).slice(1), 2] })) }] });
-    expect(result.ok && (result.figure.steps[0].root as Extract<FigureNode, { type: 'Plot3' }>).z).toEqual([1.8, 2.2]);
+    expect(result.ok && plot3Model(result.figure.steps[0].root as Extract<FigureNode, { type: 'Plot3' }>).z).toEqual([1.8, 2.2]);
   });
 
   it('refuses a range whose span is not finite', () => {
@@ -279,7 +285,7 @@ describe('validateFigure fitting z to a surface', () => {
   const zOf = (f: (x: number, y: number) => number): readonly [number, number] => {
     const result = validateFigure({ params: {}, frames: [{ caption: '', root: el('Plot', { x: [-2, 2], y: [-2, 2] }, el('Fn', { zs: sampled(f) }), el('Points', { pts: [[0, 0, -3]] })) }] });
     if (!result.ok) throw new Error(result.error);
-    return (result.figure.steps[0].root as Extract<FigureNode, { type: 'Plot3' }>).z;
+    return plot3Model(result.figure.steps[0].root as Extract<FigureNode, { type: 'Plot3' }>).z;
   };
 
   it('keeps the whole of a smooth surface and every other layer', () => {

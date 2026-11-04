@@ -1,4 +1,4 @@
-import { plotModel } from '@/renderer/figure/drawPlot';
+import { plotModel } from '@/renderer/figure/plotModels';
 import type { FigureNode } from '@/renderer/figure/FigureData';
 
 const sampled = (f: (x: number) => number, from: number, to: number): [number, number | null][] =>

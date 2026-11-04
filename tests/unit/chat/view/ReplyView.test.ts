@@ -4,13 +4,13 @@
 import type { ToolStatus } from '@/agents/types';
 import { ReplyView } from '@/chat/view/ReplyView';
 import type { MarkdownTarget } from '@/chat/view/TextBlock';
-import { figureSandbox } from '@/renderer/figure/FigureSandbox';
+import { figureSandbox } from '@/renderer/figure/view/FigureSandbox';
 import type { TourEvent } from '@/tour/HighlightTour';
 import type { WalkthroughHost } from '@/tour/view/Walkthrough';
 
 jest.mock('obsidian', () => ({ setIcon: jest.fn() }), { virtual: true });
 // A figure's fence here holds the payload a program would return, as JSON; `!` starts one that fails.
-jest.mock('@/renderer/figure/FigureSandbox', () => ({
+jest.mock('@/renderer/figure/view/FigureSandbox', () => ({
   figureSandbox: {
     warm: jest.fn(),
     run: jest.fn((source: string) => Promise.resolve(source.startsWith('!') ? { ok: false, error: source.slice(1), repairable: true } : { ok: true, payload: JSON.parse(source) as unknown })),

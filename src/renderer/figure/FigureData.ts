@@ -1,5 +1,6 @@
-export const TAGS = ['active', 'done', 'match', 'new', 'dim', 'good', 'bad'] as const;
-export type Tag = (typeof TAGS)[number];
+import type { View } from '@/renderer/figure/plot3/Plot3Model';
+import type { Tag } from '@/renderer/figure/Tag';
+
 export const ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;
 export const LIMITS = {
   steps: 64, elementsPerStep: 4000, elementsPerFigure: 20000, string: 2000, text: 512 * 1024,
@@ -82,9 +83,10 @@ export type FigureNode =
   | { type: 'Quiz'; id?: string; question: string; options: readonly Text[]; correct: Text; explanation?: string }
   | { type: 'Arrow'; from: string; to: string; label?: Text; tag?: Tag }
   | { type: 'Pointer'; to: string; name: Text; tag?: Tag }
-  | { type: 'Plot'; id?: string; x: Point; y?: Point; xLabel?: string; yLabel?: string; equal?: boolean; children: readonly PlotLayer[] }
+  /** An axis the program did not give is left out; the plot packages fit it when the Plot is drawn. */
+  | { type: 'Plot'; id?: string; x?: Range; y?: Range; xLabel?: string; yLabel?: string; equal?: boolean; children: readonly PlotLayer[] }
   /** A Plot the validator found 3D. The model writes `Plot`; this type never comes from a program. */
-  | ({ type: 'Plot3'; id?: string } & Plot3Model)
+  | { type: 'Plot3'; id?: string; x?: Range; y?: Range; z?: Range; xLabel?: string; yLabel?: string; zLabel?: string; equal?: boolean; view: View; children: readonly Plot3Layer[] }
   | { type: 'Diagram'; id?: string; width: number; height: number; children: readonly DiagramLayer[] };
 
 export interface GraphNode { id: string; label: Text; sub?: Text }
@@ -105,30 +107,11 @@ export type PlotLayer =
   | ({ type: 'Fn'; pts: readonly (readonly [number, number | null])[]; from?: number; to?: number } & Marked)
   | ({ type: 'Region'; top: string | number; base?: string | number; from?: number; to?: number } & Marked);
 
-export interface View { azimuth: number; elevation: number }
-export const DEFAULT_VIEW: View = { azimuth: 30, elevation: 25 };
-/** Short of straight up or down, where the azimuth would stop turning the box. */
-export const clampElevation = (elevation: number): number => Math.max(-89, Math.min(89, elevation));
-
-/** A 3D Plot as the validator hands it to the renderer: the box with every axis resolved, the starting view, and the layers in data coordinates. */
-export interface Plot3Model {
-  x: Range;
-  y: Range;
-  z: Range;
-  xLabel?: string;
-  yLabel?: string;
-  zLabel?: string;
-  /** One unit is as long on every axis; otherwise each axis fills its side of the box. */
-  equal: boolean;
-  view: View;
-  children: readonly Plot3Layer[];
-}
-
 /** Surfaces are sampled on a grid of `surfaceCells + 1` samples a side, row-major (the second variable is the row), null where `f` was not finite. */
 export type Plot3Layer =
   | SharedLayer<Point3>
-  /** A graph z = f(x, y) over `x` × `y`. */
-  | ({ type: 'Fn'; x: Range; y: Range; zs: readonly (number | null)[] } & Marked)
+  /** A graph z = f(x, y) over the Plot's x and y, narrowed by `from` and `to`. */
+  | ({ type: 'Fn'; zs: readonly (number | null)[]; from?: number; to?: number } & Marked)
   /** A parametric surface (u, v) => [x, y, z]. */
   | ({ type: 'Fn'; pts: readonly (Point3 | null)[] } & Marked);
 

@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
-import type { FigureSandbox, RunResult } from '@/renderer/figure/FigureSandbox';
-import { type FigureHost, FigureView } from '@/renderer/figure/FigureView';
+import type { FigureSandbox, RunResult } from '@/renderer/figure/view/FigureSandbox';
+import { type FigureHost, FigureView } from '@/renderer/figure/view/FigureView';
 
 type El = { type: string; props: Record<string, unknown>; children: unknown[] };
 const el = (type: string, props: Record<string, unknown> = {}, ...children: unknown[]): El => ({ type, props, children });

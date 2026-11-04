@@ -1,4 +1,4 @@
-import type { Plot3Layer, Plot3Model, Point3, View } from '@/renderer/figure/FigureData';
+import type { Layer3, Plot3Model, Point3, View } from '@/renderer/figure/plot3/Plot3Model';
 import { clipLine, meshOf, paintOrder, projection, scene3, textWidth, type Colours, type TextBox } from '@/renderer/figure/plot3/scene3';
 
 import { depthErrors } from '../../../../depthErrors';
@@ -7,11 +7,11 @@ const SIDE = 49;
 const SIZE = { width: 480, height: 320 };
 const COLOURS: Colours = { ramp: [[0, 0, 0], [255, 255, 255]] };
 
-const graph = (f: (x: number, y: number) => number | null, x: [number, number] = [-1, 1], y: [number, number] = [-1, 1]): Plot3Layer => ({
+const graph = (f: (x: number, y: number) => number | null, x: [number, number] = [-1, 1], y: [number, number] = [-1, 1]): Layer3 => ({
   type: 'Fn', x, y,
   zs: Array.from({ length: SIDE * SIDE }, (_, k) => f(x[0] + ((x[1] - x[0]) * (k % SIDE)) / 48, y[0] + ((y[1] - y[0]) * Math.floor(k / SIDE)) / 48)),
 });
-const sphere: Plot3Layer = {
+const sphere: Layer3 = {
   type: 'Fn',
   pts: Array.from({ length: SIDE * SIDE }, (_, k): Point3 => {
     const u = ((k % SIDE) / 48) * 2 * Math.PI;
@@ -19,7 +19,7 @@ const sphere: Plot3Layer = {
     return [Math.cos(u) * Math.sin(v), Math.sin(u) * Math.sin(v), Math.cos(v)];
   }),
 };
-const model = (children: Plot3Layer[], more: Partial<Plot3Model> = {}): Plot3Model => ({ x: [-1, 1], y: [-1, 1], z: [0, 1], equal: false, view: { azimuth: 30, elevation: 25 }, children, ...more });
+const model = (children: Layer3[], more: Partial<Plot3Model> = {}): Plot3Model => ({ x: [-1, 1], y: [-1, 1], z: [0, 1], equal: false, view: { azimuth: 30, elevation: 25 }, children, ...more });
 
 describe('projection', () => {
   it('draws x to the right and z up from the side, and y up from above', () => {

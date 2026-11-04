@@ -1,34 +1,9 @@
-import { div, reducedMotion, svg, tagInk } from '@/renderer/figure/dom';
+import { div, reducedMotion, svg, tagInk } from '@/renderer/figure/view/dom';
 import { isPlain } from '@/renderer/figure/figureText';
+import type { Layer, PlotModel, Point } from '@/renderer/figure/plot/PlotModel';
 import { categoriesOf, mixModel, modelDistance, type ResolvedModel, sameShape } from '@/renderer/figure/plot/mixModel';
 import { barSteps, minus, niceDomain, niceTicks, tickText, wrapLabel } from '@/renderer/figure/plot/plotMath';
 import { type LabelBox, placeLabels } from '@/renderer/figure/placeLabels';
-
-export type Point = [number, number | null];
-
-/** `tag`, a figure tag, colours a layer with that tag's theme colour. */
-export type Layer = (
-  | { kind: 'line'; points: Point[]; label?: string; series?: number }
-  /** `lower`, when set, replaces the flat `base` as the edge shaded against; `from` and `to` limit the shading to an x range. */
-  | { kind: 'area'; points: Point[]; base: number; lower?: Point[]; from?: number; to?: number; label?: string; series?: number }
-  | { kind: 'bars'; values: (number | null)[]; mode: 'bars' | 'waterfall'; label?: string; series?: number }
-  | { kind: 'dot'; x: number; y: number; label?: string; series?: number }
-  | { kind: 'rule'; at: number; axis: 'x' | 'y'; label?: string; series?: number }
-  | { kind: 'note'; x: number; y: number; text: string; series?: number }
-  /** A line with an arrowhead at `to` and no point marks. */
-  | { kind: 'arrow'; from: [number, number]; to: [number, number]; label?: string; series?: number }
-) & { tag?: string };
-
-export interface PlotModel {
-  /** A range, or the names of the categories a `Bars` layer stands on. */
-  x: [number, number] | string[];
-  y?: [number, number];
-  xLabel?: string;
-  yLabel?: string;
-  /** One unit is as long on both axes, so a circle stays round. */
-  equal?: boolean;
-  layers: Layer[];
-}
 
 const SERIES = 6;
 const MIN_WIDTH = 260;

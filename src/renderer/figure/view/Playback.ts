@@ -1,5 +1,5 @@
 import { formatFigure } from '@/renderer/figure/formatFigure';
-import { svg } from '@/renderer/figure/dom';
+import { svg } from '@/renderer/figure/view/dom';
 
 const PLAY = 'M5 3.5v9l7.5-4.5z';
 const PAUSE = 'M4.5 3.5h2v9h-2zM9.5 3.5h2v9h-2z';

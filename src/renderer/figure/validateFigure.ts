@@ -1,10 +1,11 @@
 import {
-  clampElevation, DEFAULT_VIEW, ELEMENT_PROPS, ID, LIMITS, TAGS,
-  type DiagramLayer, type FigureData, type FigureNode, type GraphEdge, type GraphNode, type Param, type Plot3Layer, type PlotLayer, type Point, type Point3, type Range, type Step, type Tag, type Tags, type Text, type View,
+  ELEMENT_PROPS, ID, LIMITS,
+  type DiagramLayer, type FigureData, type FigureNode, type GraphEdge, type GraphNode, type Param, type Plot3Layer, type PlotLayer, type Point, type Point3, type Step, type Tags, type Text,
 } from '@/renderer/figure/FigureData';
+import { clampElevation, DEFAULT_VIEW, type View } from '@/renderer/figure/plot3/Plot3Model';
+import { TAGS, type Tag } from '@/renderer/figure/Tag';
 import { texAnchors, texIn, texProblems } from '@/renderer/figure/figureTex';
 import { formatFigure } from '@/renderer/figure/formatFigure';
-import { niceDomain } from '@/renderer/figure/plot/plotMath';
 
 class Invalid extends Error {}
 
@@ -357,7 +358,7 @@ function readNode(raw: unknown, parent: string, depth: number, host: Host, scope
           if (typeof value === 'string' && !fns.has(value)) fail(path, `Region "${key}" names no Fn of this Plot: "${value}"`);
         }
       }
-      return { type, ...id, x: own(props, 'x') === undefined ? fit(layers.flatMap((layer) => coordinates(layer, 0))) : read.range('x'), ...read.optional('y', () => read.range('y')), ...read.optional('xLabel', (v) => read.string(v, 'xLabel')), ...read.optional('yLabel', (v) => read.string(v, 'yLabel')), ...read.optional('equal', (v) => read.boolean(v, 'equal')), children: layers };
+      return { type, ...id, ...read.optional('x', () => read.range('x')), ...read.optional('y', () => read.range('y')), ...read.optional('xLabel', (v) => read.string(v, 'xLabel')), ...read.optional('yLabel', (v) => read.string(v, 'yLabel')), ...read.optional('equal', (v) => read.boolean(v, 'equal')), children: layers };
     }
     case 'Diagram':
       return { type, ...id, width: read.positive('width'), height: read.positive('height'), children: drawingLayers(children, path, depth, 'Diagram', scope) };
@@ -437,87 +438,18 @@ function threeD(children: readonly unknown[]): string | undefined {
   return undefined;
 }
 
-/** Past this a fitted span can overflow to Infinity; data that large is left out of the fit. */
-const HUGE = 1e300;
-
-/**
- * A range with round ends for an axis the Plot does not give: around every value in `values`, and the bulk of the
- * surface samples in `spread`. Samples more than the 5–95% spread past it are cut at the box, so a spike such as
- * 1/(x² + y²) does not flatten the rest of its surface.
- */
-function fit(values: readonly number[], spread: readonly number[] = []): [number, number] {
-  let low = Infinity;
-  let high = -Infinity;
-  const see = (value: number): void => {
-    if (Math.abs(value) > HUGE) return;
-    low = Math.min(low, value);
-    high = Math.max(high, value);
-  };
-  values.forEach(see);
-  const sorted = spread.filter((value) => Math.abs(value) <= HUGE).sort((a, b) => a - b);
-  if (sorted.length) {
-    const p5 = sorted[Math.floor(sorted.length * 0.05)];
-    const p95 = sorted[Math.ceil(sorted.length * 0.95) - 1];
-    see(Math.max(sorted[0], p5 - (p95 - p5)));
-    see(Math.min(sorted[sorted.length - 1], p95 + (p95 - p5)));
-  }
-  return low <= high ? niceDomain(low, high) : [0, 1];
-}
-
-/** The values a layer reaches along axis `k` (0 is x), for fitting an axis to it. */
-function coordinates(layer: PlotLayer | Plot3Layer, k: number): number[] {
-  const at = (p: Point | Point3): number => p[k];
-  switch (layer.type) {
-    case 'Shape':
-    case 'Points':
-      return (layer.pts as readonly (Point | Point3)[]).map(at);
-    case 'Vector':
-    case 'Segment':
-      return [at(layer.from), at(layer.to)];
-    case 'Label':
-      return [at(layer.at)];
-    case 'Circle':
-      return k < 2 ? [at(layer.at) - layer.r, at(layer.at) + layer.r] : [at(layer.at)];
-    case 'Region':
-      return k === 0 ? [layer.from, layer.to].filter((v): v is number => v !== undefined) : [];
-    case 'Fn':
-      if ('zs' in layer) return k === 2 ? layer.zs.filter((z): z is number => z !== null) : [];
-      if (layer.pts.some((p) => p !== null && p.length === 3)) return (layer.pts as readonly (Point3 | null)[]).flatMap((p) => (p ? [p[k]] : []));
-      return [];
-  }
-}
-
-type Graph3 = { type: 'Fn'; zs: (number | null)[]; from?: number; to?: number };
-
 function readPlot3(read: Reader, children: unknown[], path: string, depth: number, scope: StepScope, why: string): Omit<Extract<FigureNode, { type: 'Plot3' }>, 'type' | 'id'> {
   const props = read.props;
-  const { equal: equalGiven } = read.optional('equal', (v) => read.boolean(v, 'equal'));
   const layers = drawingLayers(children, path, depth, 'Plot3', scope, why);
   const surfaces = layers.filter((layer) => layer.type === 'Fn');
   if (surfaces.length > LIMITS.surfaces) fail(path, over(surfaces.length, 'surfaces', LIMITS.surfaces));
   const graph = surfaces.find((layer) => 'zs' in layer);
   for (const key of ['x', 'y']) if (graph && own(props, key) === undefined) fail(path, `${key} is required: ${layerName('Fn', graph.id)} takes x and y as input`);
-  const given = (key: 'x' | 'y' | 'z', k: number): Range => {
-    if (own(props, key) !== undefined) return read.range(key);
-    return fit(layers.filter((layer) => layer.type !== 'Fn').flatMap((layer) => coordinates(layer, k)), surfaces.flatMap((layer) => coordinates(layer, k)));
-  };
-  const [x, y, z] = [given('x', 0), given('y', 1), given('z', 2)];
-  const children3 = layers.map((layer): Plot3Layer => {
-    if (layer.type !== 'Fn' || !('zs' in layer)) return layer;
-    const { from, to, ...rest } = layer as unknown as Graph3 & Plot3Layer;
-    return { ...rest, x: [from ?? x[0], to ?? x[1]], y };
-  });
-  const span = (range: Range): number => range[1] - range[0];
-  const same = [y, z].every((range) => Math.abs(span(range) - span(x)) <= 1e-9 * span(x));
-  const spans = [x, y, z].map(span);
-  // A Plot that gives no axis draws a solid in its own units, so a torus is not stretched to a cube. Spans more than 10×
-  // apart are data in different units, which one scale would squash to a sliver.
-  const solid = ['x', 'y', 'z'].every((key) => own(props, key) === undefined) && Math.max(...spans) <= 10 * Math.min(...spans);
-  const equal = equalGiven ?? (same || solid);
   return {
-    x, y, z, equal, view: readView(own(props, 'view'), path),
+    ...read.optional('x', () => read.range('x')), ...read.optional('y', () => read.range('y')), ...read.optional('z', () => read.range('z')),
+    ...read.optional('equal', (v) => read.boolean(v, 'equal')), view: readView(own(props, 'view'), path),
     ...read.optional('xLabel', (v) => read.string(v, 'xLabel')), ...read.optional('yLabel', (v) => read.string(v, 'yLabel')), ...read.optional('zLabel', (v) => read.string(v, 'zLabel')),
-    children: children3,
+    children: layers,
   };
 }
 

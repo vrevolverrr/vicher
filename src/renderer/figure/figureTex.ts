@@ -1,4 +1,4 @@
-import { TAGS, type Tag } from '@/renderer/figure/FigureData';
+import { TAGS, type Tag } from '@/renderer/figure/Tag';
 
 export type Rgb = readonly [number, number, number];
 

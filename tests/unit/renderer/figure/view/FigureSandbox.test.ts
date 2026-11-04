@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 import { LIMITS } from '@/renderer/figure/FigureData';
-import { FigureSandbox, type RunResult } from '@/renderer/figure/FigureSandbox';
+import { FigureSandbox, type RunResult } from '@/renderer/figure/view/FigureSandbox';
 import { SANDBOX_URL } from '@/renderer/figure/sandboxSource';
 
 type Posted = { type: string; id: number; request: { kind: string; source?: string } };

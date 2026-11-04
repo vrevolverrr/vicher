@@ -4,6 +4,8 @@ import { transform } from 'sucrase';
 
 import { along, circleThrough, dist, foot, intersect, rotate } from '@/renderer/figure/diagram/construct';
 import { ELEMENT_PROPS, LIMITS } from '@/renderer/figure/FigureData';
+import { sampleFn } from '@/renderer/figure/plot/sampleFn';
+import { sampleSurface, SurfaceError } from '@/renderer/figure/plot3/sampleSurface';
 
 declare const self: { onmessage: ((event: { data: unknown }) => void) | null; postMessage(message: unknown): void; __run?: (module: unknown, exports: unknown) => void; __probe?: number };
 declare function importScripts(...urls: string[]): void;
@@ -182,49 +184,23 @@ function sample(props: Record<string, unknown>, plot: Wire | undefined): { pts: 
   const x = plot?.props.x;
   const from = Number(props.from ?? (Array.isArray(x) ? x[0] : 0));
   const to = Number(props.to ?? (Array.isArray(x) ? x[1] : 1));
-  if (f.length >= 2) return sampleSurface(f as (a: number, b: number) => unknown, props, Array.isArray(props.u) ? props.u : [from, to], Array.isArray(props.v) ? props.v : plot?.props.y);
-  return {
-    pts: Array.from({ length: LIMITS.fnSamples }, (_, i) => {
-      const at = from + ((to - from) * i) / (LIMITS.fnSamples - 1);
-      const y = Number((f as (x: number) => unknown)(at));
-      return [at, Number.isFinite(y) ? y : null];
-    }),
-  };
+  if (f.length < 2) return { pts: sampleFn(f as (x: number) => unknown, from, to, LIMITS.fnSamples) };
+  const u = Array.isArray(props.u) ? props.u : [from, to];
+  const y = plot?.props.y;
+  const v = Array.isArray(props.v) ? props.v : Array.isArray(y) ? y : [0, 1];
+  try {
+    return sampleSurface(f as (a: number, b: number) => unknown, [Number(u[0]), Number(u[1])], [Number(v[0]), Number(v[1])], LIMITS.surfaceCells);
+  } catch (error) {
+    if (error instanceof SurfaceError) throw new FigureError(surfaceMessage(error, typeof props.id === 'string' ? `Fn \`${props.id}\`` : 'Fn'));
+    throw error;
+  }
 }
 
-/**
- * Samples a function of two variables on the surface grid. The first finite sample decides what it is: a number makes a
- * graph z = f(x, y), sent as `zs`; a point makes a parametric surface, sent as `pts`. A non-finite value is a hole in either.
- */
-function sampleSurface(f: (a: number, b: number) => unknown, props: Record<string, unknown>, u: unknown[], v: unknown): { pts: unknown[] } | { zs: unknown[] } {
-  const name = typeof props.id === 'string' ? `Fn \`${props.id}\`` : 'Fn';
-  const [u0, u1] = [Number(u[0]), Number(u[1])];
-  const [v0, v1] = Array.isArray(v) ? [Number(v[0]), Number(v[1])] : [0, 1];
-  const n = LIMITS.surfaceCells;
-  let kind: 'graph' | 'parametric' | undefined;
-  const out: unknown[] = [];
-  for (let j = 0; j <= n; j += 1) {
-    for (let i = 0; i <= n; i += 1) {
-      const a = u0 + ((u1 - u0) * i) / n;
-      const b = v0 + ((v1 - v0) * j) / n;
-      const value = f(a, b);
-      if (Array.isArray(value)) {
-        if (value.length !== 3) throw new FigureError(`${name} returned a point with ${value.length} coordinates at (${a}, ${b}); a parametric surface returns [x, y, z]`);
-        if (kind === 'graph') throw new FigureError(`${name} returned a point at (${a}, ${b}) after returning numbers; f returns numbers everywhere for a graph z = f(x, y), or [x, y, z] everywhere for a parametric surface`);
-        const point = value.map(Number);
-        const finite = point.every(Number.isFinite);
-        if (finite) kind = 'parametric';
-        out.push(finite ? point : null);
-      } else {
-        const z = Number(value);
-        const finite = Number.isFinite(z);
-        if (finite && kind === 'parametric') throw new FigureError(`${name} returned a number at (${a}, ${b}) after returning points; f returns [x, y, z] everywhere for a parametric surface, or numbers everywhere for a graph z = f(x, y)`);
-        if (finite) kind = 'graph';
-        out.push(finite ? z : null);
-      }
-    }
-  }
-  return kind === 'parametric' ? { pts: out } : { zs: out };
+/** A surface sampling error in the contract's words, naming the Fn. */
+function surfaceMessage({ reason, at: [a, b], got }: SurfaceError, name: string): string {
+  if (reason === 'coordinates') return `${name} returned a point with ${got} coordinates at (${a}, ${b}); a parametric surface returns [x, y, z]`;
+  if (reason === 'pointAfterNumbers') return `${name} returned a point at (${a}, ${b}) after returning numbers; f returns numbers everywhere for a graph z = f(x, y), or [x, y, z] everywhere for a parametric surface`;
+  return `${name} returned a number at (${a}, ${b}) after returning points; f returns [x, y, z] everywhere for a parametric surface, or numbers everywhere for a graph z = f(x, y)`;
 }
 
 /** The error as the host shows it, with the program line its stack names. */

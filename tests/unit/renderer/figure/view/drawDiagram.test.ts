@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
-import { diagramExtent, drawDiagram } from '@/renderer/figure/drawDiagram';
+import { diagramExtent } from '@/renderer/figure/diagram/diagramExtent';
+import { drawDiagram } from '@/renderer/figure/view/drawDiagram';
 import type { DiagramLayer, FigureNode } from '@/renderer/figure/FigureData';
 
 const diagram = (...children: DiagramLayer[]): Extract<FigureNode, { type: 'Diagram' }> => ({ type: 'Diagram', width: 4, height: 3, children });

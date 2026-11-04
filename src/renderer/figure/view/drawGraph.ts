@@ -1,47 +1,15 @@
-import { arrowHeads, div, lineInk, svg } from '@/renderer/figure/dom';
-import type { FigureNode, GraphEdge, GraphNode, Tag } from '@/renderer/figure/FigureData';
+import { arrowHeads, div, lineInk, type Markdown, svg } from '@/renderer/figure/view/dom';
+import type { FigureNode } from '@/renderer/figure/FigureData';
+import type { Tag } from '@/renderer/figure/Tag';
 import { formatFigure } from '@/renderer/figure/formatFigure';
-import { position, status } from '@/renderer/figure/geometry';
-import { layoutNetwork, type NetworkLayout } from '@/renderer/figure/network/layoutNetwork';
+import { type Point, status } from '@/renderer/figure/geometry';
+import { edgeKeys } from '@/renderer/figure/network/layoutGraph';
+import type { NetworkLayout } from '@/renderer/figure/network/layoutNetwork';
 
 type Graph = Extract<FigureNode, { type: 'Graph' }>;
 
-export type Markdown = (el: HTMLElement, text: string | number) => void;
-
-
-const nodeText = (node: GraphNode): string => [formatFigure(node.label), node.sub === undefined ? '' : formatFigure(node.sub)].filter(Boolean).join('\n');
-
-/** Each edge's key across steps: its id, or its ends and how many edges with the same ends come before it. */
-function edgeKeys(edges: readonly GraphEdge[]): string[] {
-  const seen = new Map<string, number>();
-  return edges.map((edge) => {
-    if (edge.id) return edge.id;
-    const ends = `${edge.from}>${edge.to}`;
-    const count = seen.get(ends) ?? 0;
-    seen.set(ends, count + 1);
-    return `${ends}#${count}`;
-  });
-}
-
-/** One layout for a Graph over every step it is in: the union of its nodes and edges, first seen first, so nothing moves. */
-export function layoutGraph(uses: readonly Graph[]): NetworkLayout {
-  const nodes = new Set<string>();
-  const edges = new Map<string, { id: string; from: string; to: string }>();
-  const nodeLabels: string[] = [];
-  const edgeLabels: string[] = [];
-  for (const graph of uses) {
-    for (const node of graph.nodes) {
-      nodes.add(node.id);
-      // Room for the ▶ an active node shows.
-      nodeLabels.push(`▶ ${nodeText(node)}`);
-    }
-    edgeKeys(graph.edges).forEach((key, i) => {
-      const edge = graph.edges[i];
-      if (!edges.has(key)) edges.set(key, { id: key, from: edge.from, to: edge.to });
-      if (edge.label !== undefined) edgeLabels.push(formatFigure(edge.label));
-    });
-  }
-  return layoutNetwork({ nodes: [...nodes].map((id) => ({ id })), edges: [...edges.values()], nodeLabels, edgeLabels });
+function position(el: HTMLElement, p: Point): void {
+  el.style.transform = `translate(${p.x}px, ${p.y}px)`;
 }
 
 /** Draws one step of a Graph at the places `layout` gives; nodes and edges absent from this step are hidden. */

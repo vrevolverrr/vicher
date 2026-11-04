@@ -1,9 +1,8 @@
-import { arrowHeads, div, lineInk, svg } from '@/renderer/figure/dom';
+import { arrowHeads, div, lineInk, type Markdown, svg } from '@/renderer/figure/view/dom';
 import type { FigureNode } from '@/renderer/figure/FigureData';
 
 export type Link = Extract<FigureNode, { type: 'Arrow' | 'Pointer' }>;
 type Box = { el: Element; l: number; t: number; r: number; b: number };
-type Markdown = (el: HTMLElement, text: string | number) => void;
 
 /** A pointer is 20 px tall; the next one down sits this far below it. */
 export const POINTER_STEP = 22;

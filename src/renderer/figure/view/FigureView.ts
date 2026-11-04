@@ -1,21 +1,25 @@
-import { computedColour, div, parseColour } from '@/renderer/figure/dom';
-import { diagramExtent, drawDiagram, type Extent, type Room, widen } from '@/renderer/figure/drawDiagram';
-import { drawGraph, layoutGraph } from '@/renderer/figure/drawGraph';
-import { drawLinks, type Link, POINTER_STEP, pointerLabel } from '@/renderer/figure/drawLinks';
-import { drawParams } from '@/renderer/figure/drawParams';
-import { plotModel } from '@/renderer/figure/drawPlot';
-import { drawQuiz } from '@/renderer/figure/drawQuiz';
-import { type FigureData, type FigureNode, type Param, TAGS, type Tag, type View } from '@/renderer/figure/FigureData';
-import { figureSandbox, type FigureSandbox } from '@/renderer/figure/FigureSandbox';
+import { computedColour, div, parseColour } from '@/renderer/figure/view/dom';
+import { diagramExtent, type Extent, type Room, widen } from '@/renderer/figure/diagram/diagramExtent';
+import { drawDiagram } from '@/renderer/figure/view/drawDiagram';
+import { layoutGraph } from '@/renderer/figure/network/layoutGraph';
+import { drawGraph } from '@/renderer/figure/view/drawGraph';
+import { drawLinks, type Link, POINTER_STEP, pointerLabel } from '@/renderer/figure/view/drawLinks';
+import { drawParams } from '@/renderer/figure/view/drawParams';
+import { plot3Model, plotModel } from '@/renderer/figure/plotModels';
+import { drawQuiz } from '@/renderer/figure/view/drawQuiz';
+import type { FigureData, FigureNode, Param } from '@/renderer/figure/FigureData';
+import type { View } from '@/renderer/figure/plot3/Plot3Model';
+import { TAGS, type Tag } from '@/renderer/figure/Tag';
+import { figureSandbox, type FigureSandbox } from '@/renderer/figure/view/FigureSandbox';
 import { drawTex, drawTexIn, mapMath, type Rgb, type TagColour, texAnchors, texTags, TYPESET_MATH } from '@/renderer/figure/figureTex';
 import { figureText, isPlain } from '@/renderer/figure/figureText';
 import { formatFigure } from '@/renderer/figure/formatFigure';
 import { status } from '@/renderer/figure/geometry';
 import type { NetworkLayout } from '@/renderer/figure/network/layoutNetwork';
-import { Playback } from '@/renderer/figure/Playback';
-import { PlotChart } from '@/renderer/figure/plot/PlotChart';
-import { Plot3Chart } from '@/renderer/figure/plot3/Plot3Chart';
-import { StepList } from '@/renderer/figure/StepList';
+import { Playback } from '@/renderer/figure/view/Playback';
+import { PlotChart } from '@/renderer/figure/view/PlotChart';
+import { Plot3Chart } from '@/renderer/figure/view/Plot3Chart';
+import { StepList } from '@/renderer/figure/view/StepList';
 import { validateFigure } from '@/renderer/figure/validateFigure';
 
 export interface FigureHost {
@@ -754,7 +758,7 @@ export class FigureView {
         // Taller than a 2D Plot: the box must fit every angle it turns to.
         chart.height = (width) => Math.min(420, width * 0.75);
         chart.writeLabel = drawing.markdown;
-        chart.render(node);
+        chart.render(plot3Model(node));
         view.plots.push(chart);
         return;
       }

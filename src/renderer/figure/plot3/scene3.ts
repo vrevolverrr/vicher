@@ -1,10 +1,9 @@
-import { LIMITS, type Plot3Model, type Point3, type Tag, type View } from '@/renderer/figure/FigureData';
-import type { Rgb } from '@/renderer/figure/figureTex';
-import { formatFigure } from '@/renderer/figure/formatFigure';
-import { isPlain } from '@/renderer/figure/figureText';
+import type { Plot3Model, Point3, View } from '@/renderer/figure/plot3/Plot3Model';
+import type { Tag } from '@/renderer/figure/Tag';
 import { niceTicks, tickText } from '@/renderer/figure/plot/plotMath';
 
 export type Xy = [number, number];
+export type Rgb = readonly [number, number, number];
 export interface Size { width: number; height: number }
 /** The height colour map, low to high; read from the theme by the chart. */
 export interface Colours { ramp: readonly Rgb[] }
@@ -129,10 +128,11 @@ export function meshOf(model: Plot3Model, colours: Colours): Mesh {
   if (kept?.colours === colours) return kept.mesh;
   const L = sides(model);
   const box = toBox(model);
-  const n = LIMITS.surfaceCells;
-  const side = n + 1;
   const faces: MeshFace[] = [];
   const surfaces = model.children.filter((layer) => layer.type === 'Fn');
+  const first = surfaces[0];
+  const side = first ? Math.round(Math.sqrt('zs' in first ? first.zs.length : first.pts.length)) : 1;
+  const n = side - 1;
   const graph = surfaces.length === 1 && 'zs' in surfaces[0];
   const cells = new Int32Array(n * n).fill(-1);
   for (const surface of surfaces) {
@@ -203,7 +203,8 @@ export function textWidth(text: string, px: number): number {
   return shown.length * px * 0.58;
 }
 
-export function scene3(model: Plot3Model, view: View, size: Size, colours: Colours, measure: (text: string, px: number) => number = textWidth): Scene3 {
+/** `canCut(text)` says whether a title may be shortened with an ellipsis; one with maths, for example, cannot. */
+export function scene3(model: Plot3Model, view: View, size: Size, colours: Colours, measure: (text: string, px: number) => number = textWidth, canCut: (text: string) => boolean = () => true): Scene3 {
   const L = sides(model);
   const toScreen = projection(model, view, size);
   const box = toBox(model);
@@ -269,11 +270,11 @@ export function scene3(model: Plot3Model, view: View, size: Size, colours: Colou
     const at: Xy = [m[0] + out[0] * reach, m[1] + out[1] * reach + 4];
     titles.push({ at, text: label, anchor, box: textBox(at, measure(label, TITLE_PX), anchor, TITLE_PX) });
   });
-  layoutText(titles, ticks, size, measure);
+  layoutText(titles, ticks, size, measure, canCut);
 
   const overlays = model.children.flatMap((layer): Overlay[] => {
     const marks = layer.tag ? { tag: layer.tag } : {};
-    const label = 'label' in layer && layer.label !== undefined ? formatFigure(layer.label) : undefined;
+    const label = 'label' in layer ? layer.label : undefined;
     const lines = (points: readonly Point3[]): Overlay[] => clipLine(points.map(box), L).map((run, i) => ({ kind: 'line', points: run.map(toScreen), ...marks, ...(i === 0 && label ? { label } : {}) }));
     switch (layer.type) {
       case 'Shape':
@@ -295,7 +296,7 @@ export function scene3(model: Plot3Model, view: View, size: Size, colours: Colou
         return layer.pts.map(box).filter((at) => inBox(at, L)).map((at, i): Overlay => ({ kind: 'dot', at: toScreen(at), ...marks, ...(i === 0 && label ? { label } : {}) }));
       case 'Label': {
         const at = box(layer.at);
-        return inBox(at, L) ? [{ kind: 'note', at: toScreen(at), text: formatFigure(layer.text), ...marks }] : [];
+        return inBox(at, L) ? [{ kind: 'note', at: toScreen(at), text: layer.text, ...marks }] : [];
       }
       case 'Fn':
         return [];
@@ -368,7 +369,7 @@ function shift(title: Scene3['titles'][number], dx: number, dy: number): void {
  * Keeps titles inside the frame and apart from each other, then drops the text of any tick label that would leave the
  * frame or touch a title or a tick label already kept (where two axes meet at a corner, one end label goes).
  */
-function layoutText(titles: Scene3['titles'], ticks: Tick[], size: Size, measure: (text: string, px: number) => number): void {
+function layoutText(titles: Scene3['titles'], ticks: Tick[], size: Size, measure: (text: string, px: number) => number, canCut: (text: string) => boolean): void {
   const inside = (title: Scene3['titles'][number]): void => {
     const { box } = title;
     const dx = box.w > size.width - 4 ? 2 - box.x : Math.max(2 - box.x, Math.min(0, size.width - 2 - (box.x + box.w)));
@@ -376,11 +377,11 @@ function layoutText(titles: Scene3['titles'], ticks: Tick[], size: Size, measure
     shift(title, dx, dy);
   };
   titles.forEach((title, i) => {
-    // A plain title longer than the room on its side of the box is cut short; one with maths cannot be, and is kept whole.
+    // A title longer than the room on its side of the box is cut short when it can be, and otherwise kept whole.
     const [x] = title.at;
     const room = title.anchor === 'end' ? x - 2 : title.anchor === 'start' ? size.width - 2 - x : 2 * Math.min(x - 2, size.width - 2 - x);
     const fits = Math.max(2, Math.floor(room / (TITLE_PX * 0.58)));
-    if (title.text.length > fits && isPlain(title.text)) {
+    if (title.text.length > fits && canCut(title.text)) {
       title.text = `${title.text.slice(0, Math.max(1, fits - 1)).trimEnd()}…`;
       title.box = textBox(title.at, measure(title.text, TITLE_PX), title.anchor, TITLE_PX);
     }

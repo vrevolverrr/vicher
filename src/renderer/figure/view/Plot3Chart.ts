@@ -1,6 +1,5 @@
-import { computedColour, div, parseColour, svg, tagInk } from '@/renderer/figure/dom';
-import { clampElevation, type Plot3Model, type View } from '@/renderer/figure/FigureData';
-import { formatFigure } from '@/renderer/figure/formatFigure';
+import { computedColour, div, parseColour, svg, tagInk } from '@/renderer/figure/view/dom';
+import { clampElevation, type Plot3Model, type View } from '@/renderer/figure/plot3/Plot3Model';
 import { isPlain } from '@/renderer/figure/figureText';
 import { type Box, type LabelBox, placeLabels } from '@/renderer/figure/placeLabels';
 import { type Colours, type Overlay, type Scene3, scene3, textWidth, type Xy } from '@/renderer/figure/plot3/scene3';
@@ -100,7 +99,7 @@ export class Plot3Chart {
     // Typeset now, while the owner waits for its renders: a step shown later then measures its labels whole.
     for (const text of [model.xLabel, model.yLabel, model.zLabel]) if (text && !isPlain(text)) this.label(text, 'is-title');
     for (const layer of model.children) {
-      const text = layer.type === 'Label' ? formatFigure(layer.text) : layer.type !== 'Fn' && layer.label !== undefined ? formatFigure(layer.label) : undefined;
+      const text = layer.type === 'Label' ? layer.text : layer.type !== 'Fn' ? layer.label : undefined;
       if (text && !isPlain(text)) this.label(text, layer.type === 'Label' ? '' : 'is-strong');
     }
     this.watch();
@@ -179,7 +178,7 @@ export class Plot3Chart {
     }
     const colours = (this.colours ??= this.readColours());
     this.shown.clear();
-    const scene = scene3(model, this.view(), { width, height }, colours, (text, px) => this.size(text, 'is-title', px).width);
+    const scene = scene3(model, this.view(), { width, height }, colours, (text, px) => this.size(text, 'is-title', px).width, isPlain);
     this.paintCanvas(scene, width, height, colours);
     this.paintSvg(scene, width, height);
     for (const el of this.typeset.values()) if (!this.shown.has(el)) el.remove();

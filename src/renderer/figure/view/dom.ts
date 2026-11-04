@@ -1,5 +1,8 @@
 import type { Rgb } from '@/renderer/figure/figureTex';
 
+/** Writes figure text into `el` with the chat's Markdown renderer. */
+export type Markdown = (el: HTMLElement, text: string | number) => void;
+
 const NS = 'http://www.w3.org/2000/svg';
 
 /** Creates an SVG element with attributes, optionally under `parent` and holding `text`. */

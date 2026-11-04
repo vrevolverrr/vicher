@@ -1,7 +1,8 @@
 /** @jest-environment jsdom */
 import { VISUALS_DEMO_TURNS } from '@/chat/obsidian/playVisualsDemo';
 import { splitReply } from '@/chat/splitReply';
-import { diagramExtent, drawDiagram } from '@/renderer/figure/drawDiagram';
+import { diagramExtent } from '@/renderer/figure/diagram/diagramExtent';
+import { drawDiagram } from '@/renderer/figure/view/drawDiagram';
 import type { FigureNode } from '@/renderer/figure/FigureData';
 import * as labels from '@/renderer/figure/placeLabels';
 import { WORKER_SOURCE } from '@/renderer/figure/sandboxSource';
