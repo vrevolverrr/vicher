@@ -6,7 +6,7 @@ import type { Fields, Read } from '@/renderer/figure/components/field';
 import { Fn } from '@/renderer/figure/components/Fn';
 import { Graph } from '@/renderer/figure/components/Graph';
 import { Angle, Circle, Dimension as DimensionMark, Label, Points, RightAngle, Segment, Shape, Tick, Vector } from '@/renderer/figure/components/layers';
-import { BLOCK_NAMES } from '@/renderer/figure/components/names';
+import { BLOCK_NAMES, LINK_NAMES } from '@/renderer/figure/components/names';
 import { Node } from '@/renderer/figure/components/Node';
 import { Panel } from '@/renderer/figure/components/Panel';
 import { Plot } from '@/renderer/figure/components/Plot';
@@ -26,7 +26,7 @@ export const COMPONENTS = [
   Shape, Circle, Vector, Segment, Points, Label, Fn, Region, Angle, RightAngle, Tick, DimensionMark,
 ] as const;
 
-export type AnyDefinition = Definition<string, Fields, Readonly<Record<string, Variant>>, readonly string[] | undefined, readonly Dimension[] | undefined>;
+export type AnyDefinition = Definition<string, Fields, Readonly<Record<string, Variant>>, readonly string[] | undefined>;
 
 export const DEFINITIONS: ReadonlyMap<string, AnyDefinition> = new Map(COMPONENTS.map((definition) => [definition.name, definition as AnyDefinition]));
 
@@ -40,14 +40,12 @@ type Lift3<T> = T extends Point ? Point3 : T extends ReadonlyMap<unknown, unknow
 /** `Dim` is the drawing a child is in, or 'any' outside one. */
 type Shaped<Type, F extends Fields, C, Dim> = { readonly type: Type } & Read<F> & ([NonNullable<C>] extends [never] ? unknown : { readonly children: readonly ChildNode<NonNullable<C> extends readonly (infer Name)[] ? Name : never, Dim>[] });
 
-type Allowed<D extends Defs, Dim> = Dim extends Dimension ? ([NonNullable<D['dimensions']>] extends [never] ? true : Dim extends NonNullable<D['dimensions']>[number] ? true : false) : true;
-
 type Lifted<T, Dim> = Dim extends 3 ? Lift3<T> : T;
 
 /** The node types one element reads to, in a drawing of dimension `Dim`, or anywhere with 'any'. */
 type ChildNode<Name, Dim> = Name extends unknown ? (DefOf<Name> extends infer D extends Defs ? NodesOf<D, NonNullable<D["variants"]>, Dim> : never) : never;
 type NodesOf<D extends Defs, V, Dim> = [keyof V] extends [never]
-  ? Allowed<D, Dim> extends true ? Lifted<Shaped<D['name'], NonNullable<D['fields']>, D['children'], 'any'>, Dim> : never
+  ? Lifted<Shaped<D['name'], NonNullable<D['fields']>, D['children'], 'any'>, Dim>
   : { [K in keyof V & string]: V[K] extends Variant<infer VF> ? (Dim extends Dimension ? (V[K]['dimension'] extends Dim ? Shaped<K, VF, D['children'], V[K]['dimension']> : never) : Shaped<K, VF, D['children'], V[K]['dimension']>) : never }[keyof V & string];
 
 /** What a step, a Row, a Column or a Panel holds. */
@@ -61,3 +59,8 @@ export type NodeOf<K extends NodeType> = Extract<AnyNode, { type: K }>;
 
 /** The definition behind each node type: a variant's node type maps to its element. */
 export const NODE_DEFINITIONS: ReadonlyMap<string, AnyDefinition> = new Map([...DEFINITIONS.values()].flatMap((definition) => [definition.name, ...Object.keys(definition.variants ?? {})].map((type) => [type, definition] as const)));
+
+/** Node types whose children are blocks; any other node's children are a drawing's layers. */
+export const BLOCK_CONTAINERS: ReadonlySet<string> = new Set([...NODE_DEFINITIONS].flatMap(([type, definition]) => (definition.children?.every((name) => (BLOCK_NAMES as readonly string[]).includes(name)) ? [type] : [])));
+
+export const isLink = (node: AnyNode): node is NodeOf<(typeof LINK_NAMES)[number]> => (LINK_NAMES as readonly string[]).includes(node.type);

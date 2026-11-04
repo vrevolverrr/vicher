@@ -14,7 +14,6 @@ export interface Context {
 export type Child = { readonly type: string; readonly id?: string } & Readonly<Record<string, unknown>>;
 
 export interface CheckContext {
-  path: string;
   context: Context;
   fail: (message: string) => never;
 }
@@ -33,7 +32,7 @@ type CheckNode<Name, F extends Fields, V, C> = [keyof V] extends [never] ? NodeI
  * One element the model can write. `fields` (or `variants`, one per node shape) declare its props; `children` names the
  * elements it may hold. See `docs/specs/figure-components.md` for each member.
  */
-export interface Definition<Name extends string = string, F extends Fields = Fields, V extends Readonly<Record<string, Variant>> = Readonly<Record<string, Variant>>, C extends readonly string[] | undefined = readonly string[] | undefined, D extends readonly Dimension[] | undefined = readonly Dimension[] | undefined> {
+export interface Definition<Name extends string = string, F extends Fields = Fields, V extends Readonly<Record<string, Variant>> = Readonly<Record<string, Variant>>, C extends readonly string[] | undefined = readonly string[] | undefined> {
   readonly name: Name;
   readonly summary: string;
   readonly signature?: string;
@@ -43,8 +42,6 @@ export interface Definition<Name extends string = string, F extends Fields = Fie
   readonly children?: C;
   /** The prop its text children are read into, as `<Text>...</Text>` is. */
   readonly textChildren?: keyof F & string;
-  /** The drawings it may be in; any, when absent. */
-  readonly dimensions?: D;
   context?(raw: { props: Readonly<Record<string, unknown>>; children: readonly unknown[] }): Context;
   check?(node: CheckNode<Name, F, V, C>, ctx: CheckContext): void;
   /** Ids it owns besides its `field.id()` values, such as a Table's cells. */
@@ -53,6 +50,6 @@ export interface Definition<Name extends string = string, F extends Fields = Fie
   pointable?(node: CheckNode<Name, F, V, C>): { ids: readonly string[]; side: 'below' | 'left' | 'right' };
 }
 
-export function component<const Name extends string, const F extends Fields = Fields, const V extends Readonly<Record<string, Variant>> = Record<never, never>, const C extends readonly string[] | undefined = undefined, const D extends readonly Dimension[] | undefined = undefined>(definition: Definition<Name, F, V, C, D>): Definition<Name, F, V, C, D> {
+export function component<const Name extends string, const F extends Fields = Fields, const V extends Readonly<Record<string, Variant>> = Record<never, never>, const C extends readonly string[] | undefined = undefined>(definition: Definition<Name, F, V, C>): Definition<Name, F, V, C> {
   return definition;
 }

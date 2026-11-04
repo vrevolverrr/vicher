@@ -1,5 +1,4 @@
-import { BLOCK_NAMES } from '@/renderer/figure/components/names';
-import { NODE_DEFINITIONS } from '@/renderer/figure/components/registry';
+import { BLOCK_CONTAINERS, isLink, NODE_DEFINITIONS } from '@/renderer/figure/components/registry';
 import { computedColour, div, parseColour } from '@/renderer/figure/view/dom';
 import type { DrawContext, Drawn, ElementView, Lane } from '@/renderer/figure/view/components/ElementView';
 import { type DrawnType, VIEWS } from '@/renderer/figure/view/components/registry';
@@ -119,12 +118,12 @@ function walk(root: FigureNode, visit: (node: FigureNode, key: string) => void):
     const ordinal = counts.get(node.type) ?? 0;
     counts.set(node.type, ordinal + 1);
     visit(node, `${node.type}:${('id' in node && node.id) || `#${ordinal}`}`);
-    if (NODE_DEFINITIONS.get(node.type)?.children === BLOCK_NAMES) for (const child of (node as { children: readonly FigureNode[] }).children) step(child);
+    if (BLOCK_CONTAINERS.has(node.type)) for (const child of (node as { children: readonly FigureNode[] }).children) step(child);
   };
   step(root);
 }
 
-const viewOf = (type: DrawnType): ElementView<FigureNode> => VIEWS[type];
+const viewOf = (type: string): ElementView<FigureNode> | undefined => (Object.hasOwn(VIEWS, type) ? VIEWS[type as DrawnType] : undefined);
 
 /** Runs one figure program in the sandbox, validates what it returns and draws it: every step at once in one grid cell, the current one shown. */
 export class FigureView {
@@ -274,7 +273,7 @@ export class FigureView {
    */
   private async fitRange(figure: FigureData): Promise<void> {
     let ranged = false;
-    for (const step of figure.steps) walk(step.root, (node) => (ranged ||= node.type in VIEWS && viewOf(node.type as DrawnType).holdsRange === true));
+    for (const step of figure.steps) walk(step.root, (node) => (ranged ||= viewOf(node.type)?.holdsRange === true));
     if (!ranged) return;
     const before = JSON.stringify([...this.prepared]);
     const runs = figure.params.flatMap((param) => rangeOf(param).map((value) => this.execute({ ...Object.fromEntries(this.values), [param.key]: value }, true)));
@@ -371,7 +370,7 @@ export class FigureView {
         keys.set(node, key);
         if ('tags' in node && node.tags) for (const [id, tag] of node.tags) tags.set(id, tag);
         // A drawing's layers draw their own tag colours.
-        if (node.type === 'Plot' || node.type === 'Plot3' || node.type === 'Diagram') for (const layer of node.children) if (layer.tag) used.add(layer.tag);
+        if ('children' in node && !BLOCK_CONTAINERS.has(node.type)) for (const layer of node.children) if ('tag' in layer && layer.tag) used.add(layer.tag);
       });
       walk(step.root, (node) => {
         if ('id' in node && node.id && 'tag' in node && node.tag) tags.set(node.id, node.tag);
@@ -556,9 +555,15 @@ export class FigureView {
   /** What each view prepares over its element's instances in every step, by key, from what it prepared last; `ranged` only for views that hold a param's range. */
   private prepare(figure: FigureData, ranged: boolean): Map<string, unknown> {
     const uses = new Map<string, FigureNode[]>();
-    for (const step of figure.steps) walk(step.root, (node, key) => uses.set(key, [...(uses.get(key) ?? []), node]));
+    for (const step of figure.steps) {
+      walk(step.root, (node, key) => {
+        const nodes = uses.get(key);
+        if (nodes) nodes.push(node);
+        else uses.set(key, [node]);
+      });
+    }
     for (const [key, nodes] of uses) {
-      const view = nodes[0].type in VIEWS ? viewOf(nodes[0].type as DrawnType) : undefined;
+      const view = viewOf(nodes[0].type);
       if (view?.prepare && (!ranged || view.holdsRange)) this.prepared.set(key, view.prepare(nodes, view.holdsRange ? this.prepared.get(key) : undefined));
     }
     return this.prepared;
@@ -589,13 +594,15 @@ export class FigureView {
   /** Draws blocks into `parent` by their views; links wait for the step to be laid out. */
   private drawBlocks(nodes: readonly FigureNode[], parent: HTMLElement, view: StepView, drawing: Drawing, tagOf: (id: string) => Tag | undefined, keys: ReadonlyMap<FigureNode, string>): void {
     for (const node of nodes) {
-      if (node.type === 'Arrow' || node.type === 'Pointer') {
+      if (isLink(node)) {
         view.links.push(node);
         continue;
       }
       const key = keys.get(node)!;
       const instance: Instance = { key, view };
-      drawing.instances.set(key, [...(drawing.instances.get(key) ?? []), instance]);
+      const instances = drawing.instances.get(key);
+      if (instances) instances.push(instance);
+      else drawing.instances.set(key, [instance]);
       const width = (): number => this.width;
       const ctx: DrawContext = {
         get width() {
@@ -627,7 +634,7 @@ export class FigureView {
         },
         send: this.host.send?.bind(this.host),
       };
-      const drawn = viewOf(node.type).draw(parent.appendChild(div('')), node, ctx);
+      const drawn = viewOf(node.type)!.draw(parent.appendChild(div('')), node, ctx);
       if (drawn) {
         instance.drawn = drawn;
         view.drawn.push(drawn);

@@ -1,9 +1,8 @@
 import { type Child, component, type Context, field } from '@/renderer/figure/components/component';
 import { SHARED_LAYER_NAMES } from '@/renderer/figure/components/names';
 import { LIMITS } from '@/renderer/figure/FigureData';
+import { isObject, over, own } from '@/renderer/figure/plain';
 
-const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
-const own = (object: Record<string, unknown>, key: string): unknown => (Object.hasOwn(object, key) ? object[key] : undefined);
 
 /** How a message names a layer: `Fn` `bowl`, or a `Fn`. */
 export const layerName = (type: string, id: unknown): string => (typeof id === 'string' ? `\`${type}\` \`${id}\`` : `a \`${type}\``);
@@ -59,10 +58,10 @@ export const Plot = component({
   },
   check(plot, { fail }) {
     const layers = plot.children;
-    if (layers.length > LIMITS.layers) fail(`${layers.length.toLocaleString('en')} layers; the limit is ${LIMITS.layers}`);
+    if (layers.length > LIMITS.layers) fail(over(layers.length, 'layers', LIMITS.layers));
     const fns = layers.filter((layer) => layer.type === 'Fn' || layer.type === 'Surface');
     if (plot.type === 'Plot3') {
-      if (fns.length > LIMITS.surfaces) fail(`${fns.length} surfaces; the limit is ${LIMITS.surfaces}`);
+      if (fns.length > LIMITS.surfaces) fail(over(fns.length, 'surfaces', LIMITS.surfaces));
       const graph = fns.find((layer) => layer.zs !== undefined);
       for (const key of ['x', 'y'] as const) if (graph && plot[key] === undefined) fail(`${key} is required: ${layerName('Fn', graph.id)} takes x and y as input`);
       return;

@@ -1,3 +1,4 @@
+import type { LINK_NAMES } from '@/renderer/figure/components/names';
 import type { NodeOf } from '@/renderer/figure/components/registry';
 import type { FigureNode } from '@/renderer/figure/FigureData';
 import { DiagramView } from '@/renderer/figure/view/components/DiagramView';
@@ -11,7 +12,7 @@ import { TableView } from '@/renderer/figure/view/components/TableView';
 import { NodeView, TexView, TextView } from '@/renderer/figure/view/components/TextViews';
 
 /** The core draws links after a step is laid out; every other block has a view. */
-export type DrawnType = Exclude<FigureNode['type'], 'Arrow' | 'Pointer'>;
+export type DrawnType = Exclude<FigureNode['type'], (typeof LINK_NAMES)[number]>;
 
 export const VIEWS: { [K in DrawnType]: ElementView<NodeOf<K>> } = {
   Row: LayoutView, Column: LayoutView, Panel: PanelView, Table: TableView, Seq: SeqView, Node: NodeView, Text: TextView, Tex: TexView,

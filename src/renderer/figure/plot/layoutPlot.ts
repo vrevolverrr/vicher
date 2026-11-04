@@ -9,7 +9,6 @@ const Y_TITLE_WIDTH = 20;
 export interface CategoryLabels { lines: string[][]; tilted: boolean }
 
 export interface PlotLayout {
-  width: number;
   height: number;
   margin: { top: number; right: number; bottom: number; left: number };
   /** The plotting area's size, inside the margins. */
@@ -62,7 +61,7 @@ export function layoutPlot(model: ResolvedModel, width: number, height: number):
   }
   const left = margin.left;
   return {
-    width, height, margin, pw, ph, shift, x0, x1, y0, y1, cats, labels, xTicks, yTicks: yTicks(ph),
+    height, margin, pw, ph, shift, x0, x1, y0, y1, cats, labels, xTicks, yTicks: yTicks(ph),
     sx: (x) => left + ((x - x0) / (x1 - x0)) * pw,
     sy: (y) => margin.top + (1 - (y - y0) / (y1 - y0)) * ph,
   };

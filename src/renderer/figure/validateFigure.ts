@@ -5,6 +5,7 @@ import { type AnyDefinition, DEFINITIONS } from '@/renderer/figure/components/re
 import { type FigureData, type FigureNode, ID, LIMITS, type Param, type Step } from '@/renderer/figure/FigureData';
 import { texAnchors, texIn, texProblems } from '@/renderer/figure/figureTex';
 import { formatFigure } from '@/renderer/figure/formatFigure';
+import { count as n, isObject, over, own, type Plain } from '@/renderer/figure/plain';
 
 class Invalid extends Error {}
 
@@ -12,8 +13,6 @@ function fail(path: string, message: string): never {
   throw new Invalid(`${path}: ${message}`);
 }
 
-const n = (count: number): string => count.toLocaleString('en');
-const over = (count: number, what: string, limit: number): string => `${n(count)} ${what}; the limit is ${n(limit)}`;
 
 /**
  * Reads what a figure program returned. The data is a structured clone from a realm the model controls, so it is checked
@@ -77,11 +76,6 @@ function checkPlain(raw: unknown): void {
   };
   visit(raw, 0);
 }
-
-type Plain = Record<string, unknown>;
-
-const isObject = (value: unknown): value is Plain => typeof value === 'object' && value !== null && !Array.isArray(value);
-const own = (object: Plain, key: string): unknown => (Object.hasOwn(object, key) ? object[key] : undefined);
 
 function onlyKeys(object: Plain, allowed: readonly string[], path: string, what: string): void {
   for (const key of Object.keys(object)) {
@@ -250,15 +244,15 @@ function readElement(raw: unknown, parent: string, depth: number, container: Any
     const homes = `${type} goes only inside a ${HOMES.get(type)!.join(' or a ')}`;
     fail(path, container ? `${type} cannot go inside a ${container.name}; ${homes}` : `${type} is a layer: ${homes}`);
   }
-  if (definition.dimensions && !definition.dimensions.includes(context.dimension)) fail(path, `${type} is ${definition.dimensions.join(' or ')}D only; ${context.why}`);
   if (children.length && !definition.children && !definition.textChildren) fail(path, `${type} takes no children`);
 
   const inner = definition.context?.({ props, children }) ?? context;
-  const variant = Object.entries(definition.variants ?? {}).find(([, candidate]) => candidate.dimension === inner.dimension);
+  const variants = Object.entries(definition.variants ?? {});
+  const variant = variants.find(([, candidate]) => candidate.dimension === inner.dimension);
+  if (variants.length && !variant) fail(path, `${type} is ${variants.map(([, candidate]) => candidate.dimension).join(' or ')}D only; ${inner.why}`);
   const fields = variant ? variant[1].fields : definition.fields ?? {};
   const read = readFields(fields, definition.textChildren ? withTextChildren(props, children, definition.textChildren, path) : props);
-  // A field's message is a predicate put after the prop's name; a TeX problem is a sentence of its own.
-  if (!read.ok) fail(path, /^[a-z"]/.test(read.message) ? `${read.prop} ${read.message}` : `${read.prop}: ${read.message}`);
+  if (!read.ok) fail(path, `${read.prop} ${read.message}`);
   const node: Node = { type: variant ? variant[0] : type, ...read.value };
 
   for (const key of Object.keys(fields)) walk(fields[key], node[key], key, path, context, scope);
@@ -268,7 +262,7 @@ function readElement(raw: unknown, parent: string, depth: number, container: Any
     const prose = definition.children.includes('Text');
     node.children = children.map((child) => readElement(prose && (typeof child === 'string' || typeof child === 'number') ? { type: 'Text', props: { text: child }, children: [] } : child, path, depth + 1, definition, inner, scope));
   }
-  definition.check?.(node, { path, context: inner, fail: (message) => fail(path, message) });
+  definition.check?.(node, { context: inner, fail: (message) => fail(path, message) });
   return node;
 }
 

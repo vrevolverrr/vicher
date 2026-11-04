@@ -1,9 +1,10 @@
-import { component, field } from '@/renderer/figure/components/component';
+import { component } from '@/renderer/figure/components/component';
 import { BLOCK_NAMES } from '@/renderer/figure/components/names';
+import { layoutFields } from '@/renderer/figure/components/Row';
 
 export const Column = component({
   name: 'Column',
   summary: 'stacked.',
-  fields: { id: field.optional(field.id()), gap: field.optional(field.choice(['sm', 'md', 'lg'])), align: field.optional(field.choice(['start', 'center', 'end'])) },
+  fields: layoutFields,
   children: BLOCK_NAMES,
 });

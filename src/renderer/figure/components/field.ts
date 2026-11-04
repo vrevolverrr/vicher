@@ -3,6 +3,7 @@ import * as z from 'zod/mini';
 import { ID, LIMITS, type Point, type Range } from '@/renderer/figure/FigureData';
 import { texProblems } from '@/renderer/figure/figureTex';
 import { formatFigure } from '@/renderer/figure/formatFigure';
+import { count, isObject } from '@/renderer/figure/plain';
 import { TAGS, type Tag } from '@/renderer/figure/Tag';
 
 export type Kind =
@@ -42,8 +43,6 @@ export type Read<F extends Fields> = Flat<
 type More = Omit<Partial<Field>, 'optional' | 'doc' | 'kind' | 'schema' | 'out'>;
 type Flat<T> = { [K in keyof T]: T[K] } & {};
 
-const count = (n: number): string => n.toLocaleString('en');
-const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 const isNumber = (value: unknown): value is number => typeof value === 'number';
 
 function make<T, O extends boolean>(kind: Kind, schema: z.ZodMiniType, optional: O, more: More = {}): Field<T, O> {
@@ -70,7 +69,8 @@ function leaf<T>(kind: Kind, guard: (value: unknown) => boolean, wrong: string, 
 function textProblem(value: string, whole = false): string | undefined {
   if (value.length > LIMITS.string) return `is ${count(value.length)} characters; the limit is ${count(LIMITS.string)}`;
   // Renderers pair `$` signs differently, so a forbidden command anywhere in a string with maths fails, whatever the pairing.
-  return whole || value.includes('$') ? texProblems(value) : undefined;
+  const problem = whole || value.includes('$') ? texProblems(value) : undefined;
+  return problem && `breaks the TeX rule: ${problem}`;
 }
 
 const isPoint = (value: unknown): boolean => Array.isArray(value) && (value.length === 2 || value.length === 3) && value.every(isNumber);
@@ -94,7 +94,7 @@ export const field = {
   tags: (): Field<ReadonlyMap<string, Tag>, false> => leaf('tags', isObject, 'must be an object of id: tag', (value: Record<string, unknown>) => {
     for (const key of Object.keys(value)) {
       const tag = value[key];
-      if (tag !== null && tag !== undefined && !(TAGS as readonly unknown[]).includes(tag)) return `"${key}" must be one of ${TAGS.join(', ')}`;
+      if (tag !== null && tag !== undefined && !(TAGS as readonly unknown[]).includes(tag)) return `has a tag for "${key}" that is not one of ${TAGS.join(', ')}`;
     }
     return undefined;
   }, (value: Record<string, unknown>) => new Map(Object.keys(value).flatMap((key) => (value[key] === null || value[key] === undefined ? [] : [[key, value[key] as Tag]])))),
@@ -118,7 +118,7 @@ export const field = {
 
   boolean: (): Field<boolean, false> => leaf('boolean', (value) => typeof value === 'boolean', 'must be true or false'),
 
-  literal: <const V extends string | number | boolean | null>(value: V): Field<V, false> => leaf('literal', (given) => given === value, `must be ${JSON.stringify(value)}`, undefined, undefined, { values: [value] }),
+  literal: <const V extends string | number | boolean | null>(value: V): Field<V, false> => leaf('literal', (given) => given === value, `must be ${JSON.stringify(value)}`),
 
   choice: <const V extends string>(values: readonly V[]): Field<V, false> => leaf('choice', (value) => (values as readonly unknown[]).includes(value), `must be one of ${values.join(', ')}`, undefined, undefined, { values }),
 
@@ -136,7 +136,7 @@ export const field = {
         return z.NEVER;
       }),
     ), z.array(of.schema));
-    return make('list', schema, false, { of: of });
+    return make('list', schema, false, { of });
   },
 
   /** A plain object with exactly these keys, each its own field. */
@@ -153,7 +153,7 @@ export const field = {
     make('either', z.union([a.schema, b.schema], { error: (issue) => (issue.input === undefined ? `is required and ${wrong}` : wrong) }), false, { options: [a as Field, b as Field] }),
 
   /** Absent when undefined or null. */
-  optional: <T>(of: Field<T>): Field<T, true> => make('optional', z.optional(z.nullable(of.schema)), true, { of: of, note: of.note }),
+  optional: <T>(of: Field<T>): Field<T, true> => make('optional', z.optional(z.nullable(of.schema)), true, { of, note: of.note }),
 
   /** A prop this element refuses with `reason`, such as `z` on a 2D Plot; it never reaches the node. */
   unused: (reason: string): Field<never, true> => make('unused', z.optional(leaf('unused', (value) => value === undefined || value === null, reason).schema), true),
@@ -167,9 +167,17 @@ function dropAbsent(value: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.keys(value).flatMap((key) => (value[key] === null || value[key] === undefined ? [] : [[key, value[key]]])));
 }
 
+/** Each element's props schema, built once. */
+const SCHEMAS = new WeakMap<Fields, z.ZodMiniType<Record<string, unknown>>>();
+
 /** Reads an element's props with `fields`: the value, or the first issue as a prop path and a message. */
 export function readFields(fields: Fields, props: Record<string, unknown>): { ok: true; value: Record<string, unknown> } | { ok: false; prop: string; message: string } {
-  const result = z.safeParse(z.pipe(z.object(Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, value.schema]))), z.transform(dropAbsent)), props);
+  let schema = SCHEMAS.get(fields);
+  if (!schema) {
+    schema = z.pipe(z.object(Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, value.schema]))), z.transform(dropAbsent));
+    SCHEMAS.set(fields, schema);
+  }
+  const result = z.safeParse(schema, props);
   if (result.success) return { ok: true, value: result.data };
   const issue = result.error.issues[0];
   const prop = issue.path.map((part, i) => (typeof part === 'number' ? `[${part}]` : i === 0 ? String(part) : `.${String(part)}`)).join('');

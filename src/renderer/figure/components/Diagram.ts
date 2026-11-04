@@ -1,6 +1,7 @@
 import { component, field } from '@/renderer/figure/components/component';
 import { SHARED_LAYER_NAMES } from '@/renderer/figure/components/names';
 import { LIMITS } from '@/renderer/figure/FigureData';
+import { over } from '@/renderer/figure/plain';
 
 export const Diagram = component({
   name: 'Diagram',
@@ -9,6 +10,6 @@ export const Diagram = component({
   children: [...SHARED_LAYER_NAMES, 'Angle', 'RightAngle', 'Tick', 'Dimension'],
   context: () => ({ dimension: 2, why: 'a Diagram is 2D' }),
   check(diagram, { fail }) {
-    if (diagram.children.length > LIMITS.layers) fail(`${diagram.children.length.toLocaleString('en')} layers; the limit is ${LIMITS.layers}`);
+    if (diagram.children.length > LIMITS.layers) fail(over(diagram.children.length, 'layers', LIMITS.layers));
   },
 });
