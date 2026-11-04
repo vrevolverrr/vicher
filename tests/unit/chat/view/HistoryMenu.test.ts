@@ -1,9 +1,9 @@
 /**
  * @vitest-environment jsdom
  */
+import { flushSync, mount } from 'svelte';
 import type { ChatSummary } from '@/chat/ChatRecord';
-import type { HistoryMenuHost } from '@/chat/view/HistoryMenu';
-import { HistoryMenu } from '@/chat/view/HistoryMenu';
+import HistoryMenu, { type HistoryMenuHost } from '@/chat/view/HistoryMenu.svelte';
 
 vi.mock('obsidian', () => ({ setIcon: vi.fn() }));
 
@@ -11,7 +11,8 @@ function chat(id: string, title: string): ChatSummary {
   return { id, agent: 'claude', title, updatedAt: Date.now(), text: '' };
 }
 
-function setup(chats: ChatSummary[], current?: string, tabs?: HistoryMenuHost['tabs']) {
+/** Svelte adds pointer listeners a microtask after it mounts. */
+async function setup(chats: ChatSummary[], current?: string, tabs?: HistoryMenuHost['tabs']) {
   const host: HistoryMenuHost = {
     chats: vi.fn(async () => chats),
     current: () => current,
@@ -19,13 +20,17 @@ function setup(chats: ChatSummary[], current?: string, tabs?: HistoryMenuHost['t
     showAll: vi.fn(),
     tabs,
   };
-  const anchor = document.body.appendChild(document.createElement('button'));
-  const menu = new HistoryMenu(anchor, host);
+  const menu = mount(HistoryMenu, { target: document.body.createDiv(), props: { host } });
+  const anchor = document.querySelector<HTMLElement>('.vicher-history-button')!;
   const rows = () => [...document.querySelectorAll<HTMLElement>('.vicher-history-row')];
+  await Promise.resolve();
   return { host, anchor, menu, rows };
 }
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+const settle = async () => {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  flushSync();
+};
 
 beforeEach(() => {
   document.body.replaceChildren();
@@ -34,7 +39,7 @@ beforeEach(() => {
 
 describe('HistoryMenu', () => {
   it('focuses the first loaded row from the keyboard and preserves focus on refresh', async () => {
-    const { anchor, menu, rows } = setup([chat('a', 'First'), chat('b', 'Second')]);
+    const { anchor, menu, rows } = await setup([chat('a', 'First'), chat('b', 'Second')]);
     anchor.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
     await settle();
     expect(document.activeElement).toBe(rows()[0]);
@@ -48,7 +53,7 @@ describe('HistoryMenu', () => {
       { ...chat('b', 'Second'), running: true, unread: false, failed: false },
       { ...chat('draft', ''), running: false, unread: false, failed: false },
     ];
-    const { anchor, rows } = setup([chat('a', 'First'), chat('b', 'Second')], 'b', tabs);
+    const { anchor, rows } = await setup([chat('a', 'First'), chat('b', 'Second')], 'b', tabs);
     anchor.dispatchEvent(new Event('pointerenter')); await settle();
     expect(rows().map((row) => row.querySelector('.vicher-history-title')?.textContent)).toEqual(['Second', 'New chat', 'First']);
     expect(rows().map((row) => row.querySelector('.vicher-history-number')?.textContent)).toEqual(['1', '2', undefined]);
@@ -58,7 +63,7 @@ describe('HistoryMenu', () => {
 
   it('refreshes pinned titles and activity while the menu stays open', async () => {
     let running = true;
-    const { anchor, menu, rows } = setup([], 'a', () => [{ ...chat('a', running ? '' : 'Finished'), running, unread: !running, failed: false }]);
+    const { anchor, menu, rows } = await setup([], 'a', () => [{ ...chat('a', running ? '' : 'Finished'), running, unread: !running, failed: false }]);
     anchor.dispatchEvent(new Event('pointerenter')); await settle();
     running = false; menu.refresh(); await settle();
     expect(rows()[0]!.textContent).toContain('Finished');
@@ -66,7 +71,7 @@ describe('HistoryMenu', () => {
     expect(anchor.getAttribute('aria-expanded')).toBe('true');
   });
   it('opens when the pointer enters the button and lists the recent chats', async () => {
-    const { anchor, rows } = setup([chat('a', 'First'), chat('b', 'Second')]);
+    const { anchor, rows } = await setup([chat('a', 'First'), chat('b', 'Second')]);
     anchor.dispatchEvent(new Event('pointerenter'));
     await settle();
     expect(rows().map((row) => row.querySelector('.vicher-history-title')?.textContent)).toEqual(['First', 'Second']);
@@ -74,30 +79,31 @@ describe('HistoryMenu', () => {
   });
 
   it('lists only the ten newest chats', async () => {
-    const { anchor, rows } = setup(Array.from({ length: 14 }, (_, i) => chat(`c${i}`, `Chat ${i}`)));
+    const { anchor, rows } = await setup(Array.from({ length: 14 }, (_, i) => chat(`c${i}`, `Chat ${i}`)));
     anchor.dispatchEvent(new Event('pointerenter'));
     await settle();
     expect(rows()).toHaveLength(10);
   });
 
   it('marks the chat in this tab', async () => {
-    const { anchor, rows } = setup([chat('a', 'First'), chat('b', 'Second')], 'b');
+    const { anchor, rows } = await setup([chat('a', 'First'), chat('b', 'Second')], 'b');
     anchor.dispatchEvent(new Event('pointerenter'));
     await settle();
     expect(rows().map((row) => row.getAttribute('aria-current'))).toEqual([null, 'true']);
   });
 
   it('opens the picked chat and closes', async () => {
-    const { host, anchor, rows } = setup([chat('a', 'First')]);
+    const { host, anchor, rows } = await setup([chat('a', 'First')]);
     anchor.dispatchEvent(new Event('pointerenter'));
     await settle();
     rows()[0]!.click();
+    flushSync();
     expect(host.open).toHaveBeenCalledWith('a');
     expect(anchor.getAttribute('aria-expanded')).toBe('false');
   });
 
   it('hands over to the searchable list from the last row', async () => {
-    const { host, anchor } = setup([chat('a', 'First')]);
+    const { host, anchor } = await setup([chat('a', 'First')]);
     anchor.dispatchEvent(new Event('pointerenter'));
     await settle();
     document.querySelector<HTMLElement>('.vicher-history-all')!.click();
@@ -105,7 +111,7 @@ describe('HistoryMenu', () => {
   });
 
   it('says so when there are no saved chats', async () => {
-    const { anchor } = setup([]);
+    const { anchor } = await setup([]);
     anchor.dispatchEvent(new Event('pointerenter'));
     await settle();
     expect(document.querySelector('.vicher-history-empty')?.textContent).toBe('No saved chats yet.');
@@ -114,36 +120,45 @@ describe('HistoryMenu', () => {
 
   it('stays open while the pointer moves from the button onto the menu', async () => {
     vi.useFakeTimers();
-    const { anchor, menu } = setup([chat('a', 'First')]);
+    const { anchor, menu } = await setup([chat('a', 'First')]);
     anchor.dispatchEvent(new Event('pointerenter'));
     anchor.dispatchEvent(new Event('pointerleave'));
+    flushSync();
+    await Promise.resolve();
     document.querySelector('.vicher-history-menu')!.dispatchEvent(new Event('pointerenter'));
     vi.advanceTimersByTime(500);
     expect(anchor.getAttribute('aria-expanded')).toBe('true');
     menu.close();
   });
 
-  it('closes shortly after the pointer leaves', () => {
+  it('closes shortly after the pointer leaves', async () => {
     vi.useFakeTimers();
-    const { anchor } = setup([chat('a', 'First')]);
+    const { anchor } = await setup([chat('a', 'First')]);
     anchor.dispatchEvent(new Event('pointerenter'));
     anchor.dispatchEvent(new Event('pointerleave'));
     vi.advanceTimersByTime(300);
     expect(anchor.getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('closes on Escape', () => {
-    const { anchor } = setup([chat('a', 'First')]);
+  it('closes on Escape', async () => {
+    const { anchor } = await setup([chat('a', 'First')]);
     anchor.dispatchEvent(new Event('pointerenter'));
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(anchor.getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('does not draw a list that arrives after the menu closed', async () => {
-    const { anchor, menu } = setup([chat('a', 'First')]);
+  it('keeps the newest read when an older one arrives after it', async () => {
+    const reads: ((chats: ChatSummary[]) => void)[] = [];
+    const { host, anchor, menu, rows } = await setup([]);
+    vi.mocked(host.chats).mockImplementation(() => new Promise((resolve) => reads.push(resolve)));
     anchor.dispatchEvent(new Event('pointerenter'));
-    menu.close();
+    menu.refresh();
+
+    reads[1]!([chat('b', 'Newer')]);
     await settle();
-    expect(document.querySelectorAll('.vicher-history-row')).toHaveLength(0);
+    reads[0]!([chat('a', 'Older')]);
+    await settle();
+
+    expect(rows().map((row) => row.querySelector('.vicher-history-title')?.textContent)).toEqual(['Newer']);
   });
 });

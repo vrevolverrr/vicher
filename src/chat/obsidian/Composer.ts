@@ -1,12 +1,13 @@
 import type { App, Component } from 'obsidian';
 import { Notice, setIcon } from 'obsidian';
+import { mount, unmount } from 'svelte';
 
 import type { AgentId, SkillOption, SkillSyntax } from '@/agents/types';
 import { ContextChips } from '@/chat/view/ContextChips';
 import { type ContextMeter, contextMeter } from '@/chat/view/ContextMeter';
-import type { ModelPickerHost } from '@/chat/view/ModelPicker';
-import { type PermissionMenuHost, pickerBar } from '@/chat/view/ModelPicker';
-import { filterSkills, SkillMenu } from '@/chat/view/SkillMenu';
+import type { ModelPickerHost, PermissionMenuHost } from '@/chat/view/ModelPickerHost';
+import PickerBar from '@/chat/view/PickerBar.svelte';
+import SkillMenu, { filterSkills } from '@/chat/view/SkillMenu.svelte';
 import { appendMessageText } from '@/chat/view/appendMessageText';
 import { skillTrigger } from '@/context/skillSyntax';
 import { OpenDocument } from '@/context/obsidian/OpenDocument';
@@ -45,13 +46,13 @@ export class Composer {
   private readonly inputEl: HTMLTextAreaElement;
   private readonly mirrorEl: HTMLElement;
   private readonly sendEl: HTMLButtonElement;
-  private readonly pickers: ReturnType<typeof pickerBar>;
+  private readonly pickers: ReturnType<typeof PickerBar>;
   private readonly chips: AttachmentChips;
   private attachments: ChatAttachment[] = [];
   /** Images being stored, which a send must wait for. */
   private storing = 0;
-  private skillMenu: SkillMenu | null = null;
-  private mentionMenu: SkillMenu<MentionFile> | null = null;
+  private skillMenu?: ReturnType<typeof SkillMenu<SkillOption>>;
+  private mentionMenu?: ReturnType<typeof SkillMenu<MentionFile>>;
   /** The CLI's skills, read when a skill name starts being typed and kept until the menu closes. */
   private skillsRead: Promise<SkillOption[]> | null = null;
   private streaming = false;
@@ -83,7 +84,7 @@ export class Composer {
     });
     owner.registerDomEvent(this.inputEl, 'blur', () => this.closeMenus());
     owner.registerDomEvent(this.inputEl, 'keydown', (event) => {
-      const menu = [this.skillMenu, this.mentionMenu].find((candidate) => candidate?.isOpen);
+      const menu = [this.skillMenu, this.mentionMenu].find((candidate) => candidate?.isOpen());
       if (menu && this.menuKey(menu, event)) return;
       if (event.key === 'Escape' && this.streaming) {
         event.preventDefault();
@@ -126,7 +127,7 @@ export class Composer {
     });
 
     const bar = composer.createDiv({ cls: 'vicher-composer-bar' });
-    this.pickers = pickerBar(bar, composer, chat);
+    this.pickers = mount(PickerBar, { target: bar, props: { host: chat, container: composer } });
     this.meter = contextMeter(bar);
 
     bar.createDiv({ cls: 'vicher-composer-spacer' });
@@ -219,7 +220,7 @@ export class Composer {
   dispose(): void {
     this.disposed = true;
     this.discardAttachments();
-    this.close();
+    for (const component of [this.pickers, this.skillMenu, this.mentionMenu]) if (component) void unmount(component);
   }
 
   private closeSkillMenu(): void {
@@ -298,7 +299,7 @@ export class Composer {
   }
 
   /** Handles the keys the open menu owns; false leaves the key to the input. */
-  private menuKey(menu: Pick<SkillMenu, 'move' | 'pickActive' | 'hide'>, event: KeyboardEvent): boolean {
+  private menuKey(menu: { move(step: number): void; pickActive(): void; hide(): void }, event: KeyboardEvent): boolean {
     switch (event.key) {
       case 'ArrowDown':
       case 'ArrowUp':
@@ -336,7 +337,7 @@ export class Composer {
       this.closeSkillMenu();
       return;
     }
-    this.skillMenu ??= new SkillMenu(this.el, (skill) => this.pickSkill(skill));
+    this.skillMenu ??= mount(SkillMenu<SkillOption>, { target: this.el, props: { onPick: (skill) => this.pickSkill(skill) } });
     this.skillMenu.show(filterSkills(skills, trigger.query), trigger.query, syntax.prefix);
   }
 
@@ -355,7 +356,7 @@ export class Composer {
       this.mentionMenu?.hide();
       return;
     }
-    this.mentionMenu ??= new SkillMenu(this.el, (file) => this.pickMention(file), 'Files');
+    this.mentionMenu ??= mount(SkillMenu<MentionFile>, { target: this.el, props: { onPick: (file) => this.pickMention(file), label: 'Files' } });
     this.mentionMenu.show(this.host.mentions(trigger.query), trigger.query, '@');
   }
 

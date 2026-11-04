@@ -1,4 +1,5 @@
 import { quartOut } from 'svelte/easing';
+import type { EasingFunction } from 'svelte/transition';
 import { prefersReducedMotion } from 'svelte/motion';
 
 /** A transition's duration, or none where the reader asked for less motion or the Web Animations API is missing. */
@@ -16,5 +17,14 @@ export function collapse(node: HTMLElement) {
     duration: ms(280),
     easing: quartOut,
     css: (t: number) => `height: ${t * height}px; margin-bottom: ${t * margin}px; border-width: ${t * border}px; opacity: ${t}`,
+  };
+}
+
+/** Fades in from a little below and a little smaller, or out the same way. */
+export function pop(_node: Element, { y, scale, duration, easing }: { y: number; scale: number; duration: number; easing: EasingFunction }) {
+  return {
+    duration: ms(duration),
+    easing,
+    css: (t: number, u: number) => `opacity: ${t}; transform: translateY(${u * y}px) scale(${1 - u * (1 - scale)})`,
   };
 }

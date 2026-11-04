@@ -250,6 +250,7 @@ describe('permission relay', () => {
     const { start, panel, send, sessions, store, view } = setup();
     const pick = async (name: string) => {
       panel().querySelector<HTMLButtonElement>('[aria-label="Permission policy"]')!.click();
+      flushSync();
       const option = [...panel().querySelectorAll<HTMLButtonElement>('.vicher-picker-option')].find((el) => el.textContent === name)!;
       option.click(); await settle();
     };

@@ -6,7 +6,7 @@
   import Card from '@/chat/view/Card.svelte';
   import { ms } from '@/chat/view/motion';
   import { formatElapsed } from '@/chat/view/ToolGroup';
-  import { setIcon } from '@/shared/view/icon';
+  import { icon, setIcon } from '@/shared/view/icon';
 
   /**
    * The agent's background tasks, as a card above the chat tabs. Every state uses the same one-line rows: a mark, the
@@ -232,8 +232,6 @@
   $effect(() => () => {
     for (const timer of timers) window.clearTimeout(timer);
   });
-
-  const icon = (name: string) => (el: HTMLElement) => setIcon(el, name);
 
   /** The agent's logo while the task runs; then its end, a check drawing itself in once. */
   const mark = (line: Line) => (el: HTMLElement) => {
@@ -525,11 +523,7 @@
 
   .vicher-task-spinner {
     display: flex;
-    animation: vicher-task-spin 900ms linear infinite;
-  }
-
-  @keyframes vicher-task-spin {
-    to { transform: rotate(360deg); }
+    animation: vicher-spin 900ms linear infinite;
   }
 
   .vicher-task-note {

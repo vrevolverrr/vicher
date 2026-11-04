@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { HTMLAttributes } from 'svelte/elements';
-  import { collapse } from '@/chat/view/motion';
+  import { quintOut } from 'svelte/easing';
+  import { collapse, pop } from '@/chat/view/motion';
 
   /**
    * A card above the chat tabs, such as the task card or the approval card. It rises in when `open` turns true, and
@@ -17,7 +18,7 @@
 </script>
 
 {#if open}
-  <div class={['vicher-card', cls]} {...rest} out:collapse>
+  <div class={['vicher-card', cls]} {...rest} in:pop={{ y: 8, scale: 0.99, duration: 280, easing: quintOut }} out:collapse>
     {@render children()}
   </div>
 {/if}
@@ -32,15 +33,5 @@
     background: var(--background-primary);
     box-shadow: 0 2px 4px color-mix(in srgb, var(--text-normal) 3%, transparent), 0 8px 24px color-mix(in srgb, var(--text-normal) 4%, transparent);
     font-size: var(--font-ui-small);
-    animation: enter 280ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  @keyframes enter {
-    from { opacity: 0; transform: translateY(8px) scale(0.99); }
-    to { opacity: 1; transform: none; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .vicher-card { animation: none; }
   }
 </style>

@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { ToolApprovalRequest } from '@/agents/types';
-  import { setIcon } from '@/shared/view/icon';
+  import { icon as draw } from '@/shared/view/icon';
 
   /**
    * What the agent asks the student: a header, a body, and two answers. A caller that asks something other than a tool
@@ -36,8 +36,6 @@
     cwd: ['Working directory', 'folder'], url: ['URL', 'globe'], permissions: ['Access', 'shield'],
     changes: ['Changes', 'files'],
   } as const;
-
-  const draw = (name: string) => (el: HTMLElement) => setIcon(el, name);
 </script>
 
 <form

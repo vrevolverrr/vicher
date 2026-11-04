@@ -393,7 +393,7 @@
   flex: 1;
 }
 
-.vicher-composer .vicher-composer-bar button {
+.vicher-composer .vicher-composer-bar > button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -409,42 +409,18 @@
   transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 150ms ease;
 }
 
-.vicher-composer .vicher-composer-bar button:hover {
+.vicher-composer .vicher-composer-bar > button:hover {
   background: var(--background-modifier-hover);
   color: var(--text-normal);
 }
 
-.vicher-composer .vicher-composer-bar button:active {
+.vicher-composer .vicher-composer-bar > button:active {
   transform: scale(0.96);
 }
 
 .vicher-composer-bar .svg-icon {
   width: 16px;
   height: 16px;
-}
-
-.vicher-picker-chevron {
-  display: inline-flex;
-  flex: none;
-  opacity: 0.5;
-}
-
-.vicher-composer .vicher-composer-bar .vicher-picker {
-  min-width: 0;
-}
-
-.vicher-picker-label {
-  display: inline-flex;
-  min-width: 0;
-  align-items: center;
-  gap: 6px;
-}
-
-.vicher-picker-label > span:last-child {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .vicher-agent-icon {
@@ -454,77 +430,8 @@
   color: var(--vicher-agent-color, var(--text-normal));
 }
 
-.vicher-picker-chevron .svg-icon {
-  transition: transform 160ms ease;
-}
-
-.vicher-picker[aria-expanded='true'] .vicher-picker-chevron .svg-icon {
-  transform: rotate(180deg);
-}
-
-.vicher-picker-icon {
-  display: inline-flex;
-  flex: none;
-}
-
-.vicher-composer-bar .vicher-picker-icon .svg-icon {
-  width: 14px;
-  height: 14px;
-}
-
-.vicher-picker-menu,
-.vicher-skill-menu {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 6px);
-  left: 0;
-  max-height: min(280px, 50vh);
-}
-
-.vicher-picker-menu {
-  display: flex;
-  flex-direction: column;
-  min-width: 150px;
-  max-width: min(210px, 100%);
-  transform-origin: bottom left;
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb-bg) transparent;
-}
-
-.vicher-picker-menu,
-.vicher-history-menu {
-  animation: vicher-pop-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.vicher-picker-menu.is-closing,
-.vicher-history-menu.is-closing {
-  pointer-events: none;
-  animation: vicher-pop-out 120ms ease-in forwards;
-}
-
-.vicher-picker-section + .vicher-picker-section {
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid var(--background-modifier-border);
-}
-
-.vicher-picker-heading {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px 4px;
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
-  font-weight: var(--font-semibold);
-}
-
-.vicher-picker-loading {
-  padding: 5px 8px;
-  color: var(--text-faint);
-}
-
-/* The row buttons of the floating lists, which reset Obsidian's button look alike. */
-:is(.vicher-picker-menu .vicher-picker-option, .vicher-history-menu :is(.vicher-history-row, .vicher-history-all), .vicher-chat-modal .vicher-chat-open) {
+/* The chat list's rows reset Obsidian's button look. */
+.vicher-chat-modal .vicher-chat-open {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -537,67 +444,10 @@
   text-align: start;
 }
 
-:is(.vicher-picker-menu .vicher-picker-option, .vicher-history-menu :is(.vicher-history-row, .vicher-history-all)) {
-  width: 100%;
-  border-radius: 8px;
-  corner-shape: round;
-}
-
-:is(.vicher-picker-menu .vicher-picker-option, .vicher-history-menu :is(.vicher-history-row, .vicher-history-all)):is(:hover, :focus-visible) {
-  background: var(--background-modifier-hover);
-}
-
-:is(.vicher-picker-menu .vicher-picker-option, .vicher-history-menu :is(.vicher-history-row, .vicher-history-all)):focus-visible {
-  outline: 2px solid var(--interactive-accent);
-  outline-offset: -2px;
-}
-
-.vicher-picker-menu .vicher-picker-option {
-  gap: 6px;
-  padding: 5px 8px;
-  transition: background-color 150ms ease, transform 150ms ease;
-}
-
-.vicher-picker-menu .vicher-picker-option:active {
-  transform: scale(0.98);
-}
-
-.vicher-picker-option-label {
-  display: inline-block;
-  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.vicher-picker-option:is(:hover, :focus-visible) .vicher-picker-option-label {
-  transform: translateX(2px);
-}
-
-.vicher-picker-option-detail {
-  color: var(--text-faint);
-}
-
-.vicher-picker-check {
-  display: inline-flex;
-  margin-left: auto;
-  padding-left: 12px;
-  animation: vicher-check-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.vicher-picker-check .svg-icon {
-  width: 14px;
-  height: 14px;
-}
-
 @keyframes vicher-pop-in {
   from {
     opacity: 0;
     transform: translateY(6px) scale(0.97);
-  }
-}
-
-@keyframes vicher-pop-out {
-  to {
-    opacity: 0;
-    transform: translateY(4px) scale(0.98);
   }
 }
 
@@ -618,21 +468,10 @@
     animation: none;
   }
 
-  .vicher-picker-menu,
-  .vicher-picker-menu.is-closing,
-  .vicher-history-menu,
-  .vicher-history-menu.is-closing,
-  .vicher-picker-check {
-    animation-duration: 1ms;
-  }
-
-  .vicher-composer .vicher-composer-bar button,
+  .vicher-composer .vicher-composer-bar > button,
   .vicher-context-chip,
   .vicher-context-label::after,
-  .vicher-context-chip .vicher-context-remove,
-  .vicher-picker-menu .vicher-picker-option,
-  .vicher-picker-option-label,
-  .vicher-picker-chevron .svg-icon {
+  .vicher-context-chip .vicher-context-remove {
     transition: none;
   }
 }
@@ -1972,48 +1811,6 @@
   }
 }
 
-/* The look every floating menu shares; each menu sets its own placement. */
-.vicher-picker-menu,
-.vicher-skill-menu,
-.vicher-history-menu {
-  z-index: var(--layer-popover);
-  overflow-y: auto;
-  padding: 4px;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 14px;
-  background-color: Canvas;
-  background-image: linear-gradient(var(--background-primary), var(--background-primary));
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
-  font-size: var(--font-ui-small);
-}
-
-.vicher-skill-option {
-  padding: 5px 8px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.vicher-skill-option.is-active {
-  background: var(--background-modifier-hover);
-}
-
-.vicher-skill-name {
-  font-weight: var(--font-medium);
-}
-
-.vicher-skill-hint {
-  color: var(--text-faint);
-  font-weight: var(--font-normal);
-}
-
-.vicher-skill-description {
-  overflow: hidden;
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .vicher-skill-token,
 .vicher-skill-match {
   color: var(--text-accent);
@@ -2025,70 +1822,6 @@
   background: color-mix(in srgb, var(--interactive-accent) 18%, transparent);
   border-radius: 4px;
   box-decoration-break: clone;
-}
-
-.vicher-history-menu {
-  position: fixed;
-  display: flex;
-  flex-direction: column;
-  width: min(300px, 90vw);
-  padding-inline-end: 12px;
-  max-height: min(400px, 70vh);
-  transform-origin: top right;
-  scrollbar-width: auto;
-}
-
-.vicher-history-menu::-webkit-scrollbar {
-  width: 3px;
-}
-
-.vicher-history-menu::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.vicher-history-menu::-webkit-scrollbar-thumb {
-  border: none;
-  border-radius: 999px;
-  background: var(--scrollbar-thumb-bg);
-}
-
-.vicher-history-menu :is(.vicher-history-row, .vicher-history-all) {
-  gap: 8px;
-  padding: 6px 8px;
-}
-
-.vicher-history-row[aria-current='true'] {
-  color: var(--text-accent);
-}
-
-.vicher-history-row .vicher-agent-icon {
-  flex: none;
-  width: 14px;
-  height: 14px;
-}
-
-.vicher-history-title {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.vicher-history-when {
-  flex: none;
-  color: var(--text-faint);
-  font-size: var(--font-ui-smaller);
-}
-
-.vicher-history-menu .vicher-history-all {
-  margin-top: 4px;
-  color: var(--text-muted);
-}
-
-.vicher-history-empty {
-  padding: 6px 8px;
-  color: var(--text-faint);
 }
 
 .vicher-chat-header {
@@ -2273,34 +2006,14 @@
   border: 1px solid var(--text-faint);
   border-top-color: var(--text-accent);
   background: transparent;
-  animation: vicher-tab-spin 900ms linear infinite;
+  animation: vicher-spin 900ms linear infinite;
 }
 
-@keyframes vicher-tab-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   .vicher-chat-tab.is-running .vicher-chat-tab-status { animation: none; }
   .vicher-chat-tab-title { transition: none; }
   .vicher-chat-tabs .vicher-chat-tab { transition: none; }
   .vicher-chat-tabs .vicher-chat-tab:active { transform: none; }
-}
-
-.vicher-history-group {
-  padding: 6px 8px 3px;
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
-}
-
-.vicher-history-number {
-  flex: none;
-  min-width: 18px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.vicher-history-status {
-  flex: none;
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
 }
 
 .vicher-visually-hidden {
@@ -2313,7 +2026,7 @@
 }
 
 /* Beats Obsidian's own cursor on buttons and icons, but not the rules that set another cursor (an empty tool header). */
-:is(.vicher-chat, .vicher-history-menu, .vicher-chat-modal) :is(button:not(:disabled), .clickable-icon) {
+:is(.vicher-chat, .vicher-chat-modal) :is(button:not(:disabled), .clickable-icon) {
   cursor: pointer;
 }
 

@@ -1,9 +1,10 @@
-import { ItemView, Notice, setIcon, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
+import { ItemView, Notice, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
+import { mount, unmount } from 'svelte';
 
 import type { AgentSession } from '@/agents/types';
 import { ChatPane, type ChatHost } from '@/chat/obsidian/ChatPane';
 import { ChatTabs, type ChatTab } from '@/chat/view/ChatTabs';
-import { HistoryMenu } from '@/chat/view/HistoryMenu';
+import HistoryMenu from '@/chat/view/HistoryMenu.svelte';
 import type { Chat, ChatEvents } from '@/chat/Chat';
 import type { ChatRecord } from '@/chat/ChatRecord';
 import { CHAT_ID } from '@/chat/ChatStore';
@@ -28,7 +29,7 @@ export class ChatView extends ItemView {
   private selected: string | undefined;
   private tabs!: ChatTabs;
   private tabBar!: HTMLElement;
-  private history!: HistoryMenu;
+  private history!: ReturnType<typeof HistoryMenu>;
   private panels!: HTMLElement;
   private closed = false;
   private opened!: () => void;
@@ -77,16 +78,15 @@ export class ChatView extends ItemView {
         new Notice(`Could not start a new chat: ${messageOf(error)}`);
       }).finally(() => { create.disabled = false; });
     });
-    const history = header.createEl('button', { cls: 'vicher-icon-action clickable-icon vicher-history-button', attr: { type: 'button' } });
-    setIcon(history, 'history');
-    history.createSpan({ cls: 'vicher-visually-hidden', text: 'Open and recent chats' });
-    this.history = new HistoryMenu(history, {
+    const history = mount(HistoryMenu, { target: header, props: { host: {
       chats: () => this.store.list(),
       tabs: () => this.openTabs(),
       current: () => this.selected,
       open: (chatId) => void this.host.openChat({ chatId }),
       showAll: () => void this.host.pickChat(),
-    });
+    } } });
+    this.history = history;
+    this.register(() => void unmount(history));
     this.opened();
     const timer = window.setTimeout(() => {
       if (!this.panes.size && !this.opening.size && !this.closed) void this.openChat({ fresh: true });

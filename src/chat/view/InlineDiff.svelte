@@ -63,7 +63,7 @@
 <script lang="ts">
   import type { ToolApprovalRequest } from '@/agents/types';
   import ApprovalCard from '@/chat/view/ApprovalCard.svelte';
-  import { setIcon } from '@/shared/view/icon';
+  import { icon } from '@/shared/view/icon';
 
   /** A tool request that changes files: each file's edits inline, removals struck through and additions underlined. */
   interface Props {
@@ -75,7 +75,6 @@
   const { request, id, answer }: Props = $props();
 
   const KINDS = { add: 'Added', delete: 'Deleted', update: 'Modified', write: 'Contents' } as const;
-  const draw = (name: string) => (el: HTMLElement) => setIcon(el, name);
 </script>
 
 <ApprovalCard
@@ -94,7 +93,7 @@
       {#each request.changes as file, f (f)}
         <div class="vicher-approval-diff">
           <div class="vicher-approval-diff-header">
-            <span class="vicher-approval-diff-icon" aria-hidden="true" {@attach draw('file-text')}></span>
+            <span class="vicher-approval-diff-icon" aria-hidden="true" {@attach icon('file-text')}></span>
             <span class="vicher-approval-diff-path">{file.path}</span>
             <span class="vicher-approval-diff-kind">{file.target ? 'Renamed' : KINDS[file.kind]}</span>
           </div>
