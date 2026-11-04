@@ -119,8 +119,11 @@ const WORKING_PHRASES = [
   'Working through it',
 ];
 
+/** "45s", "2m 5s", "1h 2m". */
 export function formatElapsed(seconds: number): string {
-  return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
 }
 
 const NAMED_KINDS = 3;
