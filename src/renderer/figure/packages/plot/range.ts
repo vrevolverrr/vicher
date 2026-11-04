@@ -4,11 +4,17 @@ import type { PlotModel } from '@/renderer/figure/packages/plot/PlotModel';
 
 /** Past this a fitted span can overflow to Infinity; data that large is left out of the fit. */
 const HUGE = 1e300;
+/** Room past the data on each side, as a share of its span, so nothing is drawn on the frame. */
+const PAD = 0.08;
+/** One-signed data that comes this close to zero, as a share of its far end, is drawn from zero. */
+const NEAR_ZERO = 1 / 3;
 
 /**
  * A range with round ends for an axis the Plot does not give: around every value in `values`, and the bulk of the
- * surface samples in `spread`. Samples more than the 5–95% spread past it are cut at the box, so a spike such as
- * 1/(x² + y²) does not flatten the rest of its surface.
+ * surface samples in `spread`, with room past each end. Data that stays on one side of zero and comes near it starts
+ * at zero, so bars and densities stand on the axis; data far from zero (a price near 100) is zoomed in on. Samples
+ * more than the 5–95% spread past it are cut at the box, so a spike such as 1/(x² + y²) does not flatten the rest of
+ * its surface.
  */
 export function fitRange(values: readonly number[], spread: readonly number[] = []): [number, number] {
   let low = Infinity;
@@ -26,18 +32,19 @@ export function fitRange(values: readonly number[], spread: readonly number[] = 
     see(Math.max(sorted[0], p5 - (p95 - p5)));
     see(Math.min(sorted[sorted.length - 1], p95 + (p95 - p5)));
   }
-  return low <= high ? niceDomain(low, high) : [0, 1];
+  if (low > high) return [0, 1];
+  const pad = (high - low) * PAD;
+  const floor = low >= 0 && low <= high * NEAR_ZERO;
+  const ceiling = high <= 0 && high >= low * NEAR_ZERO;
+  return niceDomain(floor ? 0 : low - pad, ceiling ? 0 : high + pad);
 }
 
-/** A 2D Plot's y range when the Plot gives none: every value its layers reach, padded, with zero as the floor or ceiling of one-signed data. */
+/** A 2D Plot's y range when the Plot gives none: `fitRange` over every value its layers reach. */
 export function fitY(model: PlotModel): [number, number] {
   const categories = categoriesOf(model.x) !== null;
-  let low = Infinity;
-  let high = -Infinity;
-  const see = (v: number | null | undefined) => {
-    if (v == null || !Number.isFinite(v) || Math.abs(v) > 1e9) return;
-    low = Math.min(low, v);
-    high = Math.max(high, v);
+  const values: number[] = [];
+  const see = (v: number | null | undefined): void => {
+    if (v != null && Number.isFinite(v)) values.push(v);
   };
   for (const layer of model.layers) {
     if (layer.kind === 'line') layer.points.forEach((p) => see(p[1]));
@@ -48,8 +55,5 @@ export function fitY(model: PlotModel): [number, number] {
     else if (layer.kind === 'note' && !categories) see(layer.y);
     else if (layer.kind === 'arrow') { see(layer.from[1]); see(layer.to[1]); }
   }
-  if (!Number.isFinite(low)) return [0, 1];
-  const pad = (high - low) * 0.08;
-  // Data that never goes below zero keeps zero as the floor, so a baseline does not float above the axis.
-  return niceDomain(low >= 0 ? 0 : low - pad, high <= 0 ? 0 : high + pad);
+  return fitRange(values);
 }

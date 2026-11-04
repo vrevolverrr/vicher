@@ -226,7 +226,7 @@ describe('validateFigure on a 3D Plot', () => {
 
   it('fits every axis of a parametric-only Plot, at equal scale', () => {
     const shown = model3(plot3({}, parametric(), el('Points', { pts: [[0, 0, 1.6]] })));
-    expect([shown.x, shown.y, shown.z]).toEqual([[-1, 1], [-1, 1], [-1, 2]]);
+    expect([shown.x, shown.y, shown.z]).toEqual([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 2]]);
     expect(shown.equal).toBe(true);
     expect(shown.view).toEqual({ azimuth: 30, elevation: 25 });
   });
@@ -239,7 +239,7 @@ describe('validateFigure on a 3D Plot', () => {
 
   it('fits z of a graph to its heights and its holes do not count, and narrows the graph to from and to', () => {
     const shown = model3(plot3({ x: [-3, 3], y: [-3, 3], view: { azimuth: 120, elevation: 95 } }, graph({ zs: zs((i) => (i === 0 ? null : i * 0.7)), from: -1 })));
-    expect(shown.z).toEqual([0, 35]);
+    expect(shown.z).toEqual([0, 40]);
     expect(shown.equal).toBe(false);
     expect(shown.view).toEqual({ azimuth: 120, elevation: 89 });
     expect(shown.children[0]).toMatchObject({ type: 'Fn', id: 'bowl', x: [-1, 3], y: [-3, 3] });
@@ -250,7 +250,7 @@ describe('validateFigure on a 3D Plot', () => {
     if (!result.ok) throw new Error(result.error);
     const root = result.figure.steps[0].root;
     expect(root).toMatchObject({ type: 'Plot' });
-    expect(root.type === 'Plot' && plotModel(root).x).toEqual([2, 10]);
+    expect(root.type === 'Plot' && plotModel(root).x).toEqual([0, 12]);
   });
 
   it('accepts four surfaces and names the limit at five', () => {
