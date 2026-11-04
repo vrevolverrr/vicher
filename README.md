@@ -138,6 +138,14 @@ npm test
 - [ ] Memory and learning dependencies
 - [ ] A live tutor that follows along as you study
 
+## License
+
+Copyright (C) 2026 Bryan Soong
+
+Vicher is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License, version 3, as published by the Free Software Foundation. It is distributed WITHOUT ANY WARRANTY; see `LICENSE` for the full text.
+
+Additional permission under GNU GPL version 3 section 7: if you modify this Program, or any covered work, by linking or combining it with the Claude Agent SDK (`@anthropic-ai/claude-agent-sdk`, or a modified version of that library), containing parts covered by the terms of Anthropic's license for that library, the licensors of this Program grant you additional permission to convey the resulting work.
+
 ## Credits
 
 Parts of Vicher are adapted from [Claudian](https://github.com/YishenTu/claudian) under the MIT License. See `THIRD_PARTY_NOTICES.md`.
