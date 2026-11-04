@@ -34,6 +34,18 @@
   min-height: 100cqh;
 }
 
+/* A message just sent rises into place from the composer below; one redrawn from a saved chat does not. */
+.vicher-turn.is-sent > :is(.vicher-user-attachments, .vicher-user-quote, .vicher-user-message) {
+  transform-origin: right bottom;
+  animation: vicher-pop-in 260ms cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vicher-turn.is-sent > :is(.vicher-user-attachments, .vicher-user-quote, .vicher-user-message) {
+    animation: none;
+  }
+}
+
 .vicher-user-message {
   align-self: flex-end;
   max-width: 85%;
@@ -931,6 +943,11 @@
   from {
     opacity: 0;
   }
+}
+
+/* An agent turn followed by another under the same message reads as one reply: only the last keeps the footer. */
+.vicher-reply.is-continued > .vicher-reply-footer {
+  display: none;
 }
 
 .vicher-reply-footer {

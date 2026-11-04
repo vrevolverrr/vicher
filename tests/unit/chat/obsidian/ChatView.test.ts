@@ -598,6 +598,28 @@ describe('agent stream', () => {
     expect(order).toEqual(['First', 'Working on it.', 'Second', 'Steered.']);
   });
 
+  it('labels no message sent to an idle agent as queued, and shows the working line at once', async () => {
+    const { start, panel, send, sessions } = setup();
+    await start();
+    sessions[0]!.hold = true;
+    send('First'); await settle();
+    expect(panel().querySelector('.vicher-user-label')).toBeNull();
+    expect(panel().querySelector('.vicher-turn .vicher-reply')).not.toBeNull();
+  });
+
+  it('shows one footer for agent turns that follow each other under the same message', async () => {
+    const { start, panel, send, sessions } = setup();
+    await start();
+    send('First'); await settle();
+    const session = sessions[0]!;
+    session.events.push({ type: 'text', delta: 'Started.' });
+    session.events.push({ type: 'done', status: 'completed' });
+    session.events.push({ type: 'text', delta: 'Task one is back.' });
+    session.events.push({ type: 'done', status: 'completed' }); await settle();
+    const replies = [...panel().querySelectorAll('.vicher-reply')];
+    expect(replies.map((el) => el.classList.contains('is-continued'))).toEqual([true, false]);
+  });
+
   it('draws a reply the agent starts on its own above a queued message, and a task result in the task card', async () => {
     const { start, panel, send, sessions } = setup();
     await start();

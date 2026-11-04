@@ -1,4 +1,4 @@
-import type { AgentAdapter, AgentEvent, AgentId, AgentQuestion, AgentSession, BackgroundTask, ModelOption, PermissionPolicy, QuestionAnswers, SkillOption, SkillSyntax, ToolApprovalRequest, TurnStatus } from '@/agents/types';
+import type { AgentAdapter, AgentEvent, AgentId, NoticeEvent, AgentQuestion, AgentSession, BackgroundTask, ModelOption, PermissionPolicy, QuestionAnswers, SkillOption, SkillSyntax, ToolApprovalRequest, TurnStatus } from '@/agents/types';
 import { AGENT_IDS } from '@/agents/providers';
 import type { ChatContext } from '@/context/ChatContext';
 import { turnImages } from '@/context/ChatAttachment';
@@ -30,8 +30,8 @@ export interface ChatEvents {
 
 /** What draws the chat's turns as they happen. Every call has already been filtered and recorded. */
 export interface ChatView {
-  /** A message was sent and waits for the agent to take it in. */
-  pending(id: string, context: ChatContext): void;
+  /** A message was sent and waits for the agent to take it in; `queued` when it waits behind other work. */
+  pending(id: string, context: ChatContext, queued: boolean): void;
   /** The agent took the message in; its turn is in the record. */
   user(id: string, turn: UserTurn): void;
   /** The message will never reach the agent. */
@@ -43,7 +43,7 @@ export interface ChatView {
   tool(part: ToolPart): void;
   thinking(): void;
   usage(used: number, window: number): void;
-  notice(event: Extract<AgentEvent, { type: 'notice' }>): void;
+  notice(event: NoticeEvent): void;
   /** Asks the student; drops the question once `signal` aborts. The turn keeps streaming meanwhile. */
   approve(request: ToolApprovalRequest, signal: AbortSignal): Promise<boolean>;
   /** Like `approve`, for the agent's questions; undefined when the student declines. */
@@ -283,9 +283,10 @@ export class Chat {
     if (this.closed) return Promise.reject(new Error('The chat is closed'));
     const id = crypto.randomUUID();
     return new Promise((resolve, reject) => {
+      const queued = this.cliTurn || this.outgoing.size > 0 || this.holding > 0;
       this.outgoing.set(id, { context, resolve, reject, deliver, passed: false });
       this.hasFailed = false;
-      this.view?.pending(id, context);
+      this.view?.pending(id, context, queued);
       this.held.push(id);
       this.flush();
       this.events.changed();

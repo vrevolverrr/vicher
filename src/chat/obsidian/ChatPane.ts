@@ -14,6 +14,7 @@ import type { Chat, ChatEvents, ChatView } from '@/chat/Chat';
 import type { AgentTurn, Rating, UserTurn } from '@/chat/ChatRecord';
 import { usesStoredFile } from '@/chat/ChatRecord';
 import { TaskRow } from '@/chat/view/TaskRow';
+import { ToolGroup } from '@/chat/view/ToolGroup';
 import { type ChatAttachment, isMention, mentionPaths, type StoredAttachment } from '@/context/ChatAttachment';
 import type { VaultAttachments } from '@/attachments/obsidian/VaultAttachments';
 import type { VaultFileIndex } from '@/attachments/obsidian/VaultFileIndex';
@@ -44,8 +45,13 @@ export class ChatPane extends Component {
   private composer!: Composer;
   private approvals!: ApprovalCard;
   private tasks!: TaskRow;
-  /** Bubbles of messages sent and not yet taken in, by message id. */
-  private readonly queued = new Map<string, { turnEl: HTMLElement; labelEl: HTMLElement; message: string }>();
+  /** Bubbles of messages sent and not yet taken in, by message id. Only one that waits behind other work says "Queued". */
+  private readonly queued = new Map<string, { turnEl: HTMLElement; labelEl?: HTMLElement; message: string }>();
+  /**
+   * A working line at the end of the chat while the agent has work and no reply is open, such as between a send and
+   * the agent taking the message in, which Claude reports only as it starts writing.
+   */
+  private waiting: { el: HTMLElement; group: ToolGroup } | null = null;
   /** The element of the message the agent took in last; its replies go in it. */
   private turnEl: HTMLElement | null = null;
   /** The reply being written. */
@@ -62,7 +68,7 @@ export class ChatPane extends Component {
   private sourcePath = '';
   /** The walkthroughs in the pane, told which stop is on screen; emptied when the pane's turns are. */
   private readonly walkers = new Set<(event: TourEvent) => void>();
-  private readonly replies = new Set<ReplyView>();
+  private readonly replies = new Map<HTMLElement, ReplyView>();
   private stopTour: (() => void) | null = null;
   readonly chat: Chat;
   private readonly walkthrough: WalkthroughHost = {
@@ -81,6 +87,7 @@ export class ChatPane extends Component {
         if (this.closed) return;
         this.composer.updateLabels();
         this.composer.setStreaming(this.chat.running);
+        this.syncWaiting();
         this.refreshTab();
       },
       switched: () => {
@@ -194,8 +201,10 @@ export class ChatPane extends Component {
     this.composer.dispose();
     this.tasks.destroy();
     await closing;
-    for (const reply of this.replies) reply.destroy();
+    for (const reply of this.replies.values()) reply.destroy();
     this.replies.clear();
+    this.waiting?.group.remove();
+    this.waiting = null;
     this.markdown.dispose();
   }
 
@@ -230,10 +239,14 @@ export class ChatPane extends Component {
       return this.reply!.view;
     };
     return {
-      pending: (id, context) => {
+      pending: (id, context, queued) => {
         const turnEl = this.drawUser(context.message, quoteOf(context.selection), context.attachments);
-        const labelEl = turnEl.createDiv({ cls: 'vicher-user-label', text: 'Queued' });
+        // It rises in once; a CSS animation would play again each time the tab is shown.
+        turnEl.addClass('is-sent');
+        turnEl.addEventListener('animationend', () => turnEl.removeClass('is-sent'), { once: true });
+        const labelEl = queued ? turnEl.createDiv({ cls: 'vicher-user-label', text: 'Queued' }) : undefined;
         this.queued.set(id, { turnEl, labelEl, message: context.message });
+        this.syncWaiting();
         this.messagesEl.scrollTo({ top: turnEl.offsetTop, behavior: 'smooth' });
         if (this.host.active()) this.host.tour.reset();
       },
@@ -241,19 +254,22 @@ export class ChatPane extends Component {
         const queued = this.queued.get(id);
         this.queued.delete(id);
         if (!queued) return;
-        queued.labelEl.remove();
+        queued.labelEl?.remove();
         // Bubbles still queued stay below the one taken in, so they keep their send order.
         const next = this.firstQueued();
         if (next && next.compareDocumentPosition(queued.turnEl) & Node.DOCUMENT_POSITION_FOLLOWING) this.messagesEl.insertBefore(queued.turnEl, next);
         this.turnEl = queued.turnEl;
+        this.syncWaiting();
       },
       dropped: (id, error) => {
         const queued = this.queued.get(id);
         this.queued.delete(id);
         if (!queued) return;
-        queued.labelEl.setText(`Not sent: ${error}`);
-        queued.labelEl.addClass('is-error');
+        const labelEl = queued.labelEl ?? queued.turnEl.createDiv({ cls: 'vicher-user-label' });
+        labelEl.setText(`Not sent: ${error}`);
+        labelEl.addClass('is-error');
         this.composer.restore(queued.message);
+        this.syncWaiting();
       },
       agentStart: () => this.openReply(),
       appendText: (delta) => reply().appendText(delta),
@@ -271,7 +287,8 @@ export class ChatPane extends Component {
         if (!this.reply) this.openReply();
         const { el, view } = this.reply!;
         this.reply = null;
-        view.finish(turn.at, this.feedback(index));
+        view.finish(turn.at, this.feedback(index), this.runText(el));
+        this.syncWaiting();
         this.showStatus(el, turn);
         this.unread = !this.host.active();
         this.refreshTab();
@@ -291,9 +308,29 @@ export class ChatPane extends Component {
       turnEl = this.turnEl = this.messagesEl.createDiv({ cls: 'vicher-turn' });
       this.messagesEl.insertBefore(turnEl, this.firstQueued() ?? null);
     }
+    // The reply's own working line takes over from the one at the end of the chat in place, without easing in again.
+    const handover = this.waiting !== null;
     const { replyEl, reply } = this.addReply(turnEl, true);
     this.reply = { el: replyEl, view: reply };
+    this.syncWaiting();
+    if (handover) replyEl.querySelector('.vicher-tools')?.removeClass('is-entering');
     return replyEl;
+  }
+
+  /** Shows the working line at the end of the chat while the agent has work and no reply is open. */
+  private syncWaiting(): void {
+    const show = this.chat.running && !this.reply;
+    if (show && !this.waiting) {
+      const el = this.messagesEl.createDiv({ cls: 'vicher-turn is-waiting' });
+      const line = el.createDiv({ cls: 'vicher-reply markdown-rendered' }).createDiv({ cls: 'vicher-tools is-entering' });
+      line.addEventListener('animationend', () => line.removeClass('is-entering'), { once: true });
+      this.waiting = { el, group: new ToolGroup(line) };
+    } else if (!show && this.waiting) {
+      this.waiting.group.remove();
+      this.waiting.el.remove();
+      this.waiting = null;
+    }
+    if (this.waiting) this.messagesEl.appendChild(this.waiting.el);
   }
 
   /**
@@ -352,11 +389,22 @@ export class ChatPane extends Component {
   }
 
   /** `live` is true for a reply being written, false for a saved one drawn again. */
+  /**
+   * Adds a reply last under a message. An agent turn right after another, as Claude writes when a background task ends,
+   * continues the same reply: only the last one keeps its time, copy and thumbs.
+   */
   private addReply(turnEl: HTMLElement, live: boolean): { replyEl: HTMLElement; reply: ReplyView } {
+    for (const earlier of turnEl.querySelectorAll(':scope > .vicher-reply')) earlier.addClass('is-continued');
     const replyEl = turnEl.createDiv({ cls: 'vicher-reply markdown-rendered' });
     const reply = new ReplyView(replyEl, this.replyMarkdown, this.walkthrough, (message) => this.ask(message), live);
-    this.replies.add(reply);
+    this.replies.set(replyEl, reply);
     return { replyEl, reply };
+  }
+
+  /** What the copy button of the reply ending a run copies: the text of every reply under the same message. */
+  private runText(replyEl: HTMLElement): () => string {
+    return () => [...(replyEl.parentElement?.querySelectorAll<HTMLElement>(':scope > .vicher-reply') ?? [])]
+      .map((el) => this.replies.get(el)?.text() ?? '').filter(Boolean).join('\n\n');
   }
 
   /** Draws a stored reply as it was drawn live. */
@@ -368,7 +416,7 @@ export class ChatPane extends Component {
       else if (part.type === 'highlight') reply.highlight(part.step);
       else reply.tool(part);
     }
-    reply.finish(turn.at, this.feedback(index, turn.rating));
+    reply.finish(turn.at, this.feedback(index, turn.rating), this.runText(replyEl));
     this.showStatus(replyEl, turn);
   }
 
