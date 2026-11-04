@@ -2,7 +2,7 @@ import type { Point as DataPoint, FigureNode, Plot3Layer, PlotLayer, Point3 } fr
 import { formatFigure } from '@/renderer/figure/formatFigure';
 import { breakJumps, type Layer, type PlotModel, type Point } from '@/renderer/figure/plot/PlotModel';
 import { fitRange } from '@/renderer/figure/plot/range';
-import type { Layer3, Plot3Model, Range } from '@/renderer/figure/plot3/Plot3Model';
+import { clampElevation, DEFAULT_VIEW, type Layer3, type Plot3Model, type Range } from '@/renderer/figure/plot3/Plot3Model';
 
 // The boundary between a validated figure and the plot packages: axes the program left out are fitted, and text is formatted.
 
@@ -77,9 +77,9 @@ const models3 = new WeakMap<Plot3, Plot3Model>();
 export function plot3Model(plot: Plot3): Plot3Model {
   const kept = models3.get(plot);
   if (kept) return kept;
-  const surfaces = plot.children.filter((layer) => layer.type === 'Fn');
+  const surfaces = plot.children.filter((layer) => layer.type === 'Surface');
   const axis = (given: Range | undefined, k: number): Range =>
-    given ?? fitRange(plot.children.filter((layer) => layer.type !== 'Fn').flatMap((layer) => coordinates(layer, k)), surfaces.flatMap((layer) => coordinates(layer, k)));
+    given ?? fitRange(plot.children.filter((layer) => layer.type !== 'Surface').flatMap((layer) => coordinates(layer, k)), surfaces.flatMap((layer) => coordinates(layer, k)));
   const [x, y, z] = [axis(plot.x, 0), axis(plot.y, 1), axis(plot.z, 2)];
   const span = (range: Range): number => range[1] - range[0];
   const same = [y, z].every((range) => Math.abs(span(range) - span(x)) <= 1e-9 * span(x));
@@ -91,8 +91,8 @@ export function plot3Model(plot: Plot3): Plot3Model {
     if (layer.type === 'Label') return { type: 'Label', at: layer.at, text: formatFigure(layer.text), ...(layer.tag ? { tag: layer.tag } : {}) };
     const marks = { ...(layer.id ? { id: layer.id } : {}), ...(layer.tag ? { tag: layer.tag } : {}), ...(layer.label === undefined ? {} : { label: formatFigure(layer.label) }) };
     switch (layer.type) {
-      case 'Fn':
-        return 'zs' in layer ? { type: 'Fn', zs: layer.zs, x: [layer.from ?? x[0], layer.to ?? x[1]], y, ...marks } : { type: 'Fn', pts: layer.pts, ...marks };
+      case 'Surface':
+        return layer.zs ? { type: 'Fn', zs: layer.zs, x: [layer.from ?? x[0], layer.to ?? x[1]], y, ...marks } : { type: 'Fn', pts: layer.pts!, ...marks };
       case 'Shape':
         return { type: 'Shape', pts: layer.pts, ...(layer.closed ? { closed: true } : {}), ...marks };
       case 'Circle':
@@ -104,7 +104,7 @@ export function plot3Model(plot: Plot3): Plot3Model {
         return { type: 'Points', pts: layer.pts, ...marks };
     }
   });
-  const model: Plot3Model = { x, y, z, equal: plot.equal ?? (same || solid), view: plot.view, xLabel: plot.xLabel, yLabel: plot.yLabel, zLabel: plot.zLabel, children };
+  const model: Plot3Model = { x, y, z, equal: plot.equal ?? (same || solid), view: { azimuth: plot.view?.azimuth ?? DEFAULT_VIEW.azimuth, elevation: clampElevation(plot.view?.elevation ?? DEFAULT_VIEW.elevation) }, xLabel: plot.xLabel, yLabel: plot.yLabel, zLabel: plot.zLabel, children };
   models3.set(plot, model);
   return model;
 }
@@ -126,8 +126,9 @@ function coordinates(layer: PlotLayer | Plot3Layer, k: number): number[] {
     case 'Region':
       return k === 0 ? [layer.from, layer.to].filter((v): v is number => v !== undefined) : [];
     case 'Fn':
-      if ('zs' in layer) return k === 2 ? layer.zs.filter((z): z is number => z !== null) : [];
-      if (layer.pts.some((p) => p !== null && p.length === 3)) return (layer.pts as readonly (Point3 | null)[]).flatMap((p) => (p ? [p[k]] : []));
       return [];
+    case 'Surface':
+      if (layer.zs) return k === 2 ? layer.zs.filter((z): z is number => z !== null) : [];
+      return (layer.pts ?? []).flatMap((p) => (p ? [p[k]] : []));
   }
 }

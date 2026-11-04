@@ -3,18 +3,20 @@
 import { transform } from 'sucrase';
 
 import { along, circleThrough, dist, foot, intersect, rotate } from '@/renderer/figure/diagram/construct';
-import { ELEMENT_PROPS, LIMITS } from '@/renderer/figure/FigureData';
+import { LIMITS } from '@/renderer/figure/FigureData';
 import { sampleFn } from '@/renderer/figure/plot/sampleFn';
 import { sampleSurface, SurfaceError } from '@/renderer/figure/plot3/sampleSurface';
 
 declare const self: { onmessage: ((event: { data: unknown }) => void) | null; postMessage(message: unknown): void; __run?: (module: unknown, exports: unknown) => void; __probe?: number };
 declare function importScripts(...urls: string[]): void;
+/** The registry's element names, set by `scripts/buildFigureWorker.js`. */
+declare const FIGURE_ELEMENTS: readonly string[];
 
 type Wire = { type: string; props: Record<string, unknown>; children: unknown[] };
 type Request = { kind: 'run'; source: string; params?: Record<string, unknown> } | { kind: 'probe' };
 
 const ELEMENT = Symbol('element');
-const NAMES = ['Figure', ...Object.keys(ELEMENT_PROPS)];
+const NAMES = ['Figure', ...FIGURE_ELEMENTS];
 
 class FigureError extends Error {
   constructor(message: string, readonly line?: number) {

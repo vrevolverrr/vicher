@@ -1,9 +1,8 @@
-import {
-  ELEMENT_PROPS, ID, LIMITS,
-  type DiagramLayer, type FigureData, type FigureNode, type GraphEdge, type GraphNode, type Param, type Plot3Layer, type PlotLayer, type Point, type Point3, type Step, type Tags, type Text,
-} from '@/renderer/figure/FigureData';
-import { clampElevation, DEFAULT_VIEW, type View } from '@/renderer/figure/plot3/Plot3Model';
-import { TAGS, type Tag } from '@/renderer/figure/Tag';
+import type { Context } from '@/renderer/figure/components/component';
+import { type Field, type Fields, readFields } from '@/renderer/figure/components/field';
+import { BLOCK_NAMES } from '@/renderer/figure/components/names';
+import { type AnyDefinition, DEFINITIONS } from '@/renderer/figure/components/registry';
+import { type FigureData, type FigureNode, ID, LIMITS, type Param, type Step } from '@/renderer/figure/FigureData';
 import { texAnchors, texIn, texProblems } from '@/renderer/figure/figureTex';
 import { formatFigure } from '@/renderer/figure/formatFigure';
 
@@ -138,8 +137,8 @@ function readParams(raw: unknown): Param[] {
       if (options.length > LIMITS.options) fail(path, over(options.length, 'options', LIMITS.options));
       const read = options.map((option) => text(option, path, 'an option'));
       const value = own(spec, 'value') ?? read[0];
-      if (!read.includes(value as Text)) fail(path, 'value is not one of its options');
-      return { kind: 'choice', key, label, options: read, value: value as Text };
+      if (!read.includes(value as string | number)) fail(path, 'value is not one of its options');
+      return { kind: 'choice', key, label, options: read, value: value as string | number };
     }
     onlyKeys(spec, ['label', 'min', 'max', 'step', 'value', 'unit'], path, 'a slider');
     const min = number(own(spec, 'min'), path, 'min');
@@ -158,16 +157,10 @@ function number(value: unknown, path: string, what: string): number {
   return value;
 }
 
-function text(value: unknown, path: string, what: string): Text {
+function text(value: unknown, path: string, what: string): string | number {
   if (typeof value === 'number') return value;
   return plainString(value, path, what);
 }
-
-const LAYOUT = ['Row', 'Column', 'Panel'] as const;
-const SHARED = ['Shape', 'Circle', 'Vector', 'Segment', 'Points', 'Label'] as const;
-const PLOT_ONLY = ['Fn', 'Region'] as const;
-const DIAGRAM_ONLY = ['Angle', 'RightAngle', 'Tick', 'Dimension'] as const;
-
 
 /** What one step's walk collects. */
 interface StepScope {
@@ -186,13 +179,13 @@ function readStep(frame: unknown, index: number, count: number, figure: { elemen
     const value = own(frame, key) ?? '';
     if (typeof value !== 'string' && typeof value !== 'number') fail(path, `the ${key} must be text`);
     const shown = typeof value === 'number' ? formatFigure(value) : value;
-    checkString(shown, path, `the ${key}`, scope, false);
+    checkCaption(shown, path, `the ${key}`);
     return shown;
   };
   const shown = text('caption');
   if (count > 1 && !shown.trim()) fail(path, 'a caption is required when a figure has two or more steps');
   const heading = text('heading').trim();
-  const root = readNode(own(frame, 'root'), path, 1, null, scope);
+  const root = readElement(own(frame, 'root'), path, 1, null, OUTSIDE, scope) as FigureNode;
   for (const target of scope.targets) {
     if (!scope.ids.has(target.id)) fail(target.path, `${target.what} "${target.id}" names no element, row, item or node in this step`);
   }
@@ -201,23 +194,13 @@ function readStep(frame: unknown, index: number, count: number, figure: { elemen
   return { caption: shown, ...(heading ? { heading } : {}), root, ids: new Set(scope.ids.keys()) };
 }
 
-/** Checks the maths in a string; anchors join the step's ids when they can be pointed at. */
-function checkString(value: string, path: string, what: string, scope: StepScope, anchors = true, whole = false): void {
+/** Checks the maths in a caption or heading; its anchors cannot be pointed at, so they need only be ids. */
+function checkCaption(value: string, path: string, what: string): void {
   if (value.length > LIMITS.string) fail(path, `${what} is ${over(value.length, 'characters', LIMITS.string)}`);
   // Renderers pair `$` signs differently, so a forbidden command anywhere in a string with maths fails, whatever the pairing.
-  const problem = whole || value.includes('$') ? texProblems(value) : undefined;
+  const problem = value.includes('$') ? texProblems(value) : undefined;
   if (problem) fail(path, problem);
-  for (const tex of whole ? [value] : texIn(value)) {
-    for (const anchor of texAnchors(tex)) {
-      if (!anchors) {
-        if (!ID.test(anchor)) fail(path, `anchor "${anchor}" is not an id`);
-        continue;
-      }
-      scope.anchors += 1;
-      if (scope.anchors > LIMITS.anchorsPerStep) fail(path, over(scope.anchors, 'TeX anchors', LIMITS.anchorsPerStep));
-      claim(anchor, path, scope);
-    }
-  }
+  for (const tex of texIn(value)) for (const anchor of texAnchors(tex)) if (!ID.test(anchor)) fail(path, `anchor "${anchor}" is not an id`);
 }
 
 function claim(id: unknown, path: string, scope: StepScope): string {
@@ -228,16 +211,22 @@ function claim(id: unknown, path: string, scope: StepScope): string {
   return id;
 }
 
-type Host = null | 'Plot' | 'Plot3' | 'Diagram';
+/** Outside a drawing, where no point is read. */
+const OUTSIDE: Context = { dimension: 2, why: 'a figure is 2D outside a 3D Plot' };
 
-const SURFACE_SAMPLES = (LIMITS.surfaceCells + 1) ** 2;
-const ONLY_PARAMETRIC = 'u and v are only for a parametric surface, f={(u, v) => [x, y, z]}';
+/** Each element's props: the fields of all its variants. */
+const PROPS = new Map([...DEFINITIONS.values()].map((definition) => [definition.name, [...new Set([...Object.keys(definition.fields ?? {}), ...Object.values(definition.variants ?? {}).flatMap((variant) => Object.keys(variant.fields))])]]));
 
-function readNode(raw: unknown, parent: string, depth: number, host: Host, scope: StepScope): FigureNode;
-function readNode(raw: unknown, parent: string, depth: number, host: 'Plot', scope: StepScope): PlotLayer;
-function readNode(raw: unknown, parent: string, depth: number, host: 'Diagram', scope: StepScope): DiagramLayer;
-function readNode(raw: unknown, parent: string, depth: number, host: 'Plot3', scope: StepScope, why: string): Plot3Layer;
-function readNode(raw: unknown, parent: string, depth: number, host: Host, scope: StepScope, why?: string): FigureNode | PlotLayer | DiagramLayer | Plot3Layer {
+/** Where each element may go, for a message about one placed elsewhere. */
+const HOMES = new Map([...DEFINITIONS.keys()].map((name) => [name, [...DEFINITIONS.values()].filter((definition) => definition.children?.includes(name)).map((definition) => definition.name)]));
+
+type Node = { type: string; children?: Node[] } & Record<string, unknown>;
+
+/**
+ * Reads one element by its definition: where it may go, its props by its fields, its children, then the rules across them.
+ * `container` is the element it is in, null at the top of a step; `context` is what that container set.
+ */
+function readElement(raw: unknown, parent: string, depth: number, container: AnyDefinition | null, context: Context, scope: StepScope): Node {
   if (!isObject(raw) || typeof own(raw, 'type') !== 'string') fail(parent, 'expected an element');
   onlyKeys(raw, ['type', 'props', 'children'], parent, 'an element');
   const type = raw.type as string;
@@ -246,339 +235,95 @@ function readNode(raw: unknown, parent: string, depth: number, host: Host, scope
   if (!isObject(props)) fail(parent, `<${type}> has props that are not an object`);
   if (!Array.isArray(children)) fail(parent, `<${type}> has children that are not a list`);
   if (type === 'Figure') fail(parent, 'Figure is returned once, outermost');
-  if (!Object.hasOwn(ELEMENT_PROPS, type)) fail(parent, `unknown element <${type}>`);
+  const definition = DEFINITIONS.get(type);
+  if (!definition) fail(parent, `unknown element <${type}>`);
   const rawId = own(props, 'id');
   const path = `${parent} > ${type}${typeof rawId === 'string' ? `#${rawId}` : ''}`;
   if (depth > LIMITS.depth) fail(path, `nesting depth ${depth}; the limit is ${LIMITS.depth}`);
   scope.elements += 1;
   if (scope.elements > LIMITS.elementsPerStep) fail(path, `more than ${n(LIMITS.elementsPerStep)} elements in a step; the limit is ${n(LIMITS.elementsPerStep)}`);
-  onlyKeys(props, ELEMENT_PROPS[type], path, type);
+  onlyKeys(props, PROPS.get(type)!, path, type);
 
-  const isShared = (SHARED as readonly string[]).includes(type);
-  const isLayer = isShared || (PLOT_ONLY as readonly string[]).includes(type) || (DIAGRAM_ONLY as readonly string[]).includes(type);
-  if (host === null && isLayer) fail(path, `${type} is a layer and goes only inside a Plot or a Diagram`);
-  if ((host === 'Plot' || host === 'Plot3') && !isShared && !(PLOT_ONLY as readonly string[]).includes(type)) fail(path, `${type} cannot go inside a Plot`);
-  if (host === 'Plot3' && type === 'Region') fail(path, `Region is 2D only; this Plot is 3D because ${why}`);
-  if (host === 'Diagram' && !isShared && !(DIAGRAM_ONLY as readonly string[]).includes(type)) fail(path, `${type} cannot go inside a Diagram`);
-  if (isLayer && children.length) fail(path, `${type} takes no children`);
-  if (!isLayer && !(LAYOUT as readonly string[]).includes(type) && type !== 'Text' && type !== 'Plot' && type !== 'Diagram' && children.length) fail(path, `${type} takes no children`);
-
-  const read = new Reader(props, path, scope, why);
-  const id = rawId === undefined ? {} : { id: claim(rawId, path, scope) };
-
-  switch (type) {
-    case 'Row':
-    case 'Column':
-      return { type, ...id, ...read.optional('gap', (v) => read.choice(v, 'gap', ['sm', 'md', 'lg'])), ...read.optional('align', (v) => read.choice(v, 'align', ['start', 'center', 'end'])), children: blocks(children, path, depth, scope) };
-    case 'Panel':
-      return { type, ...id, ...read.optional('title', (v) => read.string(v, 'title')), ...read.tag(), children: blocks(children, path, depth, scope) };
-    case 'Table': {
-      const columns = read.list('columns', 1, LIMITS.tableColumns, 'columns', (v) => read.text(v, 'a column'));
-      const rows = read.list('rows', 0, LIMITS.tableRows, 'rows', (row, r) => {
-        if (!Array.isArray(row) || row.length !== columns.length) fail(path, `row ${r + 1} must have ${columns.length} cells, one per column`);
-        return row.map((cell) => (cell === null ? null : read.text(cell, 'a cell')));
-      });
-      const rowIds = read.optional('rowIds', () => read.list('rowIds', 0, LIMITS.tableRows, 'rowIds', (rowId) => claim(rowId, path, scope)));
-      if (rowIds.rowIds && rowIds.rowIds.length !== rows.length) fail(path, `${rows.length} rows but ${rowIds.rowIds.length} rowIds; give one id per row`);
-      for (const rowId of rowIds.rowIds ?? []) for (let c = 0; c < columns.length; c += 1) claim(`${rowId}.${c}`, path, scope);
-      return { type, ...id, ...read.optional('title', (v) => read.string(v, 'title')), columns, rows, ...rowIds, tags: read.tags() };
-    }
-    case 'Seq': {
-      const items = read.list('items', 0, LIMITS.seqItems, 'items', (item) => {
-        if (!isObject(item)) fail(path, 'an item must be {id, label}');
-        onlyKeys(item, ['id', 'label'], path, 'an item');
-        return { id: claim(own(item, 'id'), path, scope), label: read.text(own(item, 'label'), 'an item label') };
-      });
-      const index = own(props, 'index');
-      const shownIndex = index === undefined || index === false ? {} : index === true ? { index: true as const } : { index: read.list('index', 0, LIMITS.seqItems, 'index labels', (v) => read.text(v, 'an index label')) };
-      return { type, ...id, ...read.optional('title', (v) => read.string(v, 'title')), items, ...shownIndex, tags: read.tags() };
-    }
-    case 'Node':
-      return { type, ...id, label: read.text(own(props, 'label'), 'label'), ...read.optional('sub', (v) => read.text(v, 'sub')), ...read.optional('shape', (v) => read.choice(v, 'shape', ['box', 'circle'])), ...read.tag() };
-    case 'Text': {
-      const fromProp = own(props, 'text');
-      const value = fromProp === undefined
-        ? children.map((child) => (typeof child === 'number' ? formatFigure(child) : typeof child === 'string' ? child : fail(path, 'Text holds only text'))).join('')
-        : typeof fromProp === 'number' ? formatFigure(fromProp) : read.string(fromProp, 'text');
-      if (fromProp !== undefined && children.length) fail(path, 'give Text its text as a prop or as children, not both');
-      if (!value.trim()) fail(path, 'Text is empty');
-      checkString(value, path, 'text', scope);
-      return { type, ...id, text: value };
-    }
-    case 'Tex': {
-      const tex = own(props, 'tex');
-      if (typeof tex !== 'string' || !tex.trim()) fail(path, 'tex must be TeX');
-      checkString(tex, path, 'tex', scope, true, true);
-      return { type, ...id, tex };
-    }
-    case 'Graph': {
-      const nodes = read.list('nodes', 1, LIMITS.graphNodes, 'nodes', (node): GraphNode => {
-        if (!isObject(node)) fail(path, 'a node must be {id, label, sub}');
-        onlyKeys(node, ['id', 'label', 'sub'], path, 'a node');
-        const sub = own(node, 'sub');
-        return { id: claim(own(node, 'id'), path, scope), label: read.text(own(node, 'label') ?? own(node, 'id'), 'a node label'), ...(sub === undefined ? {} : { sub: read.text(sub, 'a node sub') }) };
-      });
-      const known = new Set(nodes.map((node) => node.id));
-      const edges = read.list('edges', 0, LIMITS.graphEdges, 'edges', (edge, e): GraphEdge => {
-        if (!isObject(edge)) fail(path, 'an edge must be {id, from, to, label, directed}');
-        onlyKeys(edge, ['id', 'from', 'to', 'label', 'directed'], path, 'an edge');
-        const from = own(edge, 'from');
-        const to = own(edge, 'to');
-        for (const end of [from, to]) if (typeof end !== 'string' || !known.has(end)) fail(path, `edge ${e + 1} joins ${JSON.stringify(end)}, which is no node of this Graph`);
-        const edgeId = own(edge, 'id');
-        const label = own(edge, 'label');
-        const directed = own(edge, 'directed');
-        if (directed !== undefined && typeof directed !== 'boolean') fail(path, 'directed must be true or false');
-        return { ...(edgeId === undefined ? {} : { id: claim(edgeId, path, scope) }), from: from as string, to: to as string, ...(label === undefined ? {} : { label: read.text(label, 'an edge label') }), ...(directed === undefined ? {} : { directed }) };
-      });
-      return { type, ...id, nodes, edges, tags: read.tags() };
-    }
-    case 'Quiz': {
-      const options = read.list('options', 2, LIMITS.quizOptions, 'options', (v) => read.text(v, 'an option'));
-      const correct = own(props, 'correct');
-      if (!options.includes(correct as Text)) fail(path, 'correct must be one of its options');
-      return { type, ...id, question: read.string(own(props, 'question'), 'question'), options, correct: correct as Text, ...read.optional('explanation', (v) => read.string(v, 'explanation')) };
-    }
-    case 'Arrow':
-      return { type, from: read.target('from'), to: read.target('to'), ...read.optional('label', (v) => read.text(v, 'label')), ...read.tag() };
-    case 'Pointer':
-      return { type, to: read.target('to'), name: read.text(own(props, 'name'), 'name'), ...read.tag() };
-    case 'Plot': {
-      const reason = threeD(children);
-      if (reason) return { type: 'Plot3', ...id, ...readPlot3(read, children, path, depth, scope, reason) };
-      for (const key of ['z', 'zLabel', 'view']) if (own(props, key) !== undefined) fail(path, `${key} is for a 3D Plot, one that holds an Fn of two variables or points with three coordinates`);
-      const layers = drawingLayers(children, path, depth, 'Plot', scope);
-      const curve = layers.find((layer) => layer.type === 'Fn');
-      if (curve && own(props, 'x') === undefined) fail(path, `x is required: ${layerName('Fn', curve.id)} takes x as input`);
-      const fns = new Set(layers.flatMap((layer) => (layer.type === 'Fn' && layer.id ? [layer.id] : [])));
-      for (const layer of layers) {
-        if (layer.type !== 'Region') continue;
-        for (const key of ['top', 'base'] as const) {
-          const value = layer[key];
-          if (typeof value === 'string' && !fns.has(value)) fail(path, `Region "${key}" names no Fn of this Plot: "${value}"`);
-        }
-      }
-      return { type, ...id, ...read.optional('x', () => read.range('x')), ...read.optional('y', () => read.range('y')), ...read.optional('xLabel', (v) => read.string(v, 'xLabel')), ...read.optional('yLabel', (v) => read.string(v, 'yLabel')), ...read.optional('equal', (v) => read.boolean(v, 'equal')), children: layers };
-    }
-    case 'Diagram':
-      return { type, ...id, width: read.positive('width'), height: read.positive('height'), children: drawingLayers(children, path, depth, 'Diagram', scope) };
-    case 'Shape':
-      return { type, ...id, pts: read.points('pts', LIMITS.shapePoints), ...read.optional('closed', (v) => read.boolean(v, 'closed')), ...read.marks() };
-    case 'Circle':
-      return { type, ...id, at: read.point('at'), r: read.positive('r'), ...read.marks() };
-    case 'Vector':
-    case 'Segment':
-      return { type, ...id, from: read.point('from'), to: read.point('to'), ...read.marks() };
-    case 'Points':
-      return { type, ...id, pts: read.points('pts', LIMITS.layerPoints), ...read.marks() };
-    case 'Label':
-      return { type, ...id, at: read.point('at'), text: read.text(own(props, 'text'), 'text'), ...read.tag() };
-    case 'Fn': {
-      if (host === 'Plot3') return readSurface(read, props, path, id, why!);
-      if (own(props, 'u') !== undefined || own(props, 'v') !== undefined) fail(path, ONLY_PARAMETRIC);
-      if (own(props, 'zs') !== undefined) fail(path, 'zs is sampled by the host');
-      const pts = read.list('pts', 0, LIMITS.fnSamples, 'samples', (sample): readonly [number, number | null] => {
-        if (!Array.isArray(sample) || sample.length !== 2 || typeof sample[0] !== 'number' || (sample[1] !== null && typeof sample[1] !== 'number')) fail(path, 'Fn samples must be [x, y]');
-        return [sample[0], sample[1] as number | null];
-      });
-      return { type, ...id, pts, ...read.optional('from', (v) => number(v, path, 'from')), ...read.optional('to', (v) => number(v, path, 'to')), ...read.marks() };
-    }
-    case 'Region': {
-      const end = (value: unknown, key: string): string | number => (typeof value === 'number' ? value : typeof value === 'string' ? value : fail(path, `${key} must be an Fn id or a number`));
-      if (own(props, 'top') === undefined) fail(path, 'Region needs top: an Fn id or a number');
-      return { type, ...id, top: end(own(props, 'top'), 'top'), ...read.optional('base', (v) => end(v, 'base')), ...read.optional('from', (v) => number(v, path, 'from')), ...read.optional('to', (v) => number(v, path, 'to')), ...read.marks() };
-    }
-    case 'Angle':
-      return { type, ...id, at: read.point('at'), from: read.point('from'), to: read.point('to'), ...read.marks() };
-    case 'RightAngle':
-      return { type, ...id, at: read.point('at'), from: read.point('from'), to: read.point('to'), ...read.tag() };
-    case 'Tick': {
-      const on = own(props, 'on');
-      if (!Array.isArray(on) || on.length !== 2) fail(path, 'on must be [[x, y], [x, y]]');
-      const n = own(props, 'n');
-      if (n !== undefined && !(Number.isInteger(n) && (n as number) >= 1 && (n as number) <= 8)) fail(path, 'n must be a whole number from 1 to 8');
-      return { type, ...id, on: [read.point('on', on[0]), read.point('on', on[1])], ...(n === undefined ? {} : { n: n as number }), ...read.tag() };
-    }
-    case 'Dimension':
-      return { type, ...id, from: read.point('from'), to: read.point('to'), ...read.optional('label', (v) => read.text(v, 'label')), ...read.tag() };
+  const allowed: readonly string[] = container?.children ?? BLOCK_NAMES;
+  if (!allowed.includes(type)) {
+    if ((BLOCK_NAMES as readonly string[]).includes(type)) fail(path, `${type} cannot go inside a ${container!.name}`);
+    const homes = `${type} goes only inside a ${HOMES.get(type)!.join(' or a ')}`;
+    fail(path, container ? `${type} cannot go inside a ${container.name}; ${homes}` : `${type} is a layer: ${homes}`);
   }
-  fail(path, `unknown element <${type}>`);
+  if (definition.dimensions && !definition.dimensions.includes(context.dimension)) fail(path, `${type} is ${definition.dimensions.join(' or ')}D only; ${context.why}`);
+  if (children.length && !definition.children && !definition.textChildren) fail(path, `${type} takes no children`);
+
+  const inner = definition.context?.({ props, children }) ?? context;
+  const variant = Object.entries(definition.variants ?? {}).find(([, candidate]) => candidate.dimension === inner.dimension);
+  const fields = variant ? variant[1].fields : definition.fields ?? {};
+  const read = readFields(fields, definition.textChildren ? withTextChildren(props, children, definition.textChildren, path) : props);
+  // A field's message is a predicate put after the prop's name; a TeX problem is a sentence of its own.
+  if (!read.ok) fail(path, /^[a-z"]/.test(read.message) ? `${read.prop} ${read.message}` : `${read.prop}: ${read.message}`);
+  const node: Node = { type: variant ? variant[0] : type, ...read.value };
+
+  for (const key of Object.keys(fields)) walk(fields[key], node[key], key, path, context, scope);
+  for (const id of definition.ids?.(node) ?? []) claim(id, path, scope);
+  if (definition.children) {
+    // Bare text where a Text may go is a paragraph.
+    const prose = definition.children.includes('Text');
+    node.children = children.map((child) => readElement(prose && (typeof child === 'string' || typeof child === 'number') ? { type: 'Text', props: { text: child }, children: [] } : child, path, depth + 1, definition, inner, scope));
+  }
+  definition.check?.(node, { path, context: inner, fail: (message) => fail(path, message) });
+  return node;
 }
 
-/** Children of a layout element: elements, with bare text as a paragraph. */
-function blocks(children: unknown[], path: string, depth: number, scope: StepScope): FigureNode[] {
-  return children.map((child) => readNode(typeof child === 'string' || typeof child === 'number' ? { type: 'Text', props: { text: child }, children: [] } : child, path, depth + 1, null, scope));
+/** `<Text>...</Text>`: text children read as the prop `key`. */
+function withTextChildren(props: Plain, children: unknown[], key: string, path: string): Plain {
+  if (!children.length) return props;
+  if (own(props, key) !== undefined) fail(path, `give its ${key} as a prop or as children, not both`);
+  const joined = children.map((child) => (typeof child === 'number' ? formatFigure(child) : typeof child === 'string' ? child : fail(path, `${key} children must be text`))).join('');
+  return { ...Object.fromEntries(Object.keys(props).map((name) => [name, props[name]])), [key]: joined };
 }
 
-function drawingLayers(children: unknown[], path: string, depth: number, host: 'Plot', scope: StepScope): PlotLayer[];
-function drawingLayers(children: unknown[], path: string, depth: number, host: 'Diagram', scope: StepScope): DiagramLayer[];
-function drawingLayers(children: unknown[], path: string, depth: number, host: 'Plot3', scope: StepScope, why: string): Plot3Layer[];
-function drawingLayers(children: unknown[], path: string, depth: number, host: 'Plot' | 'Plot3' | 'Diagram', scope: StepScope, why = ''): (PlotLayer | DiagramLayer | Plot3Layer)[] {
-  if (children.length > LIMITS.layers) fail(path, over(children.length, 'layers', LIMITS.layers));
-  return children.map((child) => (host === 'Plot' ? readNode(child, path, depth + 1, host, scope) : host === 'Plot3' ? readNode(child, path, depth + 1, host, scope, why) : readNode(child, path, depth + 1, host, scope)));
-}
-
-const layerName = (type: string, id: unknown): string => (typeof id === 'string' ? `\`${type}\` \`${id}\`` : `a \`${type}\``);
-
-/** Why a Plot is 3D, read from its raw layers before any is checked: an Fn of two variables, or a point with three coordinates. */
-function threeD(children: readonly unknown[]): string | undefined {
-  for (const child of children) {
-    if (!isObject(child) || !isObject(own(child, 'props'))) continue;
-    const type = own(child, 'type');
-    const props = own(child, 'props') as Plain;
-    const triple = (value: unknown): boolean => Array.isArray(value) && value.length === 3;
-    if (type === 'Fn') {
-      const pts = own(props, 'pts');
-      if (own(props, 'zs') !== undefined || (Array.isArray(pts) && pts.some(triple))) return `${layerName('Fn', own(props, 'id'))} takes two variables`;
-      continue;
+/** The step pass over one read field: ids and anchors join the step, targets and tag keys wait for its end, points match the drawing. */
+function walk(field: Field, value: unknown, key: string, path: string, context: Context, scope: StepScope): void {
+  if (value === undefined || value === null) return;
+  switch (field.kind) {
+    case 'id':
+      if (typeof value === 'string') claim(value, path, scope);
+      return;
+    case 'text':
+      if (typeof value === 'string') for (const tex of texIn(value)) anchors(texAnchors(tex), path, scope);
+      return;
+    case 'tex':
+      if (typeof value === 'string') anchors(texAnchors(value), path, scope);
+      return;
+    case 'target':
+      if (typeof value === 'string') scope.targets.push({ path, id: value, what: key });
+      return;
+    case 'tags':
+      if (value instanceof Map) for (const id of value.keys() as Iterable<string>) scope.targets.push({ path, id, what: 'tags' });
+      return;
+    case 'point': {
+      const size = context.dimension === 3 ? 3 : 2;
+      if (Array.isArray(value) && value.length !== size) fail(path, `${key} holds a point with ${value.length} coordinates; ${context.why}, so every point is ${size === 3 ? '[x, y, z]' : '[x, y]'}`);
+      return;
     }
-    const pts = own(props, 'pts');
-    if ((Array.isArray(pts) && pts.some(triple)) || ['at', 'from', 'to'].some((key) => triple(own(props, key)))) return `${layerName(String(type), own(props, 'id'))} has a point with three coordinates`;
+    case 'optional':
+      walk(field.of!, value, key, path, context, scope);
+      return;
+    case 'list':
+      if (Array.isArray(value)) for (const item of value) walk(field.of!, item, key, path, context, scope);
+      return;
+    case 'object':
+      if (isObject(value)) for (const name of Object.keys(field.shape!)) walk((field.shape as Fields)[name], own(value, name), key, path, context, scope);
+      return;
+    case 'either':
+      for (const option of field.options!) walk(option, value, key, path, context, scope);
+      return;
+    default:
   }
-  return undefined;
 }
 
-function readPlot3(read: Reader, children: unknown[], path: string, depth: number, scope: StepScope, why: string): Omit<Extract<FigureNode, { type: 'Plot3' }>, 'type' | 'id'> {
-  const props = read.props;
-  const layers = drawingLayers(children, path, depth, 'Plot3', scope, why);
-  const surfaces = layers.filter((layer) => layer.type === 'Fn');
-  if (surfaces.length > LIMITS.surfaces) fail(path, over(surfaces.length, 'surfaces', LIMITS.surfaces));
-  const graph = surfaces.find((layer) => 'zs' in layer);
-  for (const key of ['x', 'y']) if (graph && own(props, key) === undefined) fail(path, `${key} is required: ${layerName('Fn', graph.id)} takes x and y as input`);
-  return {
-    ...read.optional('x', () => read.range('x')), ...read.optional('y', () => read.range('y')), ...read.optional('z', () => read.range('z')),
-    ...read.optional('equal', (v) => read.boolean(v, 'equal')), view: readView(own(props, 'view'), path),
-    ...read.optional('xLabel', (v) => read.string(v, 'xLabel')), ...read.optional('yLabel', (v) => read.string(v, 'yLabel')), ...read.optional('zLabel', (v) => read.string(v, 'zLabel')),
-    children: layers,
-  };
-}
-
-function readView(raw: unknown, path: string): View {
-  if (raw === undefined || raw === null) return DEFAULT_VIEW;
-  if (!isObject(raw)) fail(path, 'view must be { azimuth, elevation } in degrees');
-  onlyKeys(raw, ['azimuth', 'elevation'], path, 'view');
-  const azimuth = own(raw, 'azimuth') ?? DEFAULT_VIEW.azimuth;
-  const elevation = own(raw, 'elevation') ?? DEFAULT_VIEW.elevation;
-  if (typeof azimuth !== 'number' || typeof elevation !== 'number') fail(path, 'view must be { azimuth, elevation } in degrees');
-  return { azimuth, elevation: clampElevation(elevation) };
-}
-
-/** An Fn in a 3D Plot: a graph sent as `zs`, or a parametric surface sent as `pts` of points. */
-function readSurface(read: Reader, props: Plain, path: string, id: { id?: string }, why: string): Plot3Layer {
-  const uv = own(props, 'u') !== undefined || own(props, 'v') !== undefined;
-  const samples = (key: string, check: (value: unknown) => boolean, what: string): unknown[] => {
-    const value = own(props, key);
-    if (!Array.isArray(value) || value.length !== SURFACE_SAMPLES || !value.every((sample) => sample === null || check(sample))) fail(path, `Fn samples must be ${SURFACE_SAMPLES} ${what}`);
-    return value;
-  };
-  if (own(props, 'zs') !== undefined) {
-    if (uv) fail(path, ONLY_PARAMETRIC);
-    const zs = samples('zs', (z) => typeof z === 'number', 'heights') as (number | null)[];
-    return { type: 'Fn', ...id, zs, ...read.optional('from', (v) => number(v, path, 'from')), ...read.optional('to', (v) => number(v, path, 'to')), ...read.marks() } as unknown as Plot3Layer;
-  }
-  const pts = own(props, 'pts');
-  if (Array.isArray(pts) && !pts.some((p) => Array.isArray(p) && p.length === 3)) fail(path, `this Fn is a curve, f={x => ...}; this Plot is 3D because ${why}, and an Fn in a 3D Plot is a surface, f={(x, y) => z} or f={(u, v) => [x, y, z]}`);
-  if (own(props, 'u') === undefined || own(props, 'v') === undefined) fail(path, 'a parametric surface, f={(u, v) => [x, y, z]}, needs u={[lo, hi]} and v={[lo, hi]}');
-  read.range('u');
-  read.range('v');
-  if (own(props, 'from') !== undefined || own(props, 'to') !== undefined) fail(path, 'from and to narrow x, which a parametric surface does not take; return NaN outside its domain instead');
-  const points = samples('pts', (p) => Array.isArray(p) && p.length === 3 && p.every((c) => typeof c === 'number'), 'points [x, y, z]') as Point3[];
-  return { type: 'Fn', ...id, pts: points, ...read.marks() };
-}
-
-/** Typed reads of one element's props, all by `Object.hasOwn`. */
-class Reader {
-  /** `three`, set in a 3D Plot, is why it is 3D, and makes every point [x, y, z]. */
-  constructor(readonly props: Plain, private readonly path: string, private readonly scope: StepScope, private readonly three?: string) {}
-
-  optional<K extends string, V>(key: K, read: (value: unknown) => V): { [P in K]?: V } {
-    const value = own(this.props, key);
-    return (value === undefined || value === null ? {} : { [key]: read(value) }) as { [P in K]?: V };
-  }
-
-  string(value: unknown, what: string): string {
-    const read = plainString(value, this.path, what);
-    checkString(read, this.path, what, this.scope);
-    return read;
-  }
-
-  text(value: unknown, what: string): Text {
-    if (typeof value === 'number') return value;
-    return this.string(value, what);
-  }
-
-  choice<const T extends string>(value: unknown, what: string, options: readonly T[]): T {
-    if (!options.includes(value as T)) fail(this.path, `${what} must be one of ${options.join(', ')}`);
-    return value as T;
-  }
-
-  boolean(value: unknown, what: string): boolean {
-    if (typeof value !== 'boolean') fail(this.path, `${what} must be true or false`);
-    return value;
-  }
-
-  positive(key: string): number {
-    const value = own(this.props, key);
-    if (typeof value !== 'number' || !(value > 0)) fail(this.path, `${key} must be a number above 0`);
-    return value;
-  }
-
-  /** A point [x, y], or [x, y, z] in a 3D Plot (still typed `Point`; `readPlot3` reads its layers as `Plot3Layer`). */
-  point(key: string, value: unknown = own(this.props, key)): Point {
-    if (this.three !== undefined) {
-      if (Array.isArray(value) && value.length !== 3) fail(this.path, `${key} holds a point with ${value.length} coordinates; this Plot is 3D because ${this.three}, so every point is [x, y, z]`);
-      if (!Array.isArray(value) || !value.every((c) => typeof c === 'number')) fail(this.path, `${key} must be a point [x, y, z]`);
-      return [value[0], value[1], value[2]] as unknown as Point;
-    }
-    if (!Array.isArray(value) || value.length !== 2 || typeof value[0] !== 'number' || typeof value[1] !== 'number') fail(this.path, `${key} must be a point [x, y]`);
-    return [value[0], value[1]];
-  }
-
-  points(key: string, limit: number): Point[] {
-    return this.list(key, 0, limit, 'points', (value) => this.point(key, value));
-  }
-
-  range(key: string): Point {
-    const range = own(this.props, key);
-    if (!Array.isArray(range) || range.length !== 2 || typeof range[0] !== 'number' || typeof range[1] !== 'number' || !(range[0] < range[1]) || !Number.isFinite(range[1] - range[0])) fail(this.path, `${key} must be [low, high] with low below high`);
-    return [range[0], range[1]];
-  }
-
-  list<T>(key: string, min: number, limit: number, what: string, read: (value: unknown, index: number) => T): T[] {
-    const value = own(this.props, key);
-    if (!Array.isArray(value)) fail(this.path, `${key} must be a list`);
-    if (value.length > limit) fail(this.path, over(value.length, what, limit));
-    if (value.length < min) fail(this.path, `${key} needs at least ${min}`);
-    return value.map(read);
-  }
-
-  tag(): { tag?: Tag } {
-    return this.optional('tag', (value) => this.choice(value, 'tag', TAGS));
-  }
-
-  marks(): { label?: Text; tag?: Tag } {
-    return { ...this.optional('label', (value) => this.text(value, 'label')), ...this.tag() };
-  }
-
-  /** An id another element must hold in this step; checked when the step is done. */
-  target(key: string): string {
-    const value = own(this.props, key);
-    if (typeof value !== 'string') fail(this.path, `${key} must be an id`);
-    this.scope.targets.push({ path: this.path, id: value, what: key });
-    return value;
-  }
-
-  tags(): Tags {
-    const value = own(this.props, 'tags');
-    const tags = new Map<string, Tag>();
-    if (value === undefined || value === null) return tags;
-    if (!isObject(value)) fail(this.path, 'tags must be an object of id: tag');
-    for (const key of Object.keys(value)) {
-      const tag = value[key];
-      if (tag === null || tag === undefined) continue;
-      tags.set(key, this.choice(tag, `tags "${key}"`, TAGS));
-      this.scope.targets.push({ path: this.path, id: key, what: 'tags' });
-    }
-    return tags;
+function anchors(names: readonly string[], path: string, scope: StepScope): void {
+  for (const anchor of names) {
+    scope.anchors += 1;
+    if (scope.anchors > LIMITS.anchorsPerStep) fail(path, over(scope.anchors, 'TeX anchors', LIMITS.anchorsPerStep));
+    claim(anchor, path, scope);
   }
 }

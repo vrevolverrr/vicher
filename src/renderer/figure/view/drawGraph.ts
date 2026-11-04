@@ -50,7 +50,7 @@ export function drawGraph(parent: HTMLElement, graph: Graph, layout: NetworkLayo
     position(el, box);
     el.style.width = `${box.width}px`;
     el.style.height = `${box.height}px`;
-    markdown(el.appendChild(div('vicher-network-node-label')), `${status(tag ?? '')}${formatFigure(node.label)}`);
+    markdown(el.appendChild(div('vicher-network-node-label')), `${status(tag ?? '')}${formatFigure(node.label ?? node.id)}`);
     if (node.sub !== undefined) markdown(el.appendChild(div('vicher-network-node-sub')), node.sub);
   }
 }

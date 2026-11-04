@@ -1,3 +1,45 @@
+import type { Field } from '@/renderer/figure/components/field';
+import { type AnyDefinition, COMPONENTS } from '@/renderer/figure/components/registry';
+
+/** A prop as a signature shows it: its name, and the form of its value where the name alone does not say it. */
+function propForm(name: string, field: Field): string {
+  const inner = field.kind === 'optional' ? field.of! : field;
+  const item = inner.of;
+  const form = inner.kind === 'choice' ? `="${inner.values!.join('|')}"`
+    : inner.kind === 'tags' ? '={{id: tag}}'
+      : inner.kind === 'range' ? '={[lo, hi]}'
+        : inner.kind === 'point' ? '={[x, y]}'
+          : inner.kind === 'object' ? `={{ ${Object.keys(inner.shape!).join(', ')} }}`
+            : inner.kind !== 'list' ? ''
+              : item!.kind === 'object' ? `={[{${Object.keys(item!.shape!).join(', ')}}]}`
+                : item!.kind === 'list' ? '={[[...]]}'
+                  : item!.kind === 'point' ? '={[[x, y], ...]}' : '={[...]}';
+  return `${name}${form}`;
+}
+
+/** Every prop the model writes, across an element's variants, in declaration order; sampled and refused props are the host's. */
+export function promptFields(definition: AnyDefinition): [string, Field][] {
+  const all = [definition.fields ?? {}, ...Object.values(definition.variants ?? {}).map((variant) => variant.fields)];
+  const fields = new Map<string, Field>();
+  for (const set of all) for (const [name, field] of Object.entries(set)) if (!fields.has(name) && !['unused', 'sampled'].includes((field.kind === 'optional' ? field.of! : field).kind)) fields.set(name, field);
+  return [...fields];
+}
+
+/** An element's signature: written by the definition, or made from its fields. */
+export function signatureOf(definition: AnyDefinition): string {
+  if (definition.signature) return definition.signature;
+  const props = promptFields(definition).map(([name, field]) => propForm(name, field));
+  return `<${[definition.name, ...props].join(' ')}${definition.children ? '>' : ' />'}`;
+}
+
+/** One line per element: its signature, what it is, its props' notes, and how to use it. */
+function elementLines(): string {
+  return COMPONENTS.map((definition) => {
+    const notes = promptFields(definition as AnyDefinition).flatMap(([, field]) => (field.note ? [field.note] : []));
+    return `- \`${signatureOf(definition)}\`: ${[definition.summary, ...notes, ...(definition.guidance ?? [])].join(' ')}`;
+  }).join('\n');
+}
+
 /** The figure contract the system prompt carries: what a figure program may write, and the rules the host checks. */
 export const FIGURE_PROMPT = `Write the figure in a \`\`\`figure fence.
 
@@ -24,36 +66,11 @@ export default function ({ n }) {
 
 ### Elements
 
-Layout:
+Every element but a link takes an optional \`id\`. \`title\`, \`label\`, cells and other text props are Markdown and may hold \`$maths$\`.
 
-- \`<Row gap="sm|md|lg" align="start|center|end">\`: side by side; wraps when the pane is narrow.
-- \`<Column gap align>\`: stacked.
-- \`<Panel title tag id>\`: a titled box around a group.
+Layout and objects go anywhere outside a drawing. \`Arrow\` and \`Pointer\` are links: placed anywhere outside a drawing and attached by id. \`Plot\` and \`Diagram\` are two drawings, each holding layers in its own coordinates. A drawing holds only its layers, never a \`Row\`, \`Column\`, \`Panel\`, \`Text\`, \`Table\` or \`Node\`; put those beside the drawing, both in a \`Row\` or \`Column\`. \`Shape\`, \`Circle\`, \`Vector\`, \`Segment\`, \`Points\` and \`Label\` are layers of both, and in a 3D Plot they take \`[x, y, z]\`. \`Fn\` and \`Region\` are a \`Plot\`'s only, \`Region\` in 2D only. \`Angle\`, \`RightAngle\`, \`Tick\` and \`Dimension\` are a \`Diagram\`'s only: geometry marks placed and sized by the host.
 
-Objects (all take \`id\`; \`title\`, \`label\` and cells are text):
-
-- \`<Table id title columns={[...]} rows={[[...]]} rowIds={[...]} tags={{rowId: tag}} />\`: each row one cell per column; a cell is text, a number or \`null\`. \`rowIds\` is optional: give it, one id per row, only when a tag, \`Arrow\` or \`Pointer\` names a row or cell. A cell then has the id \`rowId.column\` (0-based column): a DP table, a Punnett square or a pipeline marks \`{ 'r2.3': 'active' }\`.
-- \`<Seq id title items={[{id, label}]} index tags={{itemId: tag}} />\`: a strip of cells for an array, queue or string. \`index\` shows 0, 1, 2… above the cells, or an array of labels.
-- \`<Node id label sub shape="box|circle" tag />\`: one labelled box or circle, with an optional second smaller line; also the stat tile (\`label\` the value, \`sub\` what it is).
-- \`<Text>...</Text>\` or \`<Text text />\`: a paragraph. \`<Tex tex />\`: a displayed formula. Matrices, derivations and determinants are \`Tex\` in each step; there is no matrix element. All TeX follows the TeX rule below.
-- \`<Graph id nodes={[{id, label, sub}]} edges={[{id, from, to, label, directed}]} tags={{nodeOrEdgeId: tag}} />\`: nodes and links placed by the host, a single rooted tree as a tree. Keep the same node ids in every step; change labels and tags. A binary tree node with one child gets a dimmed \`nil\` node for the other, so left and right stay apart. Put a small Graph and its Table side by side in a \`Row\`; beside a Graph of more than about six nodes, give per-node values as a wide Table, one column per node and one row per quantity, under it in a \`Column\`.
-- \`<Quiz question options={[...]} correct explanation />\`: a multiple-choice check; \`correct\` is one of the options, written exactly as in \`options\`. The host marks the answer and sends it as the student's next message, so ask one and wait.
-
-Links, placed anywhere in the tree and attached by id:
-
-- \`<Arrow from to label tag />\`: an arrow between any two elements, rows, items or nodes.
-- \`<Pointer to name tag />\`: a named marker under a Seq item, left of a Table row, or beside any element. Keep \`name\` short (a variable, an index, a row operation): it takes room beside what it marks.
-
-Two drawings, each holding layers in its own coordinates. A \`Plot\` or \`Diagram\` holds only its layers, never a \`Row\`, \`Column\`, \`Panel\`, \`Text\`, \`Table\` or \`Node\`; put those beside the drawing, both in a \`Row\` or \`Column\`:
-
-- \`<Plot id x={[lo, hi]} y={[lo, hi]} z={[lo, hi]} xLabel yLabel zLabel equal view={{ azimuth, elevation }}>\`: axes in data coordinates. A Plot is 3D when it holds an \`Fn\` of two variables or any point with three coordinates; then every point in it is \`[x, y, z]\`, z points up, and the student turns it by dragging. An axis is required when a function takes it as input (\`x\` for a curve, \`x\` and \`y\` for a surface z = f(x, y)); every other axis is fitted to the layers when absent, and a surface's few extreme heights (near a pole such as 1/(x² + y²)) are cut at the box; give the axis to show more. \`equal\` draws one unit as long on every axis, so a circle stays round and a sphere a sphere; it is on when the axes span the same length, or when a 3D Plot gives none and its spans are within 10× of each other, and \`equal={false}\` turns it off. Without it each axis fills its side, so unequal ranges never squash the drawing. \`view\` is a 3D Plot's starting angle in degrees, default \`{ azimuth: 30, elevation: 25 }\`.
-- \`<Diagram id width height>\`: a 2D free drawing in the model's own units (metres, grid cells), y upwards, scaled by the host to fit the pane; \`width\` and \`height\` are the extent of the drawing in its units.
-
-Layers of both: \`<Shape pts={[[x, y], ...]} closed label tag id />\` (a polyline or polygon: a contour, a parametric curve, a path of iterates, a unit square under a map; one point draws nothing, so a growing path can start empty), \`<Circle at={[x, y]} r label tag id />\`, \`<Vector from to label tag />\` (an arrowhead at \`to\`, no dots), \`<Segment from to label tag />\`, \`<Points pts={[[x, y]]} label tag />\` and \`<Label at text tag />\`. In a 3D Plot they take \`[x, y, z]\`, and a \`Circle\` lies in the plane of x and y at height z (a level set on a bowl).
-
-Plot only: \`<Fn id f u v from to label tag />\`, sampled by the host. \`f={x => ...}\` draws a curve; it breaks where it leaves the box through the top and comes back through the bottom, so \`tan\` and \`1/x\` draw no false vertical. \`f={(x, y) => ...}\` draws a surface z = f(x, y) over the box's x and y, and \`f={(u, v) => [x, y, z]}\` with \`u={[lo, hi]} v={[lo, hi]}\` a parametric surface (a sphere, a torus, a cone). Write a surface's two parameters plain: a default value, as in \`(x, y = 0) =>\`, makes it a curve. \`from\` and \`to\` narrow x; any other domain (a disk, y ≥ 0, a cut-away sphere) returns \`NaN\` outside it, which leaves a hole. Surfaces are shaded by height and cut at the box; paths, points and vectors are drawn over them. A point meant to lie on a surface uses the same function: \`[x, y, f(x, y)]\`. Tag a surface \`dim\` when a path or point on it is the subject. 2D only: \`<Region top="fnId or number" base from to label tag />\` (shaded between \`top\` and \`base\`, default 0; a number \`top\` with \`from\` and \`to\` is a bar, so a histogram or a Riemann sum is one \`Region\` per bar).
-
-Diagram only, geometry marks placed and sized by the host: \`<Angle at from to label tag />\` (the arc of the angle at \`at\` from the ray towards \`from\` to the ray towards \`to\`, label outside the arc), \`<RightAngle at from to tag />\` (the square mark), \`<Tick on={[a, b]} n tag />\` (\`n\` equal-length ticks across segment a–b) and \`<Dimension from to label tag />\` (a measured length with end bars, offset from the drawing).
+${elementLines()}
 
 Construction functions, in scope like \`Math\`, so points are computed rather than guessed: \`intersect(lineA, lineB)\` (a line is \`[p, q]\`; returns the point or \`null\` when parallel), \`foot(p, line)\` (the foot of the perpendicular), \`rotate(p, about, degrees)\` (counter-clockwise), \`along(a, b, t)\` (the point a + t·(b − a)), \`circleThrough(a, b, c)\` (returns \`{at, r}\`) and \`dist(a, b)\`. They are plain JavaScript defined before the program and are not elements.
 

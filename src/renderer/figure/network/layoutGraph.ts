@@ -4,7 +4,7 @@ import { layoutNetwork, type NetworkLayout } from '@/renderer/figure/network/lay
 
 type Graph = Extract<FigureNode, { type: 'Graph' }>;
 
-const nodeText = (node: GraphNode): string => [formatFigure(node.label), node.sub === undefined ? '' : formatFigure(node.sub)].filter(Boolean).join('\n');
+const nodeText = (node: GraphNode): string => [formatFigure(node.label ?? node.id), node.sub === undefined ? '' : formatFigure(node.sub)].filter(Boolean).join('\n');
 
 /** Each edge's key across steps: its id, or its ends and how many edges with the same ends come before it. */
 export function edgeKeys(edges: readonly GraphEdge[]): string[] {

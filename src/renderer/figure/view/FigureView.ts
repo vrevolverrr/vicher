@@ -1,24 +1,17 @@
+import { BLOCK_NAMES } from '@/renderer/figure/components/names';
+import { NODE_DEFINITIONS } from '@/renderer/figure/components/registry';
 import { computedColour, div, parseColour } from '@/renderer/figure/view/dom';
-import { diagramExtent, type Extent, type Room, widen } from '@/renderer/figure/diagram/diagramExtent';
-import { drawDiagram } from '@/renderer/figure/view/drawDiagram';
-import { layoutGraph } from '@/renderer/figure/network/layoutGraph';
-import { drawGraph } from '@/renderer/figure/view/drawGraph';
-import { drawLinks, type Link, POINTER_STEP, pointerLabel } from '@/renderer/figure/view/drawLinks';
+import type { DrawContext, Drawn, ElementView, Lane } from '@/renderer/figure/view/components/ElementView';
+import { type DrawnType, VIEWS } from '@/renderer/figure/view/components/registry';
+import { drawLinks, type Link } from '@/renderer/figure/view/drawLinks';
 import { drawParams } from '@/renderer/figure/view/drawParams';
-import { plot3Model, plotModel } from '@/renderer/figure/plotModels';
-import { drawQuiz } from '@/renderer/figure/view/drawQuiz';
 import type { FigureData, FigureNode, Param } from '@/renderer/figure/FigureData';
-import type { View } from '@/renderer/figure/plot3/Plot3Model';
 import { TAGS, type Tag } from '@/renderer/figure/Tag';
 import { figureSandbox, type FigureSandbox } from '@/renderer/figure/view/FigureSandbox';
-import { drawTex, drawTexIn, mapMath, type Rgb, type TagColour, texAnchors, texTags, TYPESET_MATH } from '@/renderer/figure/figureTex';
+import { drawTex, drawTexIn, mapMath, type Rgb, type TagColour, texTags, TYPESET_MATH } from '@/renderer/figure/figureTex';
 import { figureText, isPlain } from '@/renderer/figure/figureText';
 import { formatFigure } from '@/renderer/figure/formatFigure';
-import { status } from '@/renderer/figure/geometry';
-import type { NetworkLayout } from '@/renderer/figure/network/layoutNetwork';
 import { Playback } from '@/renderer/figure/view/Playback';
-import { PlotChart } from '@/renderer/figure/view/PlotChart';
-import { Plot3Chart } from '@/renderer/figure/view/Plot3Chart';
 import { StepList } from '@/renderer/figure/view/StepList';
 import { validateFigure } from '@/renderer/figure/validateFigure';
 
@@ -83,22 +76,22 @@ const GRAPH_FONT = 13;
 interface StepView {
   el: HTMLElement;
   links: Link[];
-  plots: (PlotChart | Plot3Chart)[];
-  diagrams: (() => void)[];
+  drawn: Drawn[];
   dirty: boolean;
 }
 
-/** The pointers one Seq, Table or Tex holds in its busiest step, the longest name's length, and every step's names. */
-type Lane = { count: number; name: number; names: (string | number)[] };
+/** One element drawn in one step; `key` names the element across steps. */
+type Instance = { key: string; view: StepView; drawn?: Drawn };
 
 /** What drawing one figure needs, shared by its steps. */
 interface Drawing {
   markdown: (el: HTMLElement, text: string | number) => void;
   tex: (el: HTMLElement, tex: string) => void;
-  graphs: Map<string, NetworkLayout>;
-  extents: Map<string, Extent>;
+  prepared: Map<string, unknown>;
   lanes: Map<string, Lane>;
   used: Set<Tag>;
+  /** Every element drawn, by key, so one can have its other steps repaint. */
+  instances: Map<string, Instance[]>;
 }
 
 const live = new Set<FigureView>();
@@ -119,14 +112,19 @@ function watchTheme(view: FigureView): void {
   themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 }
 
-/** A Graph's or Diagram's key across steps: its id, else its place among the step's elements of its type. */
-const nodeKey = (node: { id?: string }, ordinal: number): string => node.id ?? `#${ordinal}`;
-
-/** Every element of a step's tree in drawing order; layers are not visited. */
-function walk(node: FigureNode, visit: (node: FigureNode) => void): void {
-  visit(node);
-  if ('children' in node && (node.type === 'Row' || node.type === 'Column' || node.type === 'Panel')) node.children.forEach((child) => walk(child, visit));
+/** Every element of a step's tree in drawing order, with its key across steps: its type and id, else its place among the step's elements of its type. Layers are not visited. */
+function walk(root: FigureNode, visit: (node: FigureNode, key: string) => void): void {
+  const counts = new Map<string, number>();
+  const step = (node: FigureNode): void => {
+    const ordinal = counts.get(node.type) ?? 0;
+    counts.set(node.type, ordinal + 1);
+    visit(node, `${node.type}:${('id' in node && node.id) || `#${ordinal}`}`);
+    if (NODE_DEFINITIONS.get(node.type)?.children === BLOCK_NAMES) for (const child of (node as { children: readonly FigureNode[] }).children) step(child);
+  };
+  step(root);
 }
+
+const viewOf = (type: DrawnType): ElementView<FigureNode> => VIEWS[type];
 
 /** Runs one figure program in the sandbox, validates what it returns and draws it: every step at once in one grid cell, the current one shown. */
 export class FigureView {
@@ -152,14 +150,10 @@ export class FigureView {
   private readonly colours = new Map<string, Rgb>();
   /** What each Markdown string rendered to, so a redraw that shows it again copies it instead of typesetting it again. */
   private readonly rendered = new Map<string, DocumentFragment>();
-  /** Each Diagram's extent, kept across redraws so it stays anchored as params change. */
-  private readonly extents = new Map<string, Extent>();
-  /** Per Diagram, the most room past its border any step needs, and every step's paint with its step, so all steps keep one frame. */
-  private readonly rooms = new Map<string, { room: Room; paints: Map<() => void, StepView> }>();
-  /** Each 3D Plot's angle as the student turned it, kept across steps and param reruns (by id, else by its place in the step). */
-  private readonly views = new Map<string, View>();
-  /** Each sent Quiz answer, so a redraw keeps the Quiz answered. */
-  private readonly answers = new Map<string, number>();
+  /** What each element's view prepared, by key, given to its next prepare so a frame stays anchored as params change. */
+  private readonly prepared = new Map<string, unknown>();
+  /** State each element's view keeps across steps and param reruns, by key and name. */
+  private readonly keeps = new Map<string, unknown>();
   /** The shown drawing's Markdown, for links redrawn after a resize. */
   private markdown?: Drawing['markdown'];
 
@@ -275,17 +269,17 @@ export class FigureView {
   }
 
   /**
-   * Runs the program across each param's range, so each Diagram's extent holds every value the student can pick and
-   * its frame never moves as they pick one. Redraws if that grew an extent.
+   * Runs the program across each param's range, so what a view such as a Diagram's prepares holds every value the student
+   * can pick and its frame never moves as they pick one. Redraws if that changed it.
    */
   private async fitRange(figure: FigureData): Promise<void> {
-    let diagrams = false;
-    for (const step of figure.steps) walk(step.root, (node) => (diagrams ||= node.type === 'Diagram'));
-    if (!diagrams) return;
-    const before = JSON.stringify([...this.extents]);
+    let ranged = false;
+    for (const step of figure.steps) walk(step.root, (node) => (ranged ||= node.type in VIEWS && viewOf(node.type as DrawnType).holdsRange === true));
+    if (!ranged) return;
+    const before = JSON.stringify([...this.prepared]);
     const runs = figure.params.flatMap((param) => rangeOf(param).map((value) => this.execute({ ...Object.fromEntries(this.values), [param.key]: value }, true)));
-    for (const result of await Promise.all(runs)) if (result.ok) this.diagramExtents(result.figure);
-    if (this.controller.signal.aborted || JSON.stringify([...this.extents]) === before) return;
+    for (const result of await Promise.all(runs)) if (result.ok) this.prepare(result.figure, true);
+    if (this.controller.signal.aborted || JSON.stringify([...this.prepared]) === before) return;
     if (!this.rerunning && this.figure && this.body?.isConnected) void this.draw(this.figure, true);
   }
 
@@ -312,9 +306,9 @@ export class FigureView {
 
   private clear(): void {
     this.generation += 1;
-    this.rooms.clear();
+    this.keeps.clear();
     this.playback?.stop();
-    for (const step of this.steps) for (const plot of step.plots) plot.destroy();
+    destroy(this.steps);
     this.steps = [];
     this.body = undefined;
     this.el.replaceChildren();
@@ -326,8 +320,6 @@ export class FigureView {
    */
   private async draw(figure: FigureData, keepStep: boolean): Promise<void> {
     const generation = (this.generation += 1);
-    // The room each Diagram keeps carries over, so a redraw does not move it; the paints are this drawing's.
-    for (const shared of this.rooms.values()) shared.paints.clear();
     const shown = this.body?.isConnected ? this.body : undefined;
     if (!shown) this.el.replaceChildren();
     const renders: Promise<unknown>[] = [];
@@ -350,10 +342,10 @@ export class FigureView {
         for (const tag of texTags(tex)) used.add(tag);
         this.render(el, figureText(`$$\n${drawTex(tex, colour)}\n$$`), renders, typed);
       },
-      graphs: this.layoutGraphs(figure),
-      lanes: this.pointerLanes(figure),
-      extents: this.diagramExtents(figure),
+      prepared: this.prepare(figure, false),
+      lanes: pointerLanes(figure),
       used,
+      instances: new Map(),
     };
 
     if (figure.params.length && !this.params?.isConnected) {
@@ -372,10 +364,14 @@ export class FigureView {
     const stack = scroll.appendChild(div('vicher-figure-stack'));
     this.width = this.canvasWidth();
     const steps = figure.steps.map((step) => {
-      const view: StepView = { el: stack.appendChild(div('vicher-figure-step')), links: [], plots: [], diagrams: [], dirty: false };
+      const view: StepView = { el: stack.appendChild(div('vicher-figure-step')), links: [], drawn: [], dirty: false };
       const tags = new Map<string, Tag>();
-      walk(step.root, (node) => {
-        if ('tags' in node) for (const [id, tag] of node.tags) tags.set(id, tag);
+      const keys = new Map<FigureNode, string>();
+      walk(step.root, (node, key) => {
+        keys.set(node, key);
+        if ('tags' in node && node.tags) for (const [id, tag] of node.tags) tags.set(id, tag);
+        // A drawing's layers draw their own tag colours.
+        if (node.type === 'Plot' || node.type === 'Plot3' || node.type === 'Diagram') for (const layer of node.children) if (layer.tag) used.add(layer.tag);
       });
       walk(step.root, (node) => {
         if ('id' in node && node.id && 'tag' in node && node.tag) tags.set(node.id, node.tag);
@@ -385,7 +381,7 @@ export class FigureView {
         if (tag) used.add(tag);
         return tag;
       };
-      this.drawNode(step.root, view.el, view, drawing, tagOf, new Map());
+      this.drawBlocks([step.root], view.el, view, drawing, tagOf, keys);
       return view;
     });
 
@@ -439,7 +435,7 @@ export class FigureView {
 
     const commit = (): void => {
       this.playback?.stop();
-      for (const step of this.steps) for (const plot of step.plots) plot.destroy();
+      destroy(this.steps);
       shown?.remove();
       body.classList.remove('is-pending');
       this.figure = figure;
@@ -459,7 +455,7 @@ export class FigureView {
       if (body !== this.body) {
         body.remove();
         playback?.stop();
-        for (const step of steps) for (const plot of step.plots) plot.destroy();
+        destroy(steps);
       }
       return;
     }
@@ -479,15 +475,11 @@ export class FigureView {
     }
   }
 
-  /** Places what depends on measured boxes again: reserved widths, links, and with `diagrams` every step's Diagram labels. */
-  private remeasure(markdown: Drawing['markdown'], diagrams: boolean): void {
-    if (diagrams) {
-      // Hidden steps are laid out too, so every label is measured now and no step grows the room when it is first shown.
-      // A Plot's typeset labels were placed from an estimate too.
-      for (const step of this.steps) {
-        step.diagrams.forEach((paint) => paint());
-        step.plots.forEach((plot) => plot.repaint());
-      }
+  /** Places what depends on measured boxes again: reserved widths, links, and with `labels` every step's drawings, whose labels were placed from an estimate. */
+  private remeasure(markdown: Drawing['markdown'], labels: boolean): void {
+    if (labels) {
+      // Hidden steps are laid out too, so every label is measured now and no step grows a Diagram's room when it is first shown.
+      for (const step of this.steps) for (const drawn of step.drawn) drawn.repaint?.();
       for (const step of this.steps) if (step.dirty) this.repaint(step);
     }
     this.reserveWidths();
@@ -499,7 +491,7 @@ export class FigureView {
     this.current = index;
     this.steps.forEach((step, k) => {
       step.el.classList.toggle('is-current', k === index);
-      for (const plot of step.plots) if (plot instanceof Plot3Chart) plot.setActive(k === index);
+      for (const drawn of step.drawn) drawn.active?.(k === index);
     });
     const step = this.steps[index];
     if (step?.dirty) this.repaint(step);
@@ -530,11 +522,7 @@ export class FigureView {
 
   private repaint(step: StepView): void {
     step.dirty = false;
-    for (const plot of step.plots) {
-      plot.el.style.width = `${this.width}px`;
-      plot.repaint();
-    }
-    for (const diagram of step.diagrams) diagram();
+    for (const drawn of step.drawn) drawn.repaint?.();
     if (this.markdown) drawLinks(step.el, step.links, this.markdown);
   }
 
@@ -565,60 +553,15 @@ export class FigureView {
     return rgb;
   }
 
-  /** Each Graph laid out once over every step it is in (by id, else by its place in the step). */
-  private layoutGraphs(figure: FigureData): Map<string, NetworkLayout> {
-    const uses = new Map<string, Extract<FigureNode, { type: 'Graph' }>[]>();
-    for (const step of figure.steps) {
-      let ordinal = 0;
-      walk(step.root, (node) => {
-        if (node.type !== 'Graph') return;
-        const key = nodeKey(node, ordinal++);
-        uses.set(key, [...(uses.get(key) ?? []), node]);
-      });
+  /** What each view prepares over its element's instances in every step, by key, from what it prepared last; `ranged` only for views that hold a param's range. */
+  private prepare(figure: FigureData, ranged: boolean): Map<string, unknown> {
+    const uses = new Map<string, FigureNode[]>();
+    for (const step of figure.steps) walk(step.root, (node, key) => uses.set(key, [...(uses.get(key) ?? []), node]));
+    for (const [key, nodes] of uses) {
+      const view = nodes[0].type in VIEWS ? viewOf(nodes[0].type as DrawnType) : undefined;
+      if (view?.prepare && (!ranged || view.holdsRange)) this.prepared.set(key, view.prepare(nodes, view.holdsRange ? this.prepared.get(key) : undefined));
     }
-    return new Map([...uses].map(([key, graphs]) => [key, layoutGraph(graphs)]));
-  }
-
-  /** Each Diagram's extent over every step, and over the figure's earlier draws (by id, else by its place in the step). */
-  private diagramExtents(figure: FigureData): Map<string, Extent> {
-    for (const step of figure.steps) {
-      let ordinal = 0;
-      walk(step.root, (node) => {
-        if (node.type !== 'Diagram') return;
-        const key = nodeKey(node, ordinal++);
-        this.extents.set(key, diagramExtent(node, this.extents.get(key)));
-      });
-    }
-    return this.extents;
-  }
-
-  /** Room each Seq (below), Table (left) and Tex (right) keeps for its pointers, over every step. */
-  private pointerLanes(figure: FigureData): Map<string, Lane> {
-    const lanes = new Map<string, Lane>();
-    for (const step of figure.steps) {
-      const owner = new Map<string, string>();
-      const counts = new Map<string, number>();
-      const ordinals = new Map<string, number>();
-      walk(step.root, (node) => {
-        if (node.type !== 'Seq' && node.type !== 'Table' && node.type !== 'Tex') return;
-        const n = ordinals.get(node.type) ?? 0;
-        ordinals.set(node.type, n + 1);
-        const key = laneKey(node, n);
-        if (node.type === 'Seq') for (const item of node.items) owner.set(item.id, key);
-        if (node.type === 'Table') for (const row of node.rowIds ?? []) for (let c = -1; c < node.columns.length; c += 1) owner.set(c < 0 ? row : `${row}.${c}`, key);
-        if (node.type === 'Tex') for (const id of [node.id, ...texAnchors(node.tex)]) if (id) owner.set(id, key);
-      });
-      walk(step.root, (node) => {
-        if (node.type !== 'Pointer' || !owner.has(node.to)) return;
-        const key = owner.get(node.to)!;
-        const count = (counts.get(node.to) ?? 0) + 1;
-        counts.set(node.to, count);
-        const lane = lanes.get(key) ?? { count: 0, name: 0, names: [] };
-        const names = lane.names.includes(node.name) ? lane.names : [...lane.names, node.name];
-        lanes.set(key, { count: Math.max(lane.count, count), name: Math.max(lane.name, formatFigure(node.name).length), names });
-      });
-    }
-    return lanes;
+    return this.prepared;
   }
 
   /** After the first draw and after each resize, each id keeps its widest box over the steps, so nothing jitters while stepping. */
@@ -643,156 +586,80 @@ export class FigureView {
     for (const step of this.steps) for (const el of step.el.querySelectorAll<HTMLElement>('[data-figure-id]')) el.style.removeProperty('min-width');
   }
 
-  /** `counts` numbers the step's Graphs, Seqs, Tables and Texs in drawing order, which keys those without an id. */
-  private drawNode(node: FigureNode, parent: HTMLElement, view: StepView, drawing: Drawing, tagOf: (id: string) => Tag | undefined, counts: Map<string, number>): void {
-    const ordinal = (): number => {
-      const n = counts.get(node.type) ?? 0;
-      counts.set(node.type, n + 1);
-      return n;
-    };
-    const mark = <T extends HTMLElement>(el: T, id: string | undefined, tag?: Tag): T => {
-      if (id) el.dataset.figureId = id;
-      const shown = tag ?? (id ? tagOf(id) : undefined);
-      if (shown) {
-        el.dataset.tag = shown;
-        drawing.used.add(shown);
-      }
-      return el;
-    };
-    const child = (cls: string, into: HTMLElement = parent): HTMLElement => into.appendChild(div(cls));
-    switch (node.type) {
-      case 'Row':
-      case 'Column': {
-        const el = mark(child(`vicher-figure-${node.type.toLowerCase()} is-gap-${node.gap ?? 'md'} is-align-${node.align ?? 'start'}`), node.id);
-        for (const item of node.children) this.drawNode(item, el, view, drawing, tagOf, counts);
-        return;
-      }
-      case 'Panel': {
-        const el = mark(child('vicher-figure-panel'), node.id, node.tag);
-        if (node.title !== undefined) drawing.markdown(child('vicher-figure-panel-title', el), node.title);
-        const inner = child('vicher-figure-panel-body', el);
-        for (const item of node.children) this.drawNode(item, inner, view, drawing, tagOf, counts);
-        return;
-      }
-      case 'Table': {
-        const wrap = mark(child('vicher-figure-table'), node.id);
-        if (node.title !== undefined) drawing.markdown(child('vicher-figure-title', wrap), node.title);
-        const lane = drawing.lanes.get(laneKey(node, ordinal()));
-        const table = wrap.appendChild(createEl('table'));
-        if (lane) wrap.style.paddingLeft = `${lane.name + 3}ch`;
-        const head = table.createTHead().insertRow();
-        for (const column of node.columns) drawing.markdown(head.appendChild(Object.assign(createEl('th'), { className: 'vicher-figure-cell' })), column);
-        const rows = table.createTBody();
-        node.rows.forEach((cells, r) => {
-          const rowId = node.rowIds?.[r];
-          const row = mark(rows.insertRow(), rowId);
-          cells.forEach((cell, c) => {
-            const td = mark(row.insertCell(), rowId && `${rowId}.${c}`);
-            td.classList.add('vicher-figure-cell');
-            if (cell === null) td.textContent = '–';
-            else drawing.markdown(td, cell);
-          });
-        });
-        return;
-      }
-      case 'Seq': {
-        const wrap = mark(child('vicher-figure-seq'), node.id);
-        if (node.title !== undefined) drawing.markdown(child('vicher-figure-title', wrap), node.title);
-        const items = child('vicher-figure-seq-items', wrap);
-        node.items.forEach((item, i) => {
-          const column = child('vicher-figure-seq-item', items);
-          if (node.index) child('vicher-figure-seq-index', column).textContent = node.index === true ? String(i) : formatFigure(node.index[i] ?? '');
-          const cell = mark(child('vicher-figure-seq-cell', column), item.id);
-          drawing.markdown(cell, `${status(cell.dataset.tag ?? '')}${formatFigure(item.label)}`);
-        });
-        const lane = drawing.lanes.get(laneKey(node, ordinal()));
-        if (lane) child('vicher-figure-lane', wrap).style.height = `${lane.count * POINTER_STEP + 4}px`;
-        return;
-      }
-      case 'Node': {
-        const el = mark(child(`vicher-figure-node${node.shape === 'circle' ? ' is-circle' : ''}`), node.id, node.tag);
-        drawing.markdown(child('vicher-figure-node-label', el), `${status(el.dataset.tag ?? '')}${formatFigure(node.label)}`);
-        if (node.sub !== undefined) drawing.markdown(child('vicher-figure-node-sub', el), node.sub);
-        return;
-      }
-      case 'Text':
-        drawing.markdown(mark(child('vicher-figure-text'), node.id), node.text);
-        return;
-      case 'Tex': {
-        const el = mark(child('vicher-figure-tex'), node.id);
-        const lane = drawing.lanes.get(laneKey(node, ordinal()));
-        drawing.tex(child('vicher-figure-tex-math', el), node.tex);
-        if (lane) {
-          const column = child('vicher-figure-tex-lane', el);
-          column.setAttribute('aria-hidden', 'true');
-          const sizes = child('vicher-figure-tex-sizes', column);
-          for (const name of lane.names) sizes.append(pointerLabel(name, '←', drawing.markdown));
-        }
-        return;
-      }
-      case 'Graph': {
-        const layout = drawing.graphs.get(nodeKey(node, ordinal()));
-        if (layout) drawGraph(child('vicher-figure-canvas is-graph'), node, layout, tagOf, drawing.markdown);
-        return;
-      }
-      case 'Quiz':
-        drawQuiz(mark(child('vicher-figure-quiz'), node.id), node, drawing.markdown, this.answers, this.host.send?.bind(this.host));
-        return;
-      case 'Plot': {
-        for (const layer of node.children) if (layer.tag) drawing.used.add(layer.tag);
-        const el = mark(child('vicher-figure-plot', child('vicher-figure-canvas')), node.id);
-        el.style.width = `${this.width}px`;
-        const chart = new PlotChart(el);
-        chart.height = (width) => Math.min(360, (width * 2) / 3);
-        chart.writeLabel = drawing.markdown;
-        chart.render(plotModel(node));
-        view.plots.push(chart);
-        return;
-      }
-      case 'Plot3': {
-        for (const layer of node.children) if (layer.tag) drawing.used.add(layer.tag);
-        const el = mark(child('vicher-figure-plot', child('vicher-figure-canvas')), node.id);
-        el.style.width = `${this.width}px`;
-        const key = nodeKey(node, ordinal());
-        const chart = new Plot3Chart(el, { get: () => this.views.get(key), set: (view) => this.views.set(key, view) });
-        // Taller than a 2D Plot: the box must fit every angle it turns to.
-        chart.height = (width) => Math.min(420, width * 0.75);
-        chart.writeLabel = drawing.markdown;
-        chart.render(plot3Model(node));
-        view.plots.push(chart);
-        return;
-      }
-      case 'Diagram': {
-        for (const layer of node.children) if (layer.tag) drawing.used.add(layer.tag);
-        const el = mark(child('vicher-figure-diagram', child('vicher-figure-canvas')), node.id);
-        const key = nodeKey(node, ordinal());
-        const extent = drawing.extents.get(key) ?? diagramExtent(node);
-        const shared = this.rooms.get(key) ?? { room: { left: 0, top: 0, right: 0, bottom: 0 }, paints: new Map() };
-        this.rooms.set(key, shared);
-        const paint = (): void => {
-          const needed = drawDiagram(el, node, extent, this.width, drawing.markdown, shared.room);
-          const grown = widen(shared.room, needed);
-          if ((['left', 'top', 'right', 'bottom'] as const).every((side) => grown[side] === shared.room[side])) return;
-          shared.room = grown;
-          // Only the shown step repaints now; the others repaint with the grown room when they are shown.
-          for (const [other, owner] of shared.paints) {
-            if (other === paint) continue;
-            if (owner.el.classList.contains('is-current')) other();
-            else owner.dirty = true;
-          }
-        };
-        shared.paints.set(paint, view);
-        paint();
-        view.diagrams.push(paint);
-        return;
-      }
-      case 'Arrow':
-      case 'Pointer':
+  /** Draws blocks into `parent` by their views; links wait for the step to be laid out. */
+  private drawBlocks(nodes: readonly FigureNode[], parent: HTMLElement, view: StepView, drawing: Drawing, tagOf: (id: string) => Tag | undefined, keys: ReadonlyMap<FigureNode, string>): void {
+    for (const node of nodes) {
+      if (node.type === 'Arrow' || node.type === 'Pointer') {
         view.links.push(node);
-        return;
+        continue;
+      }
+      const key = keys.get(node)!;
+      const instance: Instance = { key, view };
+      drawing.instances.set(key, [...(drawing.instances.get(key) ?? []), instance]);
+      const width = (): number => this.width;
+      const ctx: DrawContext = {
+        get width() {
+          return width();
+        },
+        prepared: drawing.prepared.get(key),
+        lane: drawing.lanes.get(key),
+        markdown: drawing.markdown,
+        tex: drawing.tex,
+        mark: (el, id, tag) => {
+          if (id) el.dataset.figureId = id;
+          const shown = tag ?? (id ? tagOf(id) : undefined);
+          if (shown) {
+            el.dataset.tag = shown;
+            drawing.used.add(shown);
+          }
+          return el;
+        },
+        tagOf,
+        child: (className, into) => into.appendChild(div(className)),
+        blocks: (children, into) => this.drawBlocks(children, into, view, drawing, tagOf, keys),
+        keep: <T>(name: string) => ({ get: () => this.keeps.get(`${key}/${name}`) as T | undefined, set: (value: T) => void this.keeps.set(`${key}/${name}`, value) }),
+        stale: () => {
+          for (const other of drawing.instances.get(key) ?? []) {
+            if (other === instance || !other.drawn) continue;
+            if (other.view.el.classList.contains('is-current')) other.drawn.repaint?.();
+            else other.view.dirty = true;
+          }
+        },
+        send: this.host.send?.bind(this.host),
+      };
+      const drawn = viewOf(node.type).draw(parent.appendChild(div('')), node, ctx);
+      if (drawn) {
+        instance.drawn = drawn;
+        view.drawn.push(drawn);
+      }
     }
   }
 }
 
-const laneKey = (node: FigureNode, ordinal: number): string => `${node.type}:${('id' in node && node.id) || `#${ordinal}`}`;
+function destroy(steps: readonly StepView[]): void {
+  for (const step of steps) for (const drawn of step.drawn) drawn.destroy?.();
+}
 
+/** Room each element a Pointer can mark keeps for its pointers, over every step, on the side its definition names. */
+function pointerLanes(figure: FigureData): Map<string, Lane> {
+  const lanes = new Map<string, Lane>();
+  for (const step of figure.steps) {
+    const owner = new Map<string, string>();
+    const counts = new Map<string, number>();
+    const pointers: Extract<FigureNode, { type: 'Pointer' }>[] = [];
+    walk(step.root, (node, key) => {
+      if (node.type === 'Pointer') pointers.push(node);
+      for (const id of NODE_DEFINITIONS.get(node.type)?.pointable?.(node).ids ?? []) owner.set(id, key);
+    });
+    for (const pointer of pointers) {
+      const key = owner.get(pointer.to);
+      if (key === undefined) continue;
+      const count = (counts.get(pointer.to) ?? 0) + 1;
+      counts.set(pointer.to, count);
+      const lane = lanes.get(key) ?? { count: 0, name: 0, names: [] };
+      const names = lane.names.includes(pointer.name) ? lane.names : [...lane.names, pointer.name];
+      lanes.set(key, { count: Math.max(lane.count, count), name: Math.max(lane.name, pointer.name.length), names });
+    }
+  }
+  return lanes;
+}

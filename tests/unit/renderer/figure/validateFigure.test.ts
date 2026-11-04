@@ -37,16 +37,16 @@ describe('validateFigure limits', () => {
     ['elements in a step', (n) => figure(el('Row', {}, ...Array.from({ length: n - 1 }, (_, i) => el('Text', { text: `t${i}` })))), LIMITS.elementsPerStep, 'more than 4,000 elements in a step'],
     ['string length', (n) => figure(el('Text', { text: 'a'.repeat(n) })), LIMITS.string, 'text is 2,001 characters; the limit is 2,000'],
     ['layers', (n) => figure(plot(...Array.from({ length: n }, () => el('Label', { at: [0, 0], text: 'x' })))), LIMITS.layers, '257 layers; the limit is 256'],
-    ['points', (n) => figure(plot(el('Points', { pts: Array.from({ length: n }, () => [0, 0]) }))), LIMITS.layerPoints, '2,001 points; the limit is 2,000'],
-    ['shape points', (n) => figure(plot(el('Shape', { pts: Array.from({ length: n }, () => [0, 0]) }))), LIMITS.shapePoints, '257 points; the limit is 256'],
-    ['Seq items', (n) => figure(el('Seq', { id: 's', items: Array.from({ length: n }, (_, i) => ({ id: `i${i}`, label: i })) })), LIMITS.seqItems, 'Step 1 > Seq#s: 129 items; the limit is 128'],
-    ['Table rows', (n) => figure(table(n, 2)), LIMITS.tableRows, '65 rows; the limit is 64'],
-    ['Table columns', (n) => figure(table(2, n)), LIMITS.tableColumns, '17 columns; the limit is 16'],
-    ['Graph nodes', (n) => figure(el('Graph', { id: 'g', nodes: Array.from({ length: n }, (_, i) => ({ id: `n${i}`, label: i })), edges: [] })), LIMITS.graphNodes, '129 nodes; the limit is 128'],
-    ['Graph edges', (n) => figure(el('Graph', { id: 'g', nodes: [{ id: 'a', label: 'a' }, { id: 'b', label: 'b' }], edges: Array.from({ length: n }, () => ({ from: 'a', to: 'b' })) })), LIMITS.graphEdges, '513 edges; the limit is 512'],
+    ['points', (n) => figure(plot(el('Points', { pts: Array.from({ length: n }, () => [0, 0]) }))), LIMITS.layerPoints, 'Points: pts holds 2,001; the limit is 2,000'],
+    ['shape points', (n) => figure(plot(el('Shape', { pts: Array.from({ length: n }, () => [0, 0]) }))), LIMITS.shapePoints, 'Shape: pts holds 257; the limit is 256'],
+    ['Seq items', (n) => figure(el('Seq', { id: 's', items: Array.from({ length: n }, (_, i) => ({ id: `i${i}`, label: i })) })), LIMITS.seqItems, 'Step 1 > Seq#s: items holds 129; the limit is 128'],
+    ['Table rows', (n) => figure(table(n, 2)), LIMITS.tableRows, 'Table#t: rows holds 65; the limit is 64'],
+    ['Table columns', (n) => figure(table(2, n)), LIMITS.tableColumns, 'Table#t: columns holds 17; the limit is 16'],
+    ['Graph nodes', (n) => figure(el('Graph', { id: 'g', nodes: Array.from({ length: n }, (_, i) => ({ id: `n${i}`, label: i })), edges: [] })), LIMITS.graphNodes, 'Graph#g: nodes holds 129; the limit is 128'],
+    ['Graph edges', (n) => figure(el('Graph', { id: 'g', nodes: [{ id: 'a', label: 'a' }, { id: 'b', label: 'b' }], edges: Array.from({ length: n }, () => ({ from: 'a', to: 'b' })) })), LIMITS.graphEdges, 'Graph#g: edges holds 513; the limit is 512'],
     ['params', (n) => figure(node(), { params: Object.fromEntries(Array.from({ length: n }, (_, i) => [`p${i}`, { label: 'p', min: 0, max: 1, value: 0 }])) }), LIMITS.params, '9 params; the limit is 8'],
     ['options', (n) => figure(node(), { params: { c: { label: 'c', options: Array.from({ length: n }, (_, i) => `o${i}`), value: 'o0' } } }), LIMITS.options, '13 options; the limit is 12'],
-    ['Quiz options', (n) => figure(el('Quiz', { question: 'q', options: Array.from({ length: n }, (_, i) => `o${i}`), correct: 'o0' })), LIMITS.quizOptions, '9 options; the limit is 8'],
+    ['Quiz options', (n) => figure(el('Quiz', { question: 'q', options: Array.from({ length: n }, (_, i) => `o${i}`), correct: 'o0' })), LIMITS.quizOptions, 'Quiz: options holds 9; the limit is 8'],
     ['depth', (n) => figure(nested(n)), LIMITS.depth, 'nesting depth 33; the limit is 32'],
     ['TeX anchors', (n) => figure(el('Tex', { tex: Array.from({ length: n }, (_, i) => `\\cssId{a${i}}{x}`).join('+') })), LIMITS.anchorsPerStep, '65 TeX anchors; the limit is 64'],
   ];
@@ -215,7 +215,7 @@ describe('validateFigure on a 3D Plot', () => {
   it('requires u and v on a parametric Fn and refuses them on any other', () => {
     expect(errorOf(figure(plot3({}, el('Fn', { id: 's', pts: sphere() }))))).toContain('needs u={[lo, hi]} and v={[lo, hi]}');
     expect(errorOf(figure(plot3({ x: [0, 1], y: [0, 1] }, graph({ u: [0, 1] }))))).toContain('u and v are only for a parametric surface');
-    expect(errorOf(figure(plot3({ x: [0, 1] }, el('Fn', { pts: [[0, 1]], v: [0, 1] }))))).toContain('u and v are only for a parametric surface');
+    expect(errorOf(figure(plot3({ x: [0, 1] }, el('Fn', { pts: [[0, 1]], v: [0, 1] }))))).toBe('Step 1 > Plot#p > Fn: v is only for a parametric surface, f={(u, v) => [x, y, z]}');
     expect(errorOf(figure(plot3({}, parametric({ from: 0 }))))).toContain('from and to narrow x');
   });
 
