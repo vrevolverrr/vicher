@@ -6,3 +6,6 @@ export const BLOCK_NAMES = ['Row', 'Column', 'Panel', 'Table', 'Seq', 'Node', 'T
 
 /** Layers of both drawings. */
 export const SHARED_LAYER_NAMES = ['Shape', 'Circle', 'Vector', 'Segment', 'Points', 'Label'] as const;
+
+/** Every element the model can write, as the worker needs them: names only, so no definition or zod enters the sandbox. A test keeps it equal to `COMPONENTS`. */
+export const ELEMENT_NAMES = [...BLOCK_NAMES, ...SHARED_LAYER_NAMES, 'Fn', 'Region', 'Angle', 'RightAngle', 'Tick', 'Dimension'] as const;

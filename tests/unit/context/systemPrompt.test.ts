@@ -1,5 +1,6 @@
 import { splitReply } from '@/chat/splitReply';
 import { buildSystemPrompt } from '@/context/systemPrompt';
+import { ELEMENT_NAMES } from '@/renderer/figure/components/names';
 import { type AnyDefinition, COMPONENTS, DEFINITIONS } from '@/renderer/figure/components/registry';
 import { promptFields, signatureOf } from '@/renderer/figure/figurePrompt';
 import { WORKER_SOURCE } from '@/renderer/figure/sandboxSource';
@@ -39,6 +40,10 @@ describe('the component registry', () => {
   it('has one definition per name, and every child it names is a definition', () => {
     expect(DEFINITIONS.size).toBe(definitions.length);
     expect(definitions.flatMap((definition) => (definition.children ?? []).filter((name) => !DEFINITIONS.has(name)))).toEqual([]);
+  });
+
+  it('lists every element in ELEMENT_NAMES, which the worker uses', () => {
+    expect([...ELEMENT_NAMES].sort()).toEqual(definitions.map((definition) => definition.name).sort());
   });
 
   it('keeps zod and the definitions out of the worker', () => {
