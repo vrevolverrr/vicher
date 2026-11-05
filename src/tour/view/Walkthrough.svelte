@@ -27,13 +27,16 @@
   interface Props {
     /** Every stop of the reply; `count` grows as the agent points at more. */
     steps: readonly TourStep[];
+    /** The number of stops in the reply; a lone stop is drawn without a number. */
+    total: number;
     start: number;
     count: number;
     host: WalkthroughHost;
   }
 
-  const { steps, start, count, host }: Props = $props();
+  const { steps, total, start, count, host }: Props = $props();
 
+  const numbered = $derived(total > 1);
   const indices = $derived(Array.from({ length: count }, (_, i) => start + i));
   /** The stop on screen, or -1. */
   let current = $state(-1);
@@ -58,12 +61,12 @@
   {#each indices as index (index)}
     {@const step = steps[index]}
     <button
-      class={['vicher-step', 'vicher-walk-step', { 'is-current': current === index, 'is-done': index < done, 'is-missed': missed.includes(index) }]}
+      class={[{ 'vicher-step': numbered }, 'vicher-walk-step', { 'is-current': current === index, 'is-done': index < done, 'is-missed': missed.includes(index) }]}
       type="button"
-      aria-label={`Show stop ${index + 1}`}
+      aria-label={numbered ? `Show stop ${index + 1}` : 'Show the highlight'}
       title={missed.includes(index) ? MISSED : undefined}
       onclick={() => host.pick(steps, index)}
-    ><span class="vicher-step-dot">{index + 1}</span><span class="vicher-walk-body"><span class="vicher-walk-comment">{step.comment ?? snippet(step.quote)}</span>{#if step.comment}<span class="vicher-walk-quote">{snippet(step.quote)}</span>{/if}{#if step.path !== steps[0].path}<span class="vicher-walk-note">{noteName(step.path)}</span>{/if}</span></button>
+    >{#if numbered}<span class="vicher-step-dot">{index + 1}</span>{/if}<span class="vicher-walk-body"><span class="vicher-walk-comment">{step.comment ?? snippet(step.quote)}</span>{#if step.comment}<span class="vicher-walk-quote">{snippet(step.quote)}</span>{/if}{#if step.path !== steps[0].path}<span class="vicher-walk-note">{noteName(step.path)}</span>{/if}</span></button>
   {/each}
 </div>
 

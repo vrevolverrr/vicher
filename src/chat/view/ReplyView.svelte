@@ -52,6 +52,8 @@
   const blocks = $state<Block[]>([]);
   /** Every stop of the reply, across its runs. */
   const steps: TourStep[] = [];
+  /** `steps.length`, kept in state so a lone stop's walkthrough redraws numbered when a second arrives. */
+  let total = $state(0);
   const figures = untrack(() => new ReplyFigures(live, ask));
   let ids = 0;
   /** The run of calls that just ended, held active for a moment in case the next call follows. */
@@ -111,6 +113,7 @@
     const last = blocks.at(-1);
     if (isWorkingLine(last)) discard(last);
     steps.push(step);
+    total = steps.length;
     const run = blocks.at(-1);
     if (run?.kind === 'walk') run.count += 1;
     else blocks.push({ id: ++ids, kind: 'walk', start: steps.length - 1, count: 1 });
@@ -199,7 +202,7 @@
   {:else if block.kind === 'text'}
     <div class="vicher-reply-text" {@attach textBlock(block)}></div>
   {:else}
-    <Walkthrough {steps} start={block.start} count={block.count} host={walkthrough} />
+    <Walkthrough {steps} {total} start={block.start} count={block.count} host={walkthrough} />
   {/if}
 {/each}{#if footer}
   <div class="vicher-reply-footer">
