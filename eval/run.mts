@@ -1,5 +1,5 @@
 // Tutoring alignment eval: each case runs as a real Vicher chat turn on the developer's own CLIs and subscriptions.
-// npm run eval -- [--repeat=3] [--agent=claude|codex] [--claude-model=haiku] [--codex-model=...] [--judge=opus]
+// npm run eval -- [--repeat=3] [--only=text] [--agent=claude|codex] [--claude-model=haiku] [--codex-model=...] [--judge=opus]
 // Results go to promptfoo's local store: `npx promptfoo view` opens them.
 import '../tests/setupWindow';
 import { parseArgs } from 'node:util';
@@ -23,6 +23,7 @@ for (const key of Object.keys(process.env)) {
 const { values: args } = parseArgs({
   options: {
     repeat: { type: 'string', default: '1' },
+    only: { type: 'string' },
     agent: { type: 'string' },
     'claude-model': { type: 'string' },
     'codex-model': { type: 'string' },
@@ -76,6 +77,9 @@ const figures = (count: number) => code('figure', async (output) => {
   }
   return true;
 });
+const noHighlights = code('highlight', (_, highlights) => !highlights.length || 'highlights in an explanation');
+const bolds = code('format', (output) => /\*\*[^*\n]+\*\*/.test(output) || 'no bold key term');
+const skimmable = judge('skimmable', 'Pass only if a student who reads just the reply\'s headings and bold terms can find its parts (the definition, an example, the key terms) or get a rough idea of what it covers, and the reply is not a wall of unbroken text. Generic labels such as "Definition." and "Example." count. A reply of one idea may have no heading.');
 const voice = code('voice', (output) => {
   if (/[—–]/.test(output)) return 'uses an em or en dash';
   if (/stated exactly/i.test(output)) return 'uses "Stated exactly"';
@@ -152,6 +156,9 @@ const CASES: TestCase[] = [
       code('formula', (output) => !output.includes('$$') || 'has display math for a concept with no formula'),
       voice,
       figures(0),
+      bolds,
+      skimmable,
+      noHighlights,
     ],
   },
   {
@@ -162,7 +169,10 @@ const CASES: TestCase[] = [
       code('formula', (output) => output.includes('$$') || 'no display formula'),
       voice,
       figures(1),
-      judge('teaching', 'The reply explains what σ does in a normal distribution. Pass only if (1) every variable and parameter in its displayed formula (such as x, μ and σ; not constants like π or e) is explained in words and (2) it works one example with real numbers.'),
+      bolds,
+      skimmable,
+      noHighlights,
+      judge('teaching', 'The reply explains what σ does in a normal distribution. Pass only if (1) every parameter in its displayed formula (such as μ and σ; not constants like π or e, and not the input variable x) is explained in words and (2) it works one example with real numbers.'),
     ],
   },
   {
@@ -211,7 +221,7 @@ try {
     description: `Tutoring eval: ${providers.map((provider) => provider.id()).join(', ')}`,
     prompts: ['{{ chat.messages[chat.turn - 1] }}'],
     providers,
-    tests: CASES,
+    tests: CASES.filter(({ description }) => !args.only || description?.includes(args.only)),
     defaultTest: { options: { provider: { id: 'anthropic:claude-agent-sdk', config: { model: args.judge, apiKeyRequired: false } } } },
     writeLatestResults: true,
   }, { maxConcurrency: 4, repeat, cache: false });

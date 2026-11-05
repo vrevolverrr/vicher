@@ -751,6 +751,16 @@ describe('ReplyView', () => {
       expect(seen()).toEqual([true, false, false]);
     });
 
+    it('draws a lone stop as the box alone, and numbers it once a second arrives', () => {
+      reply.highlight(stop('the slope', { comment: 'Missing factor' }));
+      expect(el.querySelector('.vicher-step-dot')).toBeNull();
+      expect(rows()[0]!.classList.contains('vicher-step')).toBe(false);
+      expect(rows()[0]!.getAttribute('aria-label')).toBe('Show the highlight');
+
+      reply.highlight(stop('the intercept'));
+      expect(Array.from(el.querySelectorAll('.vicher-step-dot')).map((dot) => dot.textContent)).toEqual(['1', '2']);
+    });
+
     it('labels each stop for a screen reader and explains a missed one', () => {
       const first = stop('first');
       reply.highlight(first);
