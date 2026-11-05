@@ -1,6 +1,6 @@
 <script module lang="ts">
   import type { ChatSummary } from '@/chat/ChatRecord';
-  import type { ChatTab } from '@/chat/view/ChatTab';
+  import type { ChatTab } from '@/chat/view/chatList';
 
   export interface HistoryMenuHost {
     /** The saved chats, newest first. */
@@ -16,9 +16,8 @@
 </script>
 
 <script lang="ts">
-  import { chatTabStatus } from '@/chat/view/ChatTab';
   import { agentIcon } from '@/chat/view/agentIcons';
-  import { formatWhen } from '@/chat/view/chatList';
+  import { chatTabStatus, formatWhen } from '@/chat/view/chatList';
   import Menu from '@/chat/view/Menu.svelte';
   import { messageOf } from '@/shared/messageOf';
   import { icon } from '@/shared/view/icon';

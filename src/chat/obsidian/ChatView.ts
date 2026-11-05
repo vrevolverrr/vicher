@@ -3,7 +3,7 @@ import { flushSync, mount, unmount } from 'svelte';
 
 import type { AgentSession } from '@/agents/types';
 import { ChatPane, type ChatHost } from '@/chat/obsidian/ChatPane';
-import type { ChatTab } from '@/chat/view/ChatTab';
+import type { ChatTab } from '@/chat/view/chatList';
 import ChatTabs from '@/chat/view/ChatTabs.svelte';
 import HistoryMenu from '@/chat/view/HistoryMenu.svelte';
 import type { Chat, ChatEvents } from '@/chat/Chat';

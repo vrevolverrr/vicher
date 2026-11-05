@@ -19,14 +19,18 @@
 <script lang="ts">
   import { flushSync } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
-  import { type ChatTab, type ChatTabsHost, chatTabStatus } from '@/chat/view/ChatTab';
+  import { type ChatTab, chatTabStatus } from '@/chat/view/chatList';
 
   /**
    * Numbered navigation over the open chats; the history menu lists the same tabs by name. Tabs that do not fit the
    * bar hide, except the selected one, which takes the last visible place.
    */
   interface Props {
-    host: ChatTabsHost;
+    host: {
+      create(): void;
+      select(id: string): void;
+      close(id: string): void;
+    };
   }
 
   const { host }: Props = $props();

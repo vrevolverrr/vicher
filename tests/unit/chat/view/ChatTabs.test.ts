@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { flushSync, mount, unmount } from 'svelte';
-import type { ChatTab } from '@/chat/view/ChatTab';
+import type { ChatTab } from '@/chat/view/chatList';
 import ChatTabs from '@/chat/view/ChatTabs.svelte';
 import { installFakeAnimate } from '../../../fakeAnimate';
 

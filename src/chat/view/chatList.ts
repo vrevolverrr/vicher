@@ -1,4 +1,19 @@
+import type { AgentId } from '@/agents/types';
 import type { ChatSummary } from '@/chat/ChatRecord';
+
+export interface ChatTab {
+  id: string;
+  title: string;
+  agent: AgentId;
+  running: boolean;
+  unread: boolean;
+  failed: boolean;
+  waitingForApproval?: boolean;
+}
+
+export function chatTabStatus(tab: ChatTab): string {
+  return tab.waitingForApproval ? 'Needs approval' : tab.running ? 'Working' : tab.failed ? 'Failed' : tab.unread ? 'Unread reply' : '';
+}
 
 export interface ChatMatch extends ChatSummary {
   /** A stretch of the conversation around the match, when the title alone does not explain it. */
