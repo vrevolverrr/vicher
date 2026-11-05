@@ -72,7 +72,14 @@ function replyOf(target: HTMLElement, { walkthrough = hostOf(), markdown: draw =
     highlight: drawn(view.highlight),
     thinking: drawn(view.thinking),
     tool: drawn(view.tool),
-    finish: drawn(view.finish),
+    finish: drawn((...args: Parameters<typeof view.finish>) => {
+      view.finish(...args);
+      view.settle();
+    }),
+    end: drawn(view.finish),
+    settle: drawn(view.settle),
+    failures: view.failures,
+    repair: view.repair,
     text: view.text,
     destroy: () => {
       mounted.splice(mounted.indexOf(view), 1);
@@ -500,6 +507,93 @@ describe('ReplyView', () => {
     expect(el.querySelector('.vicher-reply-figure')!.classList.contains('is-drawing')).toBe(true);
     live.finish();
     expect(el.querySelector('.vicher-figure-error-message')?.textContent).toBe('Step 1: broken');
+  });
+
+  describe('a repair', () => {
+    const fence = (source: string): string => '```figure\n' + source + '\n```';
+    let live: ReturnType<typeof replyOf>;
+
+    beforeEach(() => {
+      live = replyOf(el = document.createElement('div'), { live: true });
+    });
+
+    it('keeps the card and the footer back until settle', async () => {
+      live.appendText(fence('!Step 1: broken'));
+      live.end();
+      expect(await live.failures()).toEqual([{ ordinal: 0, error: 'Step 1: broken' }]);
+      flushSync();
+      expect(el.querySelector('.vicher-reply-figure')!.classList.contains('is-drawing')).toBe(true);
+      expect(el.querySelector('.vicher-figure-error')).toBeNull();
+      expect(el.querySelector('.vicher-reply-footer')).toBeNull();
+      live.settle();
+      expect(el.querySelector('.vicher-figure-error-message')?.textContent).toBe('Step 1: broken');
+      expect(el.querySelector('.vicher-reply-footer')).not.toBeNull();
+    });
+
+    it('lists failures across text blocks in figure order, without the figures that drew', async () => {
+      live.appendText(`${fence(figure(node('a')))}\n\n${fence('!one')}`);
+      tool2('a');
+      live.appendText(fence('!two'));
+      live.end();
+      expect(await live.failures()).toEqual([{ ordinal: 1, error: 'one' }, { ordinal: 2, error: 'two' }]);
+    });
+
+    it('draws a fix in place, so nothing shows an error and Copy gives the corrected fence', async () => {
+      const fixed = figure(node('fixed'));
+      live.appendText(`Before\n\n${fence('!broken')}\n\nAfter`);
+      live.end();
+      await live.failures();
+      expect(await live.repair(new Map([[0, fixed]]))).toEqual(new Map([[0, fixed]]));
+      live.settle();
+      await settle();
+      expect(el.querySelector('.vicher-figure-node')?.textContent).toContain('fixed');
+      expect(el.querySelector('.vicher-figure-error')).toBeNull();
+      expect(live.text()).toBe(`Before\n\n${fence(fixed)}\n\nAfter`);
+    });
+
+    it('shows the second error and the second source for a fix that fails, and keeps the first fence', async () => {
+      live.appendText(fence('!first'));
+      live.end();
+      await live.failures();
+      expect(await live.repair(new Map([[0, '!second']]))).toEqual(new Map());
+      expect(el.querySelector('.vicher-figure-error-message')?.textContent).toBe('second');
+      expect(el.querySelector('.vicher-figure-error pre')?.textContent).toBe('!second');
+      live.settle();
+      expect(el.querySelectorAll('.vicher-figure-error')).toHaveLength(1);
+      expect(live.text()).toBe(fence('!first'));
+    });
+
+    it('shows a held figure with no fix at settle, beside a fix that drew', async () => {
+      const fixed = figure(node('fixed'));
+      live.appendText(`${fence('!one')}\n\n${fence('!two')}`);
+      live.end();
+      await live.failures();
+      await live.repair(new Map([[1, fixed]]));
+      live.settle();
+      await settle();
+      expect(el.querySelector('.vicher-figure-error-message')?.textContent).toBe('one');
+      expect(el.querySelectorAll('.vicher-figure-error')).toHaveLength(1);
+    });
+
+    it('shows a tool call after the reply ended, then a working line until settle', () => {
+      vi.useFakeTimers();
+      try {
+        live.appendText('Answer');
+        live.end();
+        tool2('a', 'running');
+        expect(el.querySelector('.vicher-tools-summary')?.textContent).toBe('Using Read');
+        tool2('a', 'done');
+        advance(1000);
+        expect(el.querySelectorAll('.vicher-tools-summary')).toHaveLength(2);
+        live.settle();
+        expect(blocks(el).at(-1)).toContain('Used 1 Read');
+        expect(el.querySelectorAll('.vicher-tools-summary')).toHaveLength(1);
+      } finally { vi.useRealTimers(); }
+    });
+
+    function tool2(id: string, status: ToolStatus = 'done'): void {
+      live.tool({ type: 'tool', id, name: 'Read', title: `Read ${id}`, status });
+    }
   });
 
   it('draws a diagram whose source holds a fence line inside a longer fence, so the line stays source', async () => {

@@ -124,6 +124,8 @@ class ClaudeSession implements AgentSession {
   private sending: Promise<void> = Promise.resolve();
   /** The running CLI turn: its approvals' cancellation, and whether `interrupt` ended it. */
   private turn: { controller: AbortController; interrupted: boolean } | null = null;
+  /** `interrupt` came while a message was on its way and no turn ran. The CLI may ignore it, or end that message's turn with an error. */
+  private stopping = false;
   /** Top-level tasks not yet reported by a notice, by id; the notice and the emptied set arrive in either order. */
   private readonly tasks = new Map<string, string>();
   private running: BackgroundTask[] = [];
@@ -174,7 +176,7 @@ class ClaudeSession implements AgentSession {
     if (this.turn) {
       this.turn.interrupted = true;
       this.turn.controller.abort();
-    }
+    } else if (this.pending.size) this.stopping = true;
     void this.query.interrupt().catch(() => undefined);
   }
 
@@ -230,12 +232,21 @@ class ClaudeSession implements AgentSession {
   }
 
   private async end(result: SDKResultMessage): Promise<void> {
+    const stopped = this.stopping && (result.subtype !== 'success' || result.is_error);
+    this.stopping = false;
+    // Stopped before the CLI checked the prompt: the message never joined the conversation, so no turn ran.
+    const [lost] = this.turn ? [] : this.pending;
+    if (stopped && lost !== undefined) {
+      this.pending.delete(lost);
+      this.emit({ type: 'dropped', ids: [lost], error: 'Stopped before the agent took the message in', stopped: true });
+      return;
+    }
     const turn = this.begin();
     const usage = result.subtype === 'success' && !result.is_error ? await this.contextUsage() : null;
     this.turn = null;
     turn.controller.abort();
     if (usage) this.emit(usage);
-    this.emit(finish(result, turn.interrupted));
+    this.emit(finish(result, turn.interrupted || stopped));
   }
 
   /** The process ended on its own: close out the turn, the messages and the tasks it leaves behind. */

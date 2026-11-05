@@ -8,6 +8,7 @@ import type { ChatDefaults, ModelChoice } from '@/chat/ChatDefaults';
 import { addPart, type AgentTurn, type AgentTurnStatus, type ChatRecord, type ChatTurn, type Rating, rateTurn, recordEvent, type ToolPart, type TourStep, turnTitle, type UserTurn } from '@/chat/ChatRecord';
 import { ChatSession } from '@/chat/ChatSession';
 import type { ChatStore } from '@/chat/ChatStore';
+import { applyFixes, type FigureFailure, repairFixes, repairMessage } from '@/chat/figureRepair';
 import { ReplyActions, type ShownPart } from '@/chat/ReplyActions';
 import { messageOf } from '@/shared/messageOf';
 
@@ -34,8 +35,8 @@ export interface ChatView {
   pending(id: string, context: ChatContext, queued: boolean): void;
   /** The agent took the message in; its turn is in the record. */
   user(id: string, turn: UserTurn): void;
-  /** The message will never reach the agent. */
-  dropped(id: string, error: string): void;
+  /** The message will never reach the agent; `stopped` when the student's Stop ended it. */
+  dropped(id: string, error: string, stopped?: boolean): void;
   agentStart(): void;
   appendText(delta: string): void;
   /** The agent pointed at text in a note; its line has just ended, and the step is already in the record. */
@@ -48,8 +49,14 @@ export interface ChatView {
   approve(request: ToolApprovalRequest, signal: AbortSignal): Promise<boolean>;
   /** Like `approve`, for the agent's questions; undefined when the student declines. */
   ask(questions: readonly AgentQuestion[], signal: AbortSignal): Promise<QuestionAnswers | undefined>;
-  /** The agent turn ended; `index` is its place in the record. */
-  agentEnd(turn: AgentTurn, index: number): void;
+  /** The agent turn ended; `index` is its place in the record. With `repairing`, the reply stays open to the three calls below until `settle`. */
+  agentEnd(turn: AgentTurn, index: number, repairing: boolean): void;
+  /** Waits for every figure of the reply that just ended, and returns those a repair may fix, in order. */
+  failures(): Promise<FigureFailure[]>;
+  /** Draws `fixes` in that reply, showing the error card of any that fails, and returns those that drew. */
+  repair(fixes: ReadonlyMap<number, string>): Promise<ReadonlyMap<number, string>>;
+  /** That reply is over: its held failures show their error cards and its footer appears. */
+  settle(): void;
   background(tasks: readonly BackgroundTask[]): void;
 }
 
@@ -77,10 +84,24 @@ interface Outgoing {
 /** The agent turn being written. */
 interface OpenTurn {
   turn: AgentTurn;
-  filter: ReplyActions;
+  filter: Pick<ReplyActions, 'push' | 'flush'>;
+  /** Set for a hidden turn, which writes on into the saved reply and joins no turn of its own. */
+  repair?: Repair;
   /** The chat's first agent turn, whose `@Title` line names the chat. */
   first: boolean;
   written?: string;
+}
+
+/** The one hidden turn that fixes the failed figures of a reply. */
+interface Repair {
+  /** The reply's place in the record. */
+  index: number;
+  /** The repair message's id. */
+  id: string;
+  text: string;
+  stopped: boolean;
+  /** Ends the wait for the hidden turn, with its reply if it completed. */
+  end: (reply?: string) => void;
 }
 
 /** One chat: its record, its agent session and its turns, built from the session's events. It is the only writer of the record. */
@@ -121,6 +142,7 @@ export class Chat {
   private switching = false;
   private closed = false;
   private hasFailed = false;
+  private repair: Repair | null = null;
 
   constructor(record: ChatRecord, private readonly deps: ChatDeps, private readonly events: ChatEvents) {
     const { defaults } = deps;
@@ -139,7 +161,7 @@ export class Chat {
   get pending(): readonly ChatContext[] { return [...this.outgoing.values()].map(({ context }) => context); }
   get background(): readonly BackgroundTask[] { return this.tasks; }
   get agent(): AgentId { return this.current; }
-  /** A CLI turn runs, or a message is on its way to the agent. */
+  /** A CLI turn or repair runs, or a message is on its way to the agent. */
   get running(): boolean { return !this.idle; }
   get failed(): boolean { return this.hasFailed; }
   get permissionPolicy(): PermissionPolicy { return this.chat.permissionPolicy ?? 'inherit'; }
@@ -190,13 +212,16 @@ export class Chat {
     });
   }
 
-  /** Resolves when no CLI turn runs, no message is pending and no background task runs. */
+  /** Resolves when no CLI turn or repair runs, no message is pending and no background task runs. */
   settled(): Promise<void> {
     return this.whenSettled();
   }
 
   /** Ends the running CLI turn, with any message already taken into it. Pending messages still run; background tasks keep running. */
-  stop(): void { this.target?.interrupt(); }
+  stop(): void {
+    if (this.repair) this.repair.stopped = true;
+    this.target?.interrupt();
+  }
 
   async stopTask(id: string): Promise<void> {
     await this.target?.stopTask(id);
@@ -271,6 +296,8 @@ export class Chat {
       this.startTurn(this.session?.promptId);
       this.closeTurn('interrupted');
     }
+    this.repair?.end();
+    this.repair = null;
     this.cliTurn = false;
     this.checkIdle();
     await this.outbox;
@@ -316,15 +343,17 @@ export class Chat {
     const before = this.status();
     switch (event.type) {
       case 'user':
-        this.taken(event.id);
+        if (event.id === this.repair?.id) this.repairTaken(this.repair);
+        else this.taken(event.id);
         break;
       case 'dropped':
+        if (this.repair && event.ids.includes(this.repair.id)) this.repair.end();
         for (const id of event.ids) {
           const entry = this.outgoing.get(id);
           if (!entry) continue;
           this.outgoing.delete(id);
           entry.reject(new Error(event.error));
-          this.view?.dropped(id, event.error);
+          this.view?.dropped(id, event.error, event.stopped);
         }
         break;
       case 'text': {
@@ -339,8 +368,7 @@ export class Chat {
         break;
       }
       case 'thinking':
-        this.writing(prompt);
-        this.view?.thinking();
+        if (!this.writing(prompt).repair) this.view?.thinking();
         break;
       case 'approval': {
         this.writing(prompt);
@@ -360,7 +388,8 @@ export class Chat {
       case 'notice':
         this.view?.notice(event);
         break;
-      case 'done':
+      case 'done': {
+        const hidden = this.writingTurn?.repair;
         this.cliTurn = false;
         // Diagnosis only: kept out of the saved chat and the reply, which show the short error.
         if (event.detail) console.error(`Vicher: ${event.error ?? 'the agent failed'}\n${event.detail}`);
@@ -369,11 +398,13 @@ export class Chat {
           this.closeTurn(event.status, event.error);
         }
         if (event.status === 'failed') {
-          this.hasFailed = true;
+          // A failed repair is a figure's failure, which its error card shows.
+          if (!hidden) this.hasFailed = true;
           // The CLI may have died with the turn; a new process resumes the conversation, and costs one start if it had not.
           this.restartAtIdle = true;
         }
         break;
+      }
       case 'background':
         this.tasks = event.tasks;
         this.view?.background(event.tasks);
@@ -452,10 +483,94 @@ export class Chat {
     const open = this.writingTurn!;
     this.show(open, open.filter.flush());
     this.writingTurn = null;
+    const { repair } = open;
+    if (repair) {
+      this.changeTurn(repair.index, () => open.turn);
+      repair.end(status === 'completed' ? repair.text : undefined);
+      return;
+    }
     const turn: AgentTurn = { ...open.turn, status, ...(error ? { error } : {}), at: Date.now() };
     this.commit({ ...this.chat, turns: [...this.chat.turns, turn] });
-    this.view?.agentEnd(turn, this.chat.turns.length - 1);
+    const index = this.chat.turns.length - 1;
+    const repairing = this.mayRepair(status);
+    this.view?.agentEnd(turn, index, repairing);
     if (open.first) this.titling = this.retitle(open.written);
+    if (repairing) this.startRepair(index);
+  }
+
+  /** No failure is asked for here: figures may still be running, so every reply that passes waits for them in `runRepair`. */
+  private mayRepair(status: AgentTurnStatus): boolean {
+    return status === 'completed' && !this.repair && this.view !== null && !this.tasks.length
+      && this.target === this.liveSession && !this.passing && !this.continuesSteered;
+  }
+
+  /** The last reply continues a steered one. The CLI may count the two as one reply, so a figure number could name the wrong figure. */
+  private get continuesSteered(): boolean {
+    const earlier = this.chat.turns.slice(0, -1).findLast((turn) => turn.role === 'agent');
+    return earlier?.role === 'agent' && earlier.status === 'steered';
+  }
+
+  /** Set in the tick the reply ends, so the chat never reads as idle between the reply and its repair. */
+  private startRepair(index: number): void {
+    const repair: Repair = { index, id: crypto.randomUUID(), text: '', stopped: false, end: () => undefined };
+    this.repair = repair;
+    this.holding++;
+    void this.runRepair(repair, this.view!);
+  }
+
+  private async runRepair(repair: Repair, view: ChatView): Promise<void> {
+    try {
+      await this.repairFigures(repair, view);
+    } catch (error) {
+      console.error('Vicher: the figure repair failed', error);
+    }
+    if (!this.closed) this.endRepair();
+  }
+
+  private async repairFigures(repair: Repair, view: ChatView): Promise<void> {
+    const attached = (): boolean => !this.closed && this.view === view;
+    const failures = await view.failures();
+    if (!attached() || !failures.length || repair.stopped) return;
+    const reply = await this.hiddenTurn(repair, failures);
+    if (reply === undefined || !attached()) return;
+    const fixes = repairFixes(reply, failures);
+    if (!fixes) return;
+    const drawn = await view.repair(fixes);
+    // An undrawn fix is never saved, and a view that went took its drawing with it.
+    if (attached()) this.changeTurn(repair.index, (turn) => applyFixes(turn, drawn));
+  }
+
+  /** Resolves with the hidden turn's reply, or undefined when it did not complete. Not in `outgoing` and not through `turnText`: no note, selection or title request. */
+  private hiddenTurn(repair: Repair, failures: readonly FigureFailure[]): Promise<string | undefined> {
+    return new Promise((resolve) => {
+      repair.end = resolve;
+      this.target?.send({ id: repair.id, text: repairMessage(failures) });
+    });
+  }
+
+  /** The agent took the repair message in. Output before this belongs to an ordinary turn, which ends here as `taken` ends one. */
+  private repairTaken(repair: Repair): void {
+    if (this.writingTurn) this.closeTurn('steered');
+    const filter = { push: (delta: string): ShownPart[] => { repair.text += delta; return []; }, flush: (): ShownPart[] => [] };
+    this.writingTurn = { turn: this.chat.turns[repair.index] as AgentTurn, filter, first: false, repair };
+    this.cliTurn = true;
+    // A Stop before this was ignored: the CLI interrupts only a running turn.
+    if (repair.stopped) this.target?.interrupt();
+  }
+
+  private endRepair(): void {
+    this.repair = null;
+    this.holding--;
+    // After the repair clears, so the view does not read as working and draw a waiting line for one tick.
+    this.view?.settle();
+    // Before the flush, so a restart at idle holds the waiting messages for the new session.
+    this.checkIdle();
+    this.flush();
+    this.events.changed();
+  }
+
+  private changeTurn(index: number, change: (turn: AgentTurn) => AgentTurn): void {
+    this.commit({ ...this.chat, turns: this.chat.turns.map((turn, i) => (i === index && turn.role === 'agent' ? change(turn) : turn)) });
   }
 
   /** The chat's first reply names it: the agent's own title if its CLI names conversations, else the one it was asked to write. */
@@ -472,9 +587,14 @@ export class Chat {
     this.saving = this.deps.store.save(saved).catch((error: unknown) => this.events.warn(`Could not save this chat: ${messageOf(error)}`));
   }
 
-  /** No CLI turn runs and no message is on its way to the agent; messages held for a new session do not count. */
+  /** No CLI turn or repair runs and no message is on its way to the agent; messages held for a new session do not count. */
   private get idle(): boolean {
-    return !this.cliTurn && ![...this.outgoing.values()].some(({ passed }) => passed);
+    return !this.repair && !this.cliTurn && !this.passing;
+  }
+
+  /** A message is on its way to the agent. */
+  private get passing(): boolean {
+    return [...this.outgoing.values()].some(({ passed }) => passed);
   }
 
   private checkIdle(): void {

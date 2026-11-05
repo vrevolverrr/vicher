@@ -1,7 +1,7 @@
 import { parser } from '@lezer/markdown';
 
 import type { ReplySegment } from '@/chat/splitReply';
-import { fenceFor, splitReply } from '@/chat/splitReply';
+import { fenceFor, replaceFigures, splitReply } from '@/chat/splitReply';
 import { LIMITS } from '@/renderer/figure/FigureData';
 import { figureSandbox } from '@/renderer/figure/view/FigureSandbox';
 import { type FigureHost, FigureView } from '@/renderer/figure/view/FigureView';
@@ -88,7 +88,7 @@ function lastBlockStart(text: string, from: number): number {
 /** The figures of one reply, across its text blocks, numbered in order from 0. */
 export class ReplyFigures {
   /** One for each figure that has started to run, resolved once it has drawn or failed. */
-  readonly outcomes: Promise<void>[] = [];
+  readonly outcomes: Promise<unknown>[] = [];
   /** Failures of a live reply that a repair may fix, by figure number. */
   readonly held = new Map<number, { error: string; showError(): void }>();
   /** Once set, a failure shows its error card at once instead of being held. */
@@ -142,6 +142,20 @@ export class TextBlock {
     this.render();
   }
 
+  /** Draws the fixes for this block's figures in place, never held, and returns those that drew, which `text` then holds. */
+  async repair(fixes: ReadonlyMap<number, string>): Promise<ReadonlyMap<number, string>> {
+    const fixed = new Map<number, string>();
+    await Promise.all(this.parts.map(async (part) => {
+      if (part.kind !== 'figure' || !part.view) return;
+      const fix = fixes.get(part.ordinal);
+      if (fix === undefined) return;
+      this.figures.held.delete(part.ordinal);
+      if (await this.drawFigure(part, part.view, fix)) fixed.set(part.ordinal, fix);
+    }));
+    this.source = replaceFigures(this.source, fixed, this.first);
+    return fixed;
+  }
+
   destroy(): void {
     if (this.frame !== null) window.cancelAnimationFrame(this.frame);
     this.frame = null;
@@ -175,21 +189,25 @@ export class TextBlock {
     this.removeFrom(segments.length);
   }
 
-  /** Runs the figure under the drawing card. A live failure a repair may fix keeps the card and is held; any other shows its error card. */
-  private async drawFigure(part: Extract<Part, { kind: 'figure' }>, view: FigureView, source: string): Promise<void> {
+  /** Runs the figure under the drawing card and says if it drew. A live failure a repair may fix keeps the card and is held; any other shows its error card. */
+  private async drawFigure(part: Extract<Part, { kind: 'figure' }>, view: FigureView, source: string): Promise<boolean> {
     const showError = (error: string): void => {
       view.showError(error, source);
       reveal(part.el);
     };
     try {
       const outcome = await view.run(source, { whenVisible: !this.figures.live });
-      if (outcome.drawn) return reveal(part.el);
-      if (!this.figures.live || !outcome.repairable || this.figures.settled) return showError(outcome.error);
-      this.figures.held.set(part.ordinal, { error: outcome.error, showError: () => showError(outcome.error) });
+      if (outcome.drawn) {
+        reveal(part.el);
+        return true;
+      }
+      if (this.figures.live && outcome.repairable && !this.figures.settled) this.figures.held.set(part.ordinal, { error: outcome.error, showError: () => showError(outcome.error) });
+      else showError(outcome.error);
     } catch (error) {
       console.error('Vicher: a figure failed to draw', error);
       showError('The figure could not be drawn');
     }
+    return false;
   }
 
   private drawAsCode(part: Extract<Part, { kind: 'figure' }>, source: string): void {

@@ -11,6 +11,7 @@
 <script lang="ts">
   import { flushSync, untrack } from 'svelte';
   import type { Rating, ToolPart, TourStep } from '@/chat/ChatRecord';
+  import type { FigureFailure } from '@/chat/figureRepair';
   import { countFigures } from '@/chat/splitReply';
   import { formatWhen } from '@/chat/view/chatList';
   import type { ReplyFeedback } from '@/chat/view/ReplyFeedback';
@@ -58,7 +59,10 @@
   let ids = 0;
   /** The run of calls that just ended, held active for a moment in case the next call follows. */
   let held: { block: ToolsBlock; timer: number } | null = null;
-  let footer = $state<{ at?: number; feedback?: ReplyFeedback; copy: () => string } | null>(null);
+  type Footer = { at?: number; feedback?: ReplyFeedback; copy: () => string };
+  let footer = $state<Footer | null>(null);
+  /** The footer `finish` was given, shown by `settle`. */
+  let ended: Footer | null = null;
   let rating = $state<Rating | undefined>();
 
   untrack(() => follow(live && !handover));
@@ -153,23 +157,44 @@
 
   /**
    * `at` is when the turn ended; it shows beside the copy button, with a thumb pair when `feedback` is given. `copy` is
-   * what the button copies, this reply's text unless the reply ends a run of several.
+   * what the button copies, this reply's text unless the reply ends a run of several. The footer waits for `settle`.
    */
   export function finish(at?: number, feedback?: ReplyFeedback, copy: () => string = text): void {
+    endWorkingLine();
+    for (const block of blocks) if (block.kind === 'text') block.view!.finish();
+    ended = { at, feedback, copy };
+  }
+
+  function endWorkingLine(): void {
     release();
     const last = blocks.at(-1);
     if (isWorkingLine(last)) discard(last);
-    for (const block of blocks) {
-      if (block.kind === 'text') block.view!.finish();
-      else if (block.kind === 'tools') block.finished = true;
-    }
-    // Until the repair turn exists, a held failure shows its error card when the reply ends.
+  }
+
+  /** Waits for every figure to finish running, and returns the held failures in order. */
+  export async function failures(): Promise<FigureFailure[]> {
+    await Promise.all(figures.outcomes);
+    return [...figures.held].map(([ordinal, { error }]) => ({ ordinal, error })).sort((a, b) => a.ordinal - b.ordinal);
+  }
+
+  /** Draws `fixes`, by figure number, and returns those that drew. */
+  export async function repair(fixes: ReadonlyMap<number, string>): Promise<ReadonlyMap<number, string>> {
+    // A fix is the last chance: a failure now shows its error card.
+    figures.settled = true;
+    const views = blocks.flatMap((block) => (block.kind === 'text' ? [block.view!] : []));
+    return new Map((await Promise.all(views.map((view) => view.repair(fixes)))).flatMap((drawn) => [...drawn]));
+  }
+
+  /** The reply is over: held failures show their error cards, and the footer appears. */
+  export function settle(): void {
+    endWorkingLine();
+    for (const block of blocks) if (block.kind === 'tools') block.finished = true;
     figures.settled = true;
     for (const failure of figures.held.values()) failure.showError();
     figures.held.clear();
-    if (footer || !copy()) return;
-    rating = feedback?.rating;
-    footer = { at, feedback, copy };
+    if (footer || !ended?.copy()) return;
+    rating = ended.feedback?.rating;
+    footer = ended;
   }
 
   export function text(): string {

@@ -99,7 +99,8 @@ export interface BackgroundTask {
  */
 export type AgentEvent =
   | { type: 'user'; id: string }
-  | { type: 'dropped'; ids: string[]; error: string }
+  /** `stopped`: an `interrupt` ended the message before it was taken in, so nothing went wrong. */
+  | { type: 'dropped'; ids: string[]; error: string; stopped?: boolean }
   | { type: 'text'; delta: string }
   | { type: 'thinking' }
   | { type: 'tool'; id: string; name: string; title: string; status: ToolStatus }

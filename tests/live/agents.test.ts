@@ -15,10 +15,12 @@ import type { AgentAdapter, AgentEvent, AgentSession, AgentSessionOptions, Agent
 import { buildTurn } from '../../src/context/buildTurn';
 import { readTexts, turnFiles } from '../../src/context/ChatAttachment';
 import { findQuote } from '../../src/tour/locateQuote';
-import { Chat } from '../../src/chat/Chat';
+import { Chat, type ChatView } from '../../src/chat/Chat';
 import { ChatDefaults } from '../../src/chat/ChatDefaults';
 import { newChat } from '../../src/chat/ChatRecord';
 import { ChatStore } from '../../src/chat/ChatStore';
+import type { FigureFailure } from '../../src/chat/figureRepair';
+import type { ChatContext } from '../../src/context/ChatContext';
 import { buildSystemPrompt } from '../../src/context/systemPrompt';
 import { splitReply } from '../../src/chat/splitReply';
 import { validateFigure } from '../../src/renderer/figure/validateFigure';
@@ -123,6 +125,32 @@ function liveChat(agent: AgentAdapter, model: string): Chat {
   chat.open();
   return chat;
 }
+
+/** A view with no screen whose first reply holds one failed figure, as a sandbox would report it. */
+function repairingView(onFailures?: () => void) {
+  const drawn: Array<ReadonlyMap<number, string>> = [];
+  let failures: FigureFailure[] = [{ ordinal: 0, error: 'Step 1: TypeError: n.toPrecision is not a function (line 3)' }];
+  const noop = (): void => undefined;
+  const view: ChatView = {
+    pending: noop, user: noop, dropped: noop, agentStart: noop, appendText: noop, act: noop, tool: noop, thinking: noop, usage: noop, notice: noop,
+    agentEnd: noop, settle: noop, background: noop,
+    approve: async () => false,
+    ask: async () => undefined,
+    failures: async () => {
+      const held = failures;
+      failures = [];
+      onFailures?.();
+      return held;
+    },
+    repair: async (fixes) => {
+      drawn.push(fixes);
+      return fixes;
+    },
+  };
+  return { view, drawn };
+}
+
+const FIGURE_MESSAGE: ChatContext = { message: 'Plot y = x^2 from -2 to 2 as a figure.', attachments: [] };
 
 for (const { agent, model } of AGENTS.filter(({ agent }) => !only || agent.id === only)) {
   describe(`${agent.id} against the installed CLI`, () => {
@@ -324,6 +352,56 @@ for (const { agent, model } of AGENTS.filter(({ agent }) => !only || agent.id ==
         assert.ok(JSON.stringify(quiz.steps[0].root).includes('"type":"Quiz"'), JSON.stringify(quiz.steps[0].root));
       } finally {
         await session.close();
+      }
+    });
+
+    it('repairs a figure in a hidden turn that leaves no turn of its own', LIMIT, async () => {
+      const chat = liveChat(agent, model);
+      const { view, drawn } = repairingView();
+      chat.attach(view);
+      try {
+        await chat.send(FIGURE_MESSAGE);
+        assert.equal(drawn.length, 1);
+        const fix = drawn[0].get(0);
+        assert.ok(fix, 'no fix for figure 0');
+        assert.deepEqual(chat.turns.map((turn) => turn.role), ['user', 'agent']);
+        assert.ok(JSON.stringify(chat.turns[1]).includes(JSON.stringify(fix).slice(1, -1)), 'the saved reply does not hold the fix');
+      } finally {
+        await chat.close();
+      }
+    });
+
+    // Claude ignores a Stop at 0 ms, drops the message at 60 ms and ends the turn at 500 ms.
+    for (const delay of [0, 60, 500]) {
+      it(`stops a hidden turn ${delay} ms after the repair message goes out, and the next message works`, LIMIT, async () => {
+        const chat = liveChat(agent, model);
+        const { view, drawn } = repairingView(() => void setTimeout(() => chat.stop(), delay));
+        chat.attach(view);
+        try {
+          await chat.send(FIGURE_MESSAGE);
+          assert.equal(drawn.length, 0);
+          assert.equal(chat.failed, false);
+          const [reply] = await chat.send({ message: 'Reply with the single word PINEAPPLE.', attachments: [] });
+          assert.match(JSON.stringify(reply.parts), /PINEAPPLE/);
+        } finally {
+          await chat.close();
+        }
+      });
+    }
+
+    it('does not mention the repair to the student in the next turn', LIMIT, async () => {
+      const chat = liveChat(agent, model);
+      const { view, drawn } = repairingView();
+      chat.attach(view);
+      try {
+        await chat.send(FIGURE_MESSAGE);
+        assert.equal(drawn.length, 1);
+        const [reply] = await chat.send({ message: 'In one sentence, what is the slope of that curve at x = 1?', attachments: [] });
+        const text = reply.parts.flatMap((part) => (part.type === 'text' ? [part.text] : [])).join('');
+        assert.ok(text.trim());
+        assert.doesNotMatch(text, /repair|corrected|rewrote|rewrit|failed|fixed|error/i);
+      } finally {
+        await chat.close();
       }
     });
 
