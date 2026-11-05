@@ -123,6 +123,8 @@ class CodexSession implements AgentSession {
   private readonly retiredTurnIds = new Set<string>();
   /** Sent and not yet taken in, in send order, which is the order Codex takes them in. */
   private unsent: string[] = [];
+  /** Messages the running turn accepted; one still in `unsent` when that turn ends will never be taken in. */
+  private readonly accepted = new Set<string>();
   /** Sent while `turn/start` has not returned its turn id, so there is nothing to steer yet. */
   private held: AgentMessage[] = [];
   private starting = false;
@@ -293,6 +295,7 @@ class CodexSession implements AgentSession {
 
   private async start(message: AgentMessage): Promise<void> {
     this.starting = true;
+    this.accepted.add(message.id);
     let turnId: string;
     try {
       ({ turn: { id: turnId } } = await this.transport.request<TurnStartResult>('turn/start', {
@@ -326,6 +329,7 @@ class CodexSession implements AgentSession {
   private async steer(message: AgentMessage, turnId: string): Promise<void> {
     try {
       await this.transport.request('turn/steer', { threadId: this.id, expectedTurnId: turnId, input: inputOf(message) });
+      this.accepted.add(message.id);
     } catch {
       // The turn ended before the steer reached it ("no active turn to steer"), so the message starts a turn of its own.
       if (this.transport.isClosed) return;
@@ -334,9 +338,9 @@ class CodexSession implements AgentSession {
     }
   }
 
-  private drop(ids: string[], error: string): void {
+  private drop(ids: string[], error: string, stopped = false): void {
     this.unsent = this.unsent.filter((id) => !ids.includes(id));
-    this.emit({ type: 'dropped', ids, error });
+    this.emit({ type: 'dropped', ids, error, ...(stopped ? { stopped } : {}) });
   }
 
   private onExit(): void {
@@ -478,6 +482,9 @@ class CodexSession implements AgentSession {
     this.retire(turn.id);
     if (this.turnId === turn.id) this.turnId = undefined;
     const error = turn.status === 'failed' ? turn.error?.message ?? this.error ?? 'Codex turn failed' : undefined;
+    const lost = this.unsent.filter((id) => this.accepted.has(id));
+    this.accepted.clear();
+    const ran = this.inTurn;
     this.inTurn = false;
     this.cancellation.abort();
     this.cancellation = new AbortController();
@@ -485,7 +492,9 @@ class CodexSession implements AgentSession {
     this.lastMessageId = null;
     this.error = null;
     this.items.clear();
-    this.emit({ type: 'done', status: turn.status, ...(error ? { error } : {}) });
+    // A turn that took nothing in and wrote nothing never ran, so it has no `done`.
+    if (ran || !lost.length) this.emit({ type: 'done', status: turn.status, ...(error ? { error } : {}) });
+    if (lost.length) this.drop(lost, error ?? 'Stopped before the agent took the message in', turn.status === 'interrupted');
   }
 
   private onTaskCompleted(threadId: string, turn: NonNullable<TurnScopedParams['turn']>): void {

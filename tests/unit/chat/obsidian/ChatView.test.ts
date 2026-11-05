@@ -50,6 +50,14 @@ vi.mock('obsidian', () => {
   };
 });
 
+// A figure's fence here holds what a program would return, as JSON; `!` starts one that fails.
+vi.mock('@/renderer/figure/view/FigureSandbox', () => ({
+  figureSandbox: {
+    warm: vi.fn(),
+    run: vi.fn((source: string) => Promise.resolve(source.startsWith('!') ? { ok: false, error: source.slice(1), repairable: true } : { ok: true, payload: JSON.parse(source) as unknown })),
+  },
+}));
+
 /**
  * A session that takes each message in at once, as an idle agent does. `events.push` emits on it; `signal` is the
  * running turn's, aborted by `interrupt`, which ends the turn as interrupted.
@@ -161,6 +169,86 @@ beforeEach(() => {
   Object.defineProperty(globalThis.crypto, 'subtle', { configurable: true, value: webcrypto.subtle });
   globalThis.ResizeObserver = class { observe(): void {} unobserve(): void {} disconnect(): void {} } as unknown as typeof ResizeObserver;
   HTMLElement.prototype.scrollTo = function (options?: ScrollToOptions | number) { if (typeof options === 'object') this.scrollTop = options.top ?? 0; };
+});
+
+describe('a dropped message', () => {
+  const bubbles = (panel: HTMLElement) => panel.querySelectorAll('.vicher-user-message').length;
+
+  it('shows a Notice, takes the bubble away and restores the text when Stop ended it', async () => {
+    const { start, panel, input, send, sessions } = setup();
+    await start();
+    sessions.at(-1)!.hold = true;
+    send('Hello'); await settle();
+    (obsidianMock.Notice as unknown as Mock).mockClear();
+    sessions.at(-1)!.events.push({ type: 'dropped', ids: [sessions.at(-1)!.sent[0]!], error: 'Stopped before the agent took the message in', stopped: true });
+    await settle();
+    expect(obsidianMock.Notice).toHaveBeenCalledWith('Stopped before the agent took the message in');
+    expect(bubbles(panel())).toBe(0);
+    expect(panel().querySelector('.vicher-user-label')).toBeNull();
+    expect(input().value).toBe('Hello');
+  });
+
+  it('keeps the bubble and labels it for any other reason', async () => {
+    const { start, panel, send, sessions } = setup();
+    await start();
+    sessions.at(-1)!.hold = true;
+    send('Hello'); await settle();
+    (obsidianMock.Notice as unknown as Mock).mockClear();
+    sessions.at(-1)!.events.push({ type: 'dropped', ids: [sessions.at(-1)!.sent[0]!], error: 'The agent exited' });
+    await settle();
+    expect(obsidianMock.Notice).not.toHaveBeenCalled();
+    expect(bubbles(panel())).toBe(1);
+    expect(panel().querySelector('.vicher-user-label')?.textContent).toBe('Not sent: The agent exited');
+  });
+});
+
+describe('figure repair', () => {
+  const fence = (source: string): string => '```figure\n' + source + '\n```';
+  const fixed = JSON.stringify({ params: {}, frames: [{ caption: '', root: { type: 'Node', props: { id: 'n', label: 'fixed' }, children: [] } }] });
+  const wait = async (): Promise<void> => { for (let i = 0; i < 4; i += 1) await new Promise((resolve) => setTimeout(resolve, 0)); flushSync(); };
+
+  it('keeps the card and no waiting row through the hidden turn, puts its tool row in the reply, and shows the footer after', async () => {
+    const { start, panel, send, sessions, store, view } = setup();
+    await start();
+    send('Draw it');
+    await wait();
+    const session = sessions.at(-1)!;
+    session.events.push({ type: 'text', delta: fence('!broken') });
+    session.events.push({ type: 'done', status: 'completed' });
+    await wait();
+    expect(session.input).toHaveLength(2);
+    expect(panel().querySelector('.is-waiting')).toBeNull();
+    expect(panel().querySelector('.vicher-reply-figure')!.classList.contains('is-drawing')).toBe(true);
+    expect(panel().querySelector('.vicher-reply-footer')).toBeNull();
+    session.events.push({ type: 'tool', id: 't', name: 'Read', title: 'Read a', status: 'running' });
+    await wait();
+    expect(panel().querySelectorAll('.vicher-reply')).toHaveLength(1);
+    expect(panel().querySelector('.vicher-reply .vicher-tools-summary')?.textContent).toBe('Using Read');
+    session.events.push({ type: 'tool', id: 't', name: 'Read', title: 'Read a', status: 'done' });
+    session.events.push({ type: 'text', delta: fence(fixed) });
+    session.events.push({ type: 'done', status: 'completed' });
+    await wait();
+    expect(panel().querySelector('.vicher-figure-node')?.textContent).toContain('fixed');
+    expect(panel().querySelector('.vicher-figure-error')).toBeNull();
+    expect(panel().querySelector('.vicher-reply-footer')).not.toBeNull();
+    expect(panel().querySelector('.is-waiting')).toBeNull();
+    expect(JSON.stringify(replies(await store.load(view.chatId!)))).toContain('fixed');
+  });
+
+  it('shows the footer of a reopened reply at once', async () => {
+    const { start, panel, send, sessions, view } = setup();
+    await start();
+    const id = view.chatId!;
+    send('Hello');
+    await wait();
+    sessions.at(-1)!.events.push({ type: 'text', delta: 'Hi.' });
+    sessions.at(-1)!.events.push({ type: 'done', status: 'completed' });
+    await wait();
+    await view.closeChat(id);
+    await view.openChat({ chatId: id });
+    await wait();
+    expect(panel().querySelector('.vicher-reply-footer')).not.toBeNull();
+  });
 });
 
 describe('permission relay', () => {

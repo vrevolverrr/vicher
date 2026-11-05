@@ -82,7 +82,13 @@ function recordingView(): ChatView & { calls: string[] } {
     notice: (part) => calls.push(`notice:${part.description}`),
     approve: async (request) => { calls.push(`approve:${request.description}`); return true; },
     ask: async () => [['Yes']],
-    agentEnd: (turn, index) => calls.push(`end:${turn.status}:${index}`),
+    agentEnd: (turn, index, repairing) => {
+      calls.push(`end:${turn.status}:${index}`);
+      if (!repairing) calls.push('settle');
+    },
+    failures: async () => [],
+    repair: async (fixes) => fixes,
+    settle: () => calls.push('settle'),
     background: (tasks) => calls.push(`background:${tasks.length}`),
   };
 }
@@ -176,7 +182,7 @@ describe('Chat', () => {
     session().emit({ type: 'user', id: 'someone-else' }, { type: 'text', delta: 'Done in the background.' }, { type: 'done', status: 'completed' });
     expect(roles(chat)).toEqual(['agent:completed']);
     expect(chat.pending).toHaveLength(1);
-    expect(view.calls).toEqual(['pending:Why is the sky blue?', 'start', 'text:Done in the background.', 'end:completed:0']);
+    expect(view.calls).toEqual(['pending:Why is the sky blue?', 'start', 'text:Done in the background.', 'end:completed:0', 'settle']);
     session().emit({ type: 'user', id: session().sent[0]!.id }, { type: 'done', status: 'completed' });
     expect(await sending).toEqual([]);
   });
@@ -484,6 +490,434 @@ describe('Chat', () => {
       await chat.choose('claude', { model: 'sonnet-4', name: 'Sonnet', effort: 'high' });
       list(models); await settle();
       expect(chat.choice('claude')).toEqual({ model: 'sonnet-4', name: 'Sonnet', effort: 'high' });
+    });
+  });
+});
+
+describe('figure repair', () => {
+  const BROKEN = 'Look:\n```figure\nbroken\n```\nDone.';
+  const FIXED = 'Look:\n```figure\nfixed\n```\nDone.';
+  const FIX = '```figure\nfixed\n```';
+  const failure = { ordinal: 0, error: 'Step 1: broken' };
+  const tool = { type: 'tool', id: 't', name: 'Read', title: 'Read a', status: 'done' } as const;
+  const textOf = (chat: Chat): string[] => chat.turns.flatMap((turn) => (turn.role === 'agent' ? turn.parts.flatMap((part) => (part.type === 'text' ? [part.text] : [])) : []));
+
+  /** A chat whose first reply has just ended with `failed` held; `from` is what the view's calls look like from there on. */
+  async function replied(failed: { ordinal: number; error: string }[] = [failure], done: AgentEvent = { type: 'done', status: 'completed' }) {
+    const harness = setup();
+    const { chat, session } = harness;
+    const view = recordingView();
+    view.failures = async () => failed;
+    chat.attach(view);
+    chat.open(); await settle();
+    const sending = chat.send(context);
+    await settle();
+    session().emit({ type: 'user', id: session().sent[0]!.id }, { type: 'text', delta: BROKEN }, done);
+    const from = view.calls.length;
+    await settle();
+    /** The id of the repair message. */
+    const id = (): string => session().sent[1]!.id;
+    const after = (): string[] => view.calls.slice(from);
+    return { ...harness, view, sending, id, after };
+  }
+
+  it('reads as idle when the view settles, so the view draws no working line', async () => {
+    const { chat, session, view, id } = await replied();
+    let running: boolean | undefined;
+    view.settle = () => { running = chat.running; };
+    session().emit({ type: 'user', id: id() }, { type: 'done', status: 'interrupted' });
+    await settle();
+    expect(running).toBe(false);
+  });
+
+  it('sends one hidden message once the reply ends and puts the fix in the saved reply', async () => {
+    const { chat, session, store, view, sending, id, after } = await replied();
+    expect(session().sent).toHaveLength(2);
+    expect(session().sent[1]!.text).toContain('Figure 1 of your last reply failed: Step 1: broken');
+    expect(session().sent[1]!.text).not.toContain('<note');
+    const drawn = vi.spyOn(view, 'repair');
+    let resolved = false;
+    void sending.then(() => { resolved = true; });
+    session().emit({ type: 'user', id: id() }, { type: 'thinking' }, { type: 'text', delta: FIX });
+    await settle();
+    expect(chat.running).toBe(true);
+    expect(resolved).toBe(false);
+    session().emit({ type: 'done', status: 'completed' });
+    await settle();
+    expect(drawn).toHaveBeenCalledWith(new Map([[0, 'fixed']]));
+    expect(after()).toEqual(['settle']);
+    expect(roles(chat)).toEqual(['user:Why is the sky blue?', 'agent:completed']);
+    expect(textOf(chat)).toEqual([FIXED]);
+    expect(chat.running).toBe(false);
+    expect((await sending)[0]!.parts).toEqual([{ type: 'text', text: FIXED }]);
+    await settle();
+    expect(JSON.stringify((await store.load(ID))?.turns)).toContain('fixed');
+  });
+
+  it('keeps the failed fence in the record for a fix that did not draw', async () => {
+    const { chat, session, view, id } = await replied();
+    view.repair = async () => new Map();
+    session().emit({ type: 'user', id: id() }, { type: 'text', delta: FIX }, { type: 'done', status: 'completed' });
+    await settle();
+    expect(textOf(chat)).toEqual([BROKEN]);
+  });
+
+  it('applies no fix when the fences do not match the failures', async () => {
+    const { chat, session, view, id, after } = await replied([failure, { ordinal: 1, error: 'other' }]);
+    const drawn = vi.spyOn(view, 'repair');
+    session().emit({ type: 'user', id: id() }, { type: 'text', delta: FIX }, { type: 'done', status: 'completed' });
+    await settle();
+    expect(drawn).not.toHaveBeenCalled();
+    expect(after()).toEqual(['settle']);
+    expect(chat.running).toBe(false);
+  });
+
+  it('settles a reply with no held failure without calling the model', async () => {
+    const { chat, session, sending, after } = await replied([]);
+    await sending;
+    expect(session().sent).toHaveLength(1);
+    expect(after()).toEqual(['settle']);
+    expect(chat.running).toBe(false);
+  });
+
+  it('holds a message sent during the repair and sends it after', async () => {
+    const { chat, session, view, id } = await replied();
+    const next = chat.send({ ...context, message: 'Next' });
+    await settle();
+    expect(session().sent).toHaveLength(2);
+    expect(view.calls).toContain('pending:Next');
+    session().emit({ type: 'user', id: id() }, { type: 'text', delta: FIX }, { type: 'done', status: 'completed' });
+    await settle();
+    expect(session().sent).toHaveLength(3);
+    expect(session().sent[2]!.text).toContain('Next');
+    view.failures = async () => [];
+    session().emit({ type: 'user', id: session().sent[2]!.id }, { type: 'text', delta: 'Sure.' }, { type: 'done', status: 'completed' });
+    await next;
+    expect(roles(chat)).toEqual(['user:Why is the sky blue?', 'agent:completed', 'user:Next', 'agent:completed']);
+  });
+
+  describe('runs no repair and settles in the same tick', () => {
+    it.each([['interrupted'], ['failed']] as const)('after a reply that ended %s', async (status) => {
+      const { session, view } = await replied([failure], { type: 'done', status });
+      expect(session(0).sent).toHaveLength(1);
+      expect(view.calls).toContain('settle');
+    });
+
+    it('with a message with the CLI', async () => {
+      const { chat, session } = setup();
+      const view = recordingView();
+      view.failures = async () => [failure];
+      chat.attach(view);
+      chat.open(); await settle();
+      void chat.send(context);
+      await settle();
+      session().emit({ type: 'user', id: session().sent[0]!.id }, { type: 'text', delta: BROKEN });
+      void chat.send({ ...context, message: 'Next' });
+      await settle();
+      session().emit({ type: 'done', status: 'completed' });
+      expect(view.calls.at(-1)).toBe('settle');
+      await settle();
+      expect(session().sent).toHaveLength(2);
+    });
+
+    it('with a background task running', async () => {
+      const { chat, session } = setup();
+      const view = recordingView();
+      view.failures = async () => [failure];
+      chat.attach(view);
+      chat.open(); await settle();
+      void chat.send(context);
+      await settle();
+      session().emit({ type: 'user', id: session().sent[0]!.id }, { type: 'background', tasks: [{ id: 'b', description: 'Task' }] as never }, { type: 'text', delta: BROKEN }, { type: 'done', status: 'completed' });
+      expect(view.calls.at(-1)).toBe('settle');
+      await settle();
+      expect(session().sent).toHaveLength(1);
+    });
+
+    it('after a reply that continues a steered one', async () => {
+      const { chat, session } = setup();
+      const view = recordingView();
+      view.failures = async () => [failure];
+      chat.attach(view);
+      chat.open(); await settle();
+      void chat.send(context);
+      await settle();
+      session().emit({ type: 'user', id: session().sent[0]!.id }, { type: 'text', delta: 'Light scat' });
+      void chat.send({ ...context, message: 'Next' });
+      await settle();
+      session().emit({ type: 'user', id: session().sent[1]!.id }, { type: 'text', delta: BROKEN }, { type: 'done', status: 'completed' });
+      expect(roles(chat)).toEqual(['user:Why is the sky blue?', 'agent:steered', 'user:Next', 'agent:completed']);
+      expect(view.calls.at(-1)).toBe('settle');
+      await settle();
+      expect(session().sent).toHaveLength(2);
+    });
+
+    it('with no view', async () => {
+      const { chat, session, answer } = setup();
+      chat.open(); await settle();
+      const sending = chat.send(context);
+      await settle();
+      answer(BROKEN);
+      await sending;
+      expect(session().sent).toHaveLength(1);
+    });
+
+    it('on a played session', async () => {
+      const { chat, session, sessions } = setup();
+      const view = recordingView();
+      view.failures = async () => [failure];
+      chat.attach(view);
+      chat.open(); await settle();
+      const played = fakeSession('played', session().options);
+      const playing = chat.play(context, played);
+      await settle();
+      played.emit({ type: 'user', id: played.sent[0]!.id }, { type: 'text', delta: BROKEN }, { type: 'done', status: 'completed' });
+      await playing;
+      expect(view.calls.at(-1)).toBe('settle');
+      expect(played.sent).toHaveLength(1);
+      expect(sessions[0]!.sent).toHaveLength(0);
+    });
+  });
+
+  describe('Stop', () => {
+    it('before the message goes out keeps it from being sent', async () => {
+      const { chat, session } = setup();
+      const view = recordingView();
+      let release!: (failed: typeof failure[]) => void;
+      view.failures = () => new Promise((resolve) => { release = resolve; });
+      chat.attach(view);
+      chat.open(); await settle();
+      void chat.send(context);
+      await settle();
+      session().emit({ type: 'user', id: session().sent[0]!.id }, { type: 'text', delta: BROKEN }, { type: 'done', status: 'completed' });
+      chat.stop();
+      release([failure]);
+      await settle();
+      expect(session().sent).toHaveLength(1);
+      expect(view.calls.at(-1)).toBe('settle');
+      expect(chat.running).toBe(false);
+    });
+
+    it('after the message goes out interrupts again when it is taken in, and shows nothing until done', async () => {
+      const { chat, session, id, after } = await replied();
+      chat.stop();
+      expect(session().interrupt).toHaveBeenCalledTimes(1);
+      session().emit({ type: 'user', id: id() });
+      expect(session().interrupt).toHaveBeenCalledTimes(2);
+      session().emit({ type: 'text', delta: FIX });
+      await settle();
+      expect(after()).toEqual([]);
+      session().emit({ type: 'done', status: 'interrupted' });
+      await settle();
+      expect(after()).toEqual(['settle']);
+      expect(textOf(chat)).toEqual([BROKEN]);
+    });
+
+    it('after the message is taken in ends the hidden turn with no fix', async () => {
+      const { chat, session, id, after } = await replied();
+      const next = chat.send({ ...context, message: 'Next' });
+      await settle();
+      session().emit({ type: 'user', id: id() }, { type: 'text', delta: FIX });
+      chat.stop();
+      expect(session().interrupt).toHaveBeenCalledTimes(1);
+      await settle();
+      expect(session().sent).toHaveLength(2);
+      session().emit({ type: 'done', status: 'interrupted' });
+      await settle();
+      expect(after()).toContain('settle');
+      expect(textOf(chat)).toEqual([BROKEN]);
+      expect(session().sent).toHaveLength(3);
+      void next;
+    });
+
+    it('during the draw leaves a fix that drew to be saved', async () => {
+      const { chat, session, view, id } = await replied();
+      let release!: (drawn: ReadonlyMap<number, string>) => void;
+      view.repair = () => new Promise((resolve) => { release = resolve; });
+      session().emit({ type: 'user', id: id() }, { type: 'text', delta: FIX }, { type: 'done', status: 'completed' });
+      await settle();
+      chat.stop();
+      release(new Map([[0, 'fixed']]));
+      await settle();
+      expect(textOf(chat)).toEqual([FIXED]);
+    });
+  });
+
+  it('ends with no fix on a failed hidden turn, and restarts before the waiting message goes out', async () => {
+    const { chat, session, sessions, id, after } = await replied();
+    const next = chat.send({ ...context, message: 'Next' });
+    await settle();
+    session().emit({ type: 'user', id: id() }, { type: 'text', delta: FIX }, { type: 'done', status: 'failed', error: 'died' });
+    await settle();
+    expect(after()).toEqual(['pending:Next', 'settle']);
+    expect(chat.failed).toBe(false);
+    expect(textOf(chat)).toEqual([BROKEN]);
+    expect(roles(chat)).toEqual(['user:Why is the sky blue?', 'agent:completed']);
+    expect(sessions).toHaveLength(2);
+    expect(sessions[0]!.sent).toHaveLength(2);
+    expect(session().sent[0]!.text).toContain('Next');
+    void next;
+  });
+
+  it('ends with no fix when the repair message is dropped', async () => {
+    const { chat, session, id, after } = await replied();
+    session().emit({ type: 'dropped', ids: [id()], error: 'gone' });
+    await settle();
+    expect(after()).toEqual(['settle']);
+    expect(chat.running).toBe(false);
+  });
+
+  it('ends with no fix when the send throws', async () => {
+    const { chat, session } = setup();
+    const view = recordingView();
+    view.failures = async () => [failure];
+    chat.attach(view);
+    chat.open(); await settle();
+    void chat.send(context);
+    await settle();
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    session().send = () => { throw new Error('closed'); };
+    session().emit({ type: 'user', id: session().sent[0]!.id }, { type: 'text', delta: BROKEN }, { type: 'done', status: 'completed' });
+    await settle();
+    expect(errors).toHaveBeenCalled();
+    errors.mockRestore();
+    expect(view.calls.at(-1)).toBe('settle');
+    expect(chat.running).toBe(false);
+  });
+
+  it('shows and saves a tool call of the hidden turn in the reply', async () => {
+    const { chat, session, id, after } = await replied();
+    session().emit({ type: 'user', id: id() }, tool, { type: 'text', delta: FIX }, { type: 'done', status: 'completed' });
+    await settle();
+    expect(after()).toEqual(['tool:t', 'settle']);
+    expect(roles(chat)).toHaveLength(2);
+    expect(chat.turns[1]).toMatchObject({ parts: [{ type: 'text', text: FIXED }, tool] });
+  });
+
+  it('asks for an approval in the hidden turn, carries on when it is refused, and opens no turn', async () => {
+    const { chat, session, view, id, after } = await replied();
+    view.approve = async (request) => { view.calls.push(`approve:${request.description}`); return false; };
+    const answer = vi.fn();
+    session().emit({ type: 'user', id: id() }, { type: 'approval', request: { description: 'write' } as never, signal: new AbortController().signal, answer });
+    await settle();
+    expect(answer).toHaveBeenCalledWith(false);
+    expect(after()).toEqual(['approve:write']);
+    session().emit({ type: 'text', delta: FIX }, { type: 'done', status: 'completed' });
+    await settle();
+    expect(textOf(chat)).toEqual([FIXED]);
+  });
+
+  it('keeps output from before the repair message is taken in, and ends that turn as steered', async () => {
+    const { chat, session, id, after } = await replied();
+    session().emit({ type: 'text', delta: 'A task ended.' }, { type: 'user', id: id() });
+    expect(roles(chat)).toEqual(['user:Why is the sky blue?', 'agent:completed', 'agent:steered']);
+    session().emit({ type: 'text', delta: FIX }, { type: 'done', status: 'completed' });
+    await settle();
+    // One for the steered turn, one for the reply the repair kept open.
+    expect(after()).toEqual(['start', 'text:A task ended.', 'end:steered:2', 'settle', 'settle']);
+    expect(textOf(chat)).toEqual([FIXED, 'A task ended.']);
+  });
+
+  it('runs one repair when an unprompted turn ends before the repair message is taken in', async () => {
+    const { session, id } = await replied();
+    session().emit({ type: 'text', delta: 'A task ended.' }, { type: 'done', status: 'completed' });
+    await settle();
+    expect(session().sent).toHaveLength(2);
+    session().emit({ type: 'user', id: id() }, { type: 'text', delta: FIX }, { type: 'done', status: 'completed' });
+    await settle();
+    expect(session().sent).toHaveLength(2);
+  });
+
+  describe('leaving during an await', () => {
+    /** A reply whose `failures` waits for the test. */
+    async function waiting() {
+      const harness = setup();
+      const view = recordingView();
+      let release!: (failed: typeof failure[]) => void;
+      view.failures = () => new Promise((resolve) => { release = resolve; });
+      const detach = harness.chat.attach(view);
+      harness.chat.open(); await settle();
+      void harness.chat.send(context).catch(() => undefined);
+      await settle();
+      const { session } = harness;
+      session().emit({ type: 'user', id: session().sent[0]!.id }, { type: 'text', delta: BROKEN }, { type: 'done', status: 'completed' });
+      return { ...harness, view, detach, release: (failed = [failure]) => release(failed) };
+    }
+
+    it('stops at the wait for the figures when the chat closes', async () => {
+      const { chat, session, view, release } = await waiting();
+      await chat.close();
+      release();
+      await settle();
+      expect(session().sent).toHaveLength(1);
+      expect(view.calls).not.toContain('settle');
+    });
+
+    it('sends nothing when the view goes during the wait for the figures', async () => {
+      const { chat, session, detach, release } = await waiting();
+      detach();
+      release();
+      await settle();
+      expect(session().sent).toHaveLength(1);
+      expect(chat.running).toBe(false);
+    });
+
+    it('releases the wait for the hidden turn when the chat closes, and adds no turn', async () => {
+      const { chat, session, view, id } = await replied();
+      session().emit({ type: 'user', id: id() });
+      await chat.close();
+      await settle();
+      expect(roles(chat)).toEqual(['user:Why is the sky blue?', 'agent:completed']);
+      expect(view.calls).not.toContain('settle');
+      await chat.settled();
+    });
+
+    it('saves a tool call of the hidden turn when the chat closes during it', async () => {
+      const { chat, session, store, id } = await replied();
+      session().emit({ type: 'user', id: id() }, tool);
+      await chat.close();
+      const saved = await store.load(ID);
+      expect(saved?.turns).toHaveLength(2);
+      expect(saved?.turns[1]).toMatchObject({ status: 'completed', parts: [{ type: 'text', text: BROKEN }, tool] });
+    });
+
+    it('saves no fix when the view goes during the hidden turn', async () => {
+      const { chat, session } = setup();
+      const view = recordingView();
+      view.failures = async () => [failure];
+      const detach = chat.attach(view);
+      chat.open(); await settle();
+      void chat.send(context);
+      await settle();
+      session().emit({ type: 'user', id: session().sent[0]!.id }, { type: 'text', delta: BROKEN }, { type: 'done', status: 'completed' });
+      await settle();
+      session().emit({ type: 'user', id: session().sent[1]!.id }, { type: 'text', delta: FIX });
+      detach();
+      session().emit({ type: 'done', status: 'completed' });
+      await settle();
+      expect(textOf(chat)).toEqual([BROKEN]);
+      expect(chat.running).toBe(false);
+    });
+
+    it('saves no fix when the view goes during the draw', async () => {
+      const { chat, session } = setup();
+      const view = recordingView();
+      view.failures = async () => [failure];
+      let release!: (drawn: ReadonlyMap<number, string>) => void;
+      view.repair = () => new Promise((resolve) => { release = resolve; });
+      const detach = chat.attach(view);
+      chat.open(); await settle();
+      void chat.send(context);
+      await settle();
+      session().emit({ type: 'user', id: session().sent[0]!.id }, { type: 'text', delta: BROKEN }, { type: 'done', status: 'completed' });
+      await settle();
+      session().emit({ type: 'user', id: session().sent[1]!.id }, { type: 'text', delta: FIX }, { type: 'done', status: 'completed' });
+      await settle();
+      detach();
+      release(new Map([[0, 'fixed']]));
+      await settle();
+      expect(textOf(chat)).toEqual([BROKEN]);
+      expect(chat.running).toBe(false);
     });
   });
 });

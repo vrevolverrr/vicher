@@ -47,9 +47,10 @@ const code = (metric: string, check: (output: string, highlights: TourStep[]) =>
 
 const judge = (metric: string, rubric: string): Assertion => ({ type: 'llm-rubric', metric, value: rubric });
 
+const unfenced = (output: string): string => output.replace(/^```[\s\S]*?^```/gm, '');
+
 /** Prose words: fenced blocks, display math and highlight lines do not count. */
-const words = (output: string): number => output
-  .replace(/^```[\s\S]*?^```/gm, '')
+const words = (output: string): number => unfenced(output)
   .replace(/\$\$[\s\S]*?\$\$/g, '')
   .replace(/^@Highlight\(.*\)$/gm, '')
   .split(/\s+/).filter(Boolean).length;
@@ -78,7 +79,7 @@ const figures = (count: number) => code('figure', async (output) => {
   return true;
 });
 const noHighlights = code('highlight', (_, highlights) => !highlights.length || 'highlights in an explanation');
-const bolds = code('format', (output) => /\*\*[^*\n]+\*\*/.test(output) || 'no bold key term');
+const bolds = code('format', (output) => /\*\*[^*\n]+\*\*/.test(unfenced(output)) || 'no bold key term');
 const skimmable = judge('skimmable', 'Pass only if a student who reads just the reply\'s headings and bold terms can find its parts (the definition, an example, the key terms) or get a rough idea of what it covers, and the reply is not a wall of unbroken text. Generic labels such as "Definition." and "Example." count. A reply of one idea may have no heading.');
 const voice = code('voice', (output) => {
   if (/[—–]/.test(output)) return 'uses an em or en dash';

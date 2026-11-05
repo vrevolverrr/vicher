@@ -114,6 +114,8 @@ function spawnChild(scoped, n, prompt = `Count to ${n}`) {
 function playTurn(turnId, scenario, input) {
   const scoped = { threadId: THREAD_ID, turnId };
   startTurn(THREAD_ID, turnId);
+  // The server can abort a turn before it reports the message; no real run has shown this yet.
+  if (scenario === 'never-taken') return;
   userMessage(THREAD_ID, turnId, input);
   const message = '{"type":"say","text":"Look at the definition first."}';
   switch (scenario) {

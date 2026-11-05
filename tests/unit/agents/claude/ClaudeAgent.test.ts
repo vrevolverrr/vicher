@@ -279,6 +279,43 @@ describe('ClaudeAgent session', () => {
     expect(lines(events)).toEqual(['user A', 'text', 'done interrupted', 'user B', 'text', 'usage', 'done completed']);
   });
 
+  describe('a Stop before the message is taken in', () => {
+    async function stopped() {
+      const cli = new FakeClaude().manual();
+      const { session, events } = await open(cli);
+      session.send({ id: 'A', text: 'Write ten lines.' });
+      await until(() => cli.sent.length === 1);
+      session.interrupt();
+      return { cli, session, events };
+    }
+
+    it('drops the message, with no done, when the CLI ends it before checking the prompt, and runs the next', async () => {
+      const { cli, session, events } = await stopped();
+      session.send({ id: 'B', text: 'Then this.' });
+      await until(() => cli.sent.length === 2);
+      cli.emit(INTERRUPTED);
+      await until(() => events.some((e) => e.type === 'dropped'));
+      cli.emit(replay(cli.sent[1]!), text('B'), RESULT);
+      await until(() => doneCount(events) === 1);
+      expect(events.find((e) => e.type === 'dropped')).toEqual({ type: 'dropped', ids: ['A'], error: 'Stopped before the agent took the message in', stopped: true });
+      expect(events.filter((e) => e.type === 'user' || e.type === 'done').map((e) => (e.type === 'user' ? e.id : e.status))).toEqual(['B', 'completed']);
+    });
+
+    it('reads an error result after the message was taken in as interrupted', async () => {
+      const { cli, events } = await stopped();
+      cli.emit(replay(cli.sent[0]!), INTERRUPTED);
+      await until(() => doneCount(events) === 1);
+      expect(events.at(-1)).toEqual({ type: 'done', status: 'interrupted' });
+    });
+
+    it('reports a turn the CLI ran anyway as completed', async () => {
+      const { cli, events } = await stopped();
+      cli.emit(replay(cli.sent[0]!), text('A'), RESULT);
+      await until(() => doneCount(events) === 1);
+      expect(events.at(-1)).toEqual({ type: 'done', status: 'completed' });
+    });
+  });
+
   it('closes out the turn, the pending messages and the running tasks when the process exits, in that order', async () => {
     const cli = new FakeClaude().manual();
     const { session, events } = await open(cli);

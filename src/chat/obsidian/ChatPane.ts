@@ -59,6 +59,8 @@ export class ChatPane extends Component {
   private turnEl: HTMLElement | null = null;
   /** The reply being written. */
   private reply: { el: HTMLElement; view: ReturnType<typeof ReplyView> } | null = null;
+  /** The reply that ended and is not settled yet: a figure repair may still change it. */
+  private ending: ReturnType<typeof ReplyView> | null = null;
   private detach: (() => void) | null = null;
   private markdown!: MarkdownContentRenderer;
   /** What replies draw through: Markdown, plus Mermaid diagrams where a reply asks for them. */
@@ -270,19 +272,24 @@ export class ChatPane extends Component {
         this.turnEl = queued.turnEl;
         this.syncWaiting();
       },
-      dropped: (id, error) => {
+      dropped: (id, error, stopped) => {
         const queued = this.queued.get(id);
         this.queued.delete(id);
         if (!queued) return;
-        const labelEl = queued.labelEl ?? queued.turnEl.createDiv({ cls: 'vicher-user-label' });
-        labelEl.setText(`Not sent: ${error}`);
-        labelEl.addClass('is-error');
+        if (stopped) {
+          new Notice(error);
+          queued.turnEl.remove();
+        } else {
+          const labelEl = queued.labelEl ?? queued.turnEl.createDiv({ cls: 'vicher-user-label' });
+          labelEl.setText(`Not sent: ${error}`);
+          labelEl.addClass('is-error');
+        }
         this.composer.restore(queued.message);
         this.syncWaiting();
       },
       agentStart: () => this.openReply(),
       appendText: (delta) => reply().appendText(delta),
-      tool: (part) => reply().tool(part),
+      tool: (part) => (this.reply?.view ?? this.ending ?? reply()).tool(part),
       thinking: () => reply().thinking(),
       notice: (event) => this.tasks.notice(event),
       usage: (used, window) => this.composer.meter.set(used, window),
@@ -292,15 +299,24 @@ export class ChatPane extends Component {
         reply().highlight(step);
         if (this.host.active()) this.host.tour.add(step);
       },
-      agentEnd: (turn, index) => {
+      agentEnd: (turn, index, repairing) => {
         if (!this.reply) this.openReply();
         const { el, view } = this.reply!;
         this.reply = null;
         view.finish(turn.at, this.feedback(index), this.runText(el));
+        if (repairing) this.ending = view;
+        else view.settle();
         this.syncWaiting();
         this.showStatus(el, turn);
         this.unread = !this.host.active();
         this.refreshTab();
+      },
+      failures: () => this.ending!.failures(),
+      repair: (fixes) => this.ending!.repair(fixes),
+      settle: () => {
+        this.ending?.settle();
+        this.ending = null;
+        this.syncWaiting();
       },
       background: (tasks) => this.tasks.set(tasks),
     };
@@ -324,9 +340,9 @@ export class ChatPane extends Component {
     return replyEl;
   }
 
-  /** Shows the working line at the end of the chat while the agent has work and no reply is open. */
+  /** Shows the working line at the end of the chat while the agent has work and no reply is open or settling. */
   private syncWaiting(): void {
-    const show = this.chat.running && !this.reply;
+    const show = this.chat.running && !this.reply && !this.ending;
     if (show && !this.waiting) {
       const el = this.messagesEl.createDiv({ cls: 'vicher-turn is-waiting' });
       const target = el.createDiv({ cls: 'vicher-reply markdown-rendered' });
@@ -426,6 +442,7 @@ export class ChatPane extends Component {
       else reply.tool(part);
     }
     reply.finish(turn.at, this.feedback(index, turn.rating), this.runText(replyEl));
+    reply.settle();
     this.showStatus(replyEl, turn);
   }
 

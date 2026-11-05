@@ -367,6 +367,22 @@ describe('CodexAgent session', () => {
     expect(paramsOf('turn/interrupt')).toEqual({ threadId: 'thread-1', turnId: 'turn-1' });
   });
 
+  it('drops a message whose turn ended before taking it in, with no done, and runs the held message after it', async () => {
+    const tutor = await open('never-taken,stream');
+    const { until } = record(tutor);
+
+    tutor.send({ id: 'A', text: 'A' });
+    tutor.interrupt();
+    tutor.send({ id: 'B', text: 'B' });
+    const events = await until(dones(1));
+
+    expect(events.filter((event) => event.type !== 'text')).toEqual([
+      { type: 'dropped', ids: ['A'], error: 'Stopped before the agent took the message in', stopped: true },
+      { type: 'user', id: 'B' },
+      { type: 'done', status: 'completed' },
+    ]);
+  });
+
   it('reports a top-level subagent while it runs and its answer when it ends, ignoring its own subagent', async () => {
     const tutor = await open('subagent');
     const { until } = record(tutor);
