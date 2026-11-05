@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:live": "tsx --test tests/live/agents.test.ts",
     "test:vault": "tsx --test tests/vault/layout.test.ts",
-    "bench": "tsx bench/latency/bench.ts",
+    "bench:latency": "tsx bench/latency/run.ts",
     "bench:figures": "tsx bench/figure/run.mts",
     "eval:figures": "tsx eval/figure/run.mts",
     "eval": "tsx eval/run.mts",

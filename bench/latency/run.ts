@@ -1,10 +1,11 @@
 // Live-tutor latency benchmark: the user's own Claude Code CLI driven through the Agent SDK.
-// npm run bench -- [--only=<config-substring>] [--smoke] [--out=<file>]
+// npm run bench:latency -- [--only=text] [--smoke] [--out=<file>]
 import type { Options, Query, SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 import { createSdkMcpServer, query, tool } from '@anthropic-ai/claude-agent-sdk';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { parseArgs } from 'util';
 import { z } from 'zod';
 
 import { AsyncQueue } from '../../src/agents/shared/AsyncQueue';
@@ -273,8 +274,7 @@ function check(r: TurnResult, s: Scenario): TurnResult {
 }
 
 async function main(): Promise<void> {
-  const only = process.argv.find((a) => a.startsWith('--only='))?.slice(7);
-  const smoke = process.argv.includes('--smoke');
+  const { values: { only, smoke, out: outName } } = parseArgs({ options: { only: { type: 'string' }, smoke: { type: 'boolean', default: false }, out: { type: 'string' } } });
   const configs = CONFIGS.filter((c) => !only || c.name.includes(only));
   const scenarios = smoke ? SCENARIOS.slice(0, 2) : SCENARIOS;
   const results: TurnResult[] = [];
@@ -300,9 +300,9 @@ async function main(): Promise<void> {
     }
   }
 
-  const out = path.join(resultsDir, process.argv.find((a) => a.startsWith('--out='))?.slice(6) ?? `results-${smoke ? 'smoke' : 'full'}.json`);
+  const out = path.join(resultsDir, outName ?? `results-${smoke ? 'smoke' : 'full'}.json`);
   fs.writeFileSync(out, JSON.stringify(results, null, 2));
   console.log(`wrote ${out}`);
 }
 
-if (process.argv[1]?.endsWith('bench.ts')) main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => { console.error(e); process.exit(1); });
