@@ -26,6 +26,7 @@ import { renderMermaidDiagrams } from '@/renderer/mermaid/obsidian/mermaidDiagra
 import type { HighlightTour, TourEvent } from '@/tour/HighlightTour';
 import type { WalkthroughHost } from '@/tour/view/WalkthroughHost';
 import { messageOf } from '@/shared/messageOf';
+import { copyRefused } from '@/shared/obsidian/copyRefused';
 
 const PIN_MS = 1500;
 // The quote clamps to a few lines, so a long selection needs no more text in the page than this.
@@ -403,7 +404,7 @@ export class ChatPane extends Component {
     const replyEl = turnEl.createDiv({ cls: 'vicher-reply markdown-rendered' });
     const reply = mount(ReplyView, {
       target: replyEl,
-      props: { markdown: this.replyMarkdown, walkthrough: this.walkthrough, ask: (message: string) => this.ask(message), live, handover },
+      props: { markdown: this.replyMarkdown, walkthrough: this.walkthrough, ask: (message: string) => this.ask(message), copyRefused, live, handover },
     });
     this.replies.set(replyEl, reply);
     return { replyEl, reply };

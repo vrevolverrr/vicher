@@ -60,7 +60,7 @@ const mounted: Array<ReturnType<typeof ReplyView>> = [];
 
 /** A reply in `target` whose calls draw what they changed, as the chat does between events. */
 function replyOf(target: HTMLElement, { walkthrough = hostOf(), markdown: draw = markdown, ...props }: ReplyProps = {}) {
-  const view = mount(ReplyView, { target, props: { markdown: draw, walkthrough, ...props } });
+  const view = mount(ReplyView, { target, props: { markdown: draw, walkthrough, copyRefused: vi.fn(), ...props } });
   mounted.push(view);
   const drawn = <A extends unknown[], R>(call: (...args: A) => R) => (...args: A): R => {
     const result = call(...args);
@@ -767,7 +767,7 @@ describe('ReplyView', () => {
 
     it('hears the tour from the moment the first stop is added', () => {
       const own = hostOf();
-      const view = mount(ReplyView, { target: document.createElement('div'), props: { markdown, walkthrough: own } });
+      const view = mount(ReplyView, { target: document.createElement('div'), props: { markdown, walkthrough: own, copyRefused: vi.fn() } });
       mounted.push(view);
 
       view.highlight(stop('a'));

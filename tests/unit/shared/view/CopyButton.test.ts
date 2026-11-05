@@ -11,6 +11,7 @@ describe('CopyButton', () => {
   let button: HTMLButtonElement;
   let copy: ReturnType<typeof CopyButton>;
   let text: string;
+  const refused = vi.fn();
 
   const press = async () => {
     button.click();
@@ -24,13 +25,23 @@ describe('CopyButton', () => {
     writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
     text = 'first';
-    copy = mount(CopyButton, { target: document.body, props: { label: 'Copy it', text: () => text } });
+    copy = mount(CopyButton, { target: document.body, props: { label: 'Copy it', text: () => text, refused } });
     button = document.querySelector('button')!;
   });
 
   afterEach(() => {
     unmount(copy);
     vi.useRealTimers();
+  });
+
+  it('reports a refused copy and shows no check', async () => {
+    const error = new Error('Write permission denied');
+    writeText.mockRejectedValue(error);
+
+    await press();
+
+    expect(refused).toHaveBeenCalledWith(error);
+    expect(copied()).toBe(false);
   });
 
   it('copies the text as it is when pressed', async () => {

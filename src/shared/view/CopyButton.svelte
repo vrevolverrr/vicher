@@ -6,10 +6,12 @@
   interface Props {
     label: string;
     text: () => string;
+    /** The clipboard said no, which the host reports. */
+    refused: (error: unknown) => void;
     class?: ClassValue;
   }
 
-  const { label, text, class: cls }: Props = $props();
+  const { label, text, refused, class: cls }: Props = $props();
 
   const COPIED_MS = 1500;
   let copied = $state(false);
@@ -22,7 +24,7 @@
       copied = true;
       window.clearTimeout(reset);
       reset = window.setTimeout(() => (copied = false), COPIED_MS);
-    });
+    }, refused);
   }
 </script>
 

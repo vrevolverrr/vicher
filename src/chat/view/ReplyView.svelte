@@ -33,13 +33,15 @@
     walkthrough: WalkthroughHost;
     /** Sends a message a figure wrote for the student, such as a quiz answer; false when the chat cannot take one now. */
     ask?: (message: string) => boolean;
+    /** Reports a copy the clipboard refused. */
+    copyRefused: (error: unknown) => void;
     /** True for a reply being written, false for a saved one drawn again. */
     live?: boolean;
     /** The working line takes over one already on screen, so it does not ease in again. */
     handover?: boolean;
   }
 
-  const { markdown, walkthrough, ask, live = false, handover = false }: Props = $props();
+  const { markdown, walkthrough, ask, copyRefused, live = false, handover = false }: Props = $props();
 
   type ToolsBlock = { id: number; kind: 'tools'; startedAt: number; rows: ToolPart[]; holding: boolean; finished: boolean; entering: boolean };
   type TextBlockEntry = { id: number; kind: 'text'; first: number; view?: TextBlock };
@@ -204,7 +206,7 @@
     {#if footer.at !== undefined}
       <span class="vicher-reply-time">{formatWhen(footer.at, Date.now())}</span>
     {/if}
-    <CopyButton class="vicher-reply-copy" label="Copy response" text={footer.copy} />
+    <CopyButton class="vicher-reply-copy" label="Copy response" text={footer.copy} refused={copyRefused} />
     {#if footer.feedback}
       {#each RATINGS as [name, iconName, label] (name)}
         <button
