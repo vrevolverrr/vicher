@@ -172,7 +172,7 @@ const CASES: TestCase[] = [
       bolds,
       skimmable,
       noHighlights,
-      judge('teaching', 'The reply explains what σ does in a normal distribution. Pass only if (1) every variable and parameter in its displayed formula (such as x, μ and σ; not constants like π or e) is explained in words and (2) it works one example with real numbers.'),
+      judge('teaching', 'The reply explains what σ does in a normal distribution. Pass only if (1) every parameter in its displayed formula (such as μ and σ; not constants like π or e, and not the input variable x) is explained in words and (2) it works one example with real numbers.'),
     ],
   },
   {
