@@ -833,7 +833,9 @@ describe('ReplyView', () => {
       await settle();
 
       quizEl.querySelectorAll<HTMLElement>('.vicher-quiz-option')[1]!.click();
+      flushSync();
       quizEl.querySelector<HTMLElement>('.vicher-quiz-submit')!.click();
+      flushSync();
 
       expect(sent).toEqual(['My answer: 4 (correct). Question: Pick the even number']);
       expect(quizEl.querySelectorAll('.vicher-quiz-option')[1]!.classList.contains('is-correct')).toBe(true);
@@ -845,7 +847,9 @@ describe('ReplyView', () => {
       await settle();
 
       quizEl.querySelectorAll<HTMLElement>('.vicher-quiz-option')[0]!.click();
+      flushSync();
       quizEl.querySelector<HTMLElement>('.vicher-quiz-submit')!.click();
+      flushSync();
 
       expect(quizEl.querySelector('.vicher-quiz-submit')).not.toBeNull();
       expect(quizEl.querySelector('.vicher-quiz-note')!.textContent).toMatch(/finish/i);
