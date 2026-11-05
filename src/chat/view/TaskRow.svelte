@@ -2,7 +2,7 @@
   import { cubicOut, sineOut } from 'svelte/easing';
   import { SvelteMap, SvelteSet } from 'svelte/reactivity';
   import type { AgentId, BackgroundTask, NoticeEvent } from '@/agents/types';
-  import { appendAgentIcon } from '@/chat/view/agentIcons';
+  import { agentIcon } from '@/chat/view/agentIcons';
   import Card from '@/chat/view/Card.svelte';
   import { ms } from '@/shared/view/motion';
   import { formatElapsed } from '@/chat/view/formatElapsed';
@@ -233,13 +233,11 @@
     for (const timer of timers) window.clearTimeout(timer);
   });
 
-  /** The agent's logo while the task runs; then its end, a check drawing itself in once. */
-  const mark = (line: Line) => (el: HTMLElement) => {
-    el.empty();
-    if (!line.icon) return appendAgentIcon(el, agent());
-    setIcon(el, line.icon);
+  /** How the task ended; a check draws itself in once. */
+  const mark = (name: string) => (el: HTMLElement) => {
+    setIcon(el, name);
     // Each stroke's length is 1, so the CSS can draw any of them with one dash.
-    if (line.icon === 'circle-check') for (const shape of el.querySelectorAll('svg > *')) shape.setAttribute('pathLength', '1');
+    if (name === 'circle-check') for (const shape of el.querySelectorAll('svg > *')) shape.setAttribute('pathLength', '1');
   };
 
   /** A row's slot opens, or closes after its row has faded; a row hidden by the fold comes and goes at once. */
@@ -301,7 +299,11 @@
           onoutroend={() => { if (top) top.instant = false; }}
         >
           <div class="vicher-task-inner" in:content={line} out:content={line}>
-            <span class={['vicher-task-mark', { 'is-drawing': line.icon === 'circle-check' }]} {@attach mark(line)}></span>
+            {#if line.icon}
+              <span class={['vicher-task-mark', { 'is-drawing': line.icon === 'circle-check' }]} {@attach mark(line.icon)}></span>
+            {:else}
+              <span class="vicher-task-mark"><svg {@attach agentIcon(agent())}></svg></span>
+            {/if}
             <div class="vicher-task-main">
               <div class="vicher-task-head">
                 <span class="vicher-task-description" title={line.description}>{line.description}</span>

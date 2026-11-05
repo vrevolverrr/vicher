@@ -4,15 +4,8 @@ import type { AgentId } from '@/agents/types';
 const FALLBACK = { viewBox: '0 0 24 24', path: 'M3 3h18v14H9l-6 5V3Zm2 2v12.7L8.3 15H19V5H5Z' };
 const SVG = 'http://www.w3.org/2000/svg';
 
-/** Appends the agent's logo, or a generic one for an agent without artwork. */
-export function appendAgentIcon(parent: HTMLElement, agent: AgentId): void {
-  drawAgentIcon(parent.appendChild(document.createElementNS(SVG, 'svg')), agent);
-}
-
-/** Draws the agent's logo into the `<svg>` it is attached to. */
-export const agentIcon = (agent: AgentId) => (svg: SVGSVGElement): void => drawAgentIcon(svg, agent);
-
-function drawAgentIcon(svg: SVGSVGElement, agent: AgentId): void {
+/** Draws the agent's logo into the `<svg>` it is attached to, or a generic one for an agent without artwork. */
+export const agentIcon = (agent: AgentId) => (svg: SVGSVGElement): void => {
   const info: ProviderInfo | undefined = isAgentId(agent) ? PROVIDERS[agent] : undefined;
   const icon: NonNullable<ProviderInfo['icon']> = info?.icon ?? FALLBACK;
   svg.classList.add('vicher-agent-icon');
@@ -25,4 +18,4 @@ function drawAgentIcon(svg: SVGSVGElement, agent: AgentId): void {
   path.setAttribute('d', icon.path);
   path.setAttribute('fill', 'currentColor');
   svg.replaceChildren(path);
-}
+};

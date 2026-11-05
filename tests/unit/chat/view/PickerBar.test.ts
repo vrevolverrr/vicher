@@ -4,7 +4,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import type { AgentId, ModelOption, PermissionPolicy } from '@/agents/types';
 import type { ModelChoice } from '@/chat/ChatDefaults';
-import type { ModelPickerHost, PermissionMenuHost } from '@/chat/view/ModelPickerHost';
+import type { PickerHost } from '@/chat/view/PickerHost';
 import PickerBar from '@/chat/view/PickerBar.svelte';
 
 vi.mock('obsidian', () => ({ setIcon: vi.fn() }));
@@ -23,7 +23,7 @@ describe('PickerBar', () => {
   let choices: Partial<Record<AgentId, ModelChoice>>;
   let policy: PermissionPolicy;
   let chosen: [AgentId, ModelChoice][];
-  let host: ModelPickerHost & PermissionMenuHost;
+  let host: PickerHost;
   let bar: ReturnType<typeof PickerBar>;
 
   const settle = async () => {

@@ -17,7 +17,7 @@
   import { PERMISSION_POLICIES } from '@/agents/types';
   import { AGENT_IDS, PROVIDERS } from '@/agents/providers';
   import { agentIcon } from '@/chat/view/agentIcons';
-  import type { ModelPickerHost, PermissionMenuHost } from '@/chat/view/ModelPickerHost';
+  import type { PickerHost } from '@/chat/view/PickerHost';
   import Picker from '@/chat/view/Picker.svelte';
   import { icon } from '@/shared/view/icon';
 
@@ -27,7 +27,7 @@
    * the current model takes. Picking closes the menu, as do Escape and a press outside.
    */
   interface Props {
-    host: ModelPickerHost & PermissionMenuHost;
+    host: PickerHost;
     container: HTMLElement;
   }
 

@@ -5,8 +5,8 @@ import { flushSync, mount, unmount } from 'svelte';
 import type { AgentId, SkillOption, SkillSyntax } from '@/agents/types';
 import ContextChips from '@/chat/view/ContextChips.svelte';
 import ContextMeter from '@/chat/view/ContextMeter.svelte';
-import type { ModelPickerHost, PermissionMenuHost } from '@/chat/view/ModelPickerHost';
 import PickerBar from '@/chat/view/PickerBar.svelte';
+import type { PickerHost } from '@/chat/view/PickerHost';
 import SendButton from '@/chat/view/SendButton.svelte';
 import SkillMenu, { filterSkills } from '@/chat/view/SkillMenu.svelte';
 import { appendMessageText } from '@/chat/view/appendMessageText';
@@ -64,7 +64,7 @@ export class Composer {
     owner: Component & { app: App; contentEl: HTMLElement },
     parent: HTMLElement,
     private readonly host: ComposerHost,
-    private readonly chat: ModelPickerHost & PermissionMenuHost & { readonly skillSyntax: SkillSyntax; skills(): Promise<SkillOption[]> },
+    private readonly chat: PickerHost & { readonly skillSyntax: SkillSyntax; skills(): Promise<SkillOption[]> },
   ) {
     const composer = (this.el = parent.createDiv({ cls: 'vicher-composer' }));
     // The chips come first: the document reports its state as soon as it starts following the editor.
