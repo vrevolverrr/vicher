@@ -12,7 +12,7 @@
 <script lang="ts">
   import { SvelteMap } from 'svelte/reactivity';
   import { icon } from '@/shared/view/icon';
-  import { arrive, leave, type ChipExit } from '@/shared/view/chipMotion';
+  import { arrive, leave, type ChipExit } from '@/shared/view/motion';
 
   /**
    * The chips for what the next message carries besides text, each with a button to take it off. They join the

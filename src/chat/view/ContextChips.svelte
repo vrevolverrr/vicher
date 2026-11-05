@@ -3,8 +3,7 @@
   import { fly } from 'svelte/transition';
   import type { OpenDocumentState } from '@/context/NoteContext';
   import { icon } from '@/shared/view/icon';
-  import { arrive, leave, type ChipExit } from '@/shared/view/chipMotion';
-  import { ms } from '@/shared/view/motion';
+  import { arrive, leave, type ChipExit, ms } from '@/shared/view/motion';
 
   /**
    * The chips above the input that show what the next turn carries. A chip lives as long as its subject: new state

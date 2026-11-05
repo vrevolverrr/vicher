@@ -10,7 +10,7 @@ import type { Chat, ChatEvents } from '@/chat/Chat';
 import type { ChatRecord } from '@/chat/ChatRecord';
 import { CHAT_ID } from '@/chat/ChatStore';
 import type { ChatStore } from '@/chat/ChatStore';
-import { createIconButton } from '@/shared/view/iconButtons';
+import { createIconButton } from '@/shared/view/icon';
 import { messageOf } from '@/shared/messageOf';
 
 export const VIEW_TYPE_CHAT = 'vicher-chat';

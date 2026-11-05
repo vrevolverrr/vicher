@@ -18,7 +18,7 @@ import { mentionToken, mentionTokens, mentionTrigger } from '@/attachments/menti
 import type { MentionFile } from '@/attachments/obsidian/VaultFileIndex';
 import { type Dropped, dragCarriesFiles, imageFiles, readDrop } from '@/attachments/obsidian/droppedFiles';
 import AttachmentChips from '@/attachments/view/AttachmentChips.svelte';
-import type { ChipExit } from '@/shared/view/chipMotion';
+import type { ChipExit } from '@/shared/view/motion';
 import { messageOf } from '@/shared/messageOf';
 
 const MAX_INPUT_HEIGHT = 192;

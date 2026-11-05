@@ -5,7 +5,7 @@ import { mount, unmount } from 'svelte';
 
 import { copyRefused } from '@/shared/obsidian/copyRefused';
 import CopyButton from '@/shared/view/CopyButton.svelte';
-import { createIconButton } from '@/shared/view/iconButtons';
+import { createIconButton } from '@/shared/view/icon';
 import { canAnimate, ease } from '@/shared/view/motion';
 
 import { diagramMath } from './diagramMath';
