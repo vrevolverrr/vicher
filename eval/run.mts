@@ -76,6 +76,8 @@ const figures = (count: number) => code('figure', async (output) => {
   }
   return true;
 });
+const bolds = code('format', (output) => /\*\*[^*\n]+\*\*/.test(output) || 'no bold key term');
+const skimmable = judge('skimmable', 'Pass only if a student who reads just the reply\'s headings and bold terms gets a rough idea of what it says, and the reply is not a wall of unbroken text. A reply of one idea may have no heading.');
 const voice = code('voice', (output) => {
   if (/[—–]/.test(output)) return 'uses an em or en dash';
   if (/stated exactly/i.test(output)) return 'uses "Stated exactly"';
@@ -152,6 +154,8 @@ const CASES: TestCase[] = [
       code('formula', (output) => !output.includes('$$') || 'has display math for a concept with no formula'),
       voice,
       figures(0),
+      bolds,
+      skimmable,
     ],
   },
   {
@@ -162,6 +166,8 @@ const CASES: TestCase[] = [
       code('formula', (output) => output.includes('$$') || 'no display formula'),
       voice,
       figures(1),
+      bolds,
+      skimmable,
       judge('teaching', 'The reply explains what σ does in a normal distribution. Pass only if (1) every variable and parameter in its displayed formula (such as x, μ and σ; not constants like π or e) is explained in words and (2) it works one example with real numbers.'),
     ],
   },
