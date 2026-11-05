@@ -70,3 +70,8 @@ if (typeof HTMLElement !== 'undefined') {
     },
   });
 }
+
+// jsdom has no matchMedia, which `canAnimate` reads on every call.
+if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && !window.matchMedia) {
+  window.matchMedia = (media: string) => ({ media, matches: false, addEventListener() {}, removeEventListener() {} }) as unknown as MediaQueryList;
+}

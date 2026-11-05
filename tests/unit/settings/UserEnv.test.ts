@@ -42,7 +42,7 @@ describe('parseEnv', () => {
 describe('UserEnv', () => {
   function userEnv(stored: string | null) {
     const state = { stored };
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     return { state, onChange, env: new UserEnv(() => state.stored, (text) => { state.stored = text; }, onChange) };
   }
 

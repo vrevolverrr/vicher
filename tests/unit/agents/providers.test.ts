@@ -1,9 +1,9 @@
 import { AGENT_IDS, createAgents, DEFAULT_AGENT, isAgentId } from '@/agents/providers';
 
-jest.mock('@/agents/process/loginShellPath', () => ({ resolveLoginShellPath: jest.fn(async () => undefined) }));
+vi.mock('@/agents/process/loginShellPath', () => ({ resolveLoginShellPath: vi.fn(async () => undefined) }));
 
 it('constructs the adapter matching every registered identity without starting a session', () => {
-  const env = jest.fn(() => ({}));
+  const env = vi.fn(() => ({}));
   const agents = createAgents(env);
   expect(Object.keys(agents)).toEqual([...AGENT_IDS]);
   for (const id of AGENT_IDS) expect(agents[id].id).toBe(id);

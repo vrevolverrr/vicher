@@ -1,4 +1,5 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
+import { flushSync } from 'svelte';
 import type { FigureSandbox, RunResult } from '@/renderer/figure/view/FigureSandbox';
 import { type FigureHost, FigureView } from '@/renderer/figure/view/FigureView';
 
@@ -136,7 +137,7 @@ describe('FigureView', () => {
   it('draws a step heading over its caption in the list', async () => {
     const view = new FigureView(document.body, host(), sandbox(() => payload([{ caption: 'a', heading: 'One', root: el('Node', { label: 'x' }) }, { caption: 'b', root: el('Node', { label: 'y' }) }])));
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
-    expect([...view.el.querySelectorAll('.vicher-step .vicher-step-text')].map((text) => [...text.children].map((part) => `${part.className}:${part.textContent}`))).toEqual([
+    expect([...view.el.querySelectorAll('.vicher-step .vicher-step-text')].map((text) => [...text.children].map((part) => `${part.classList[0]}:${part.textContent}`))).toEqual([
       ['vicher-step-heading:One', 'vicher-step-caption:a'],
       ['vicher-step-caption:b'],
     ]);
@@ -203,7 +204,7 @@ describe('FigureView', () => {
     const slider = view.el.querySelector<HTMLInputElement>('input[type="range"]')!;
     for (const value of ['9', '1']) {
       slider.value = value;
-      slider.dispatchEvent(new Event('input'));
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
       for (let i = 0; i < 4; i += 1) await flush();
       expect(height()).toBe(first);
     }
@@ -251,7 +252,7 @@ describe('FigureView', () => {
     const slider = view.el.querySelector<HTMLInputElement>('input[type="range"]')!;
     for (const value of ['4', '5', '6']) {
       slider.value = value;
-      slider.dispatchEvent(new Event('input'));
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
     }
     runs.release();
     await flush();
@@ -267,12 +268,112 @@ describe('FigureView', () => {
     await flush();
     markdown.accept = false;
     view.el.querySelectorAll<HTMLButtonElement>('.vicher-quiz-option')[1].click();
+    flushSync();
     view.el.querySelector<HTMLButtonElement>('.vicher-quiz-submit')!.click();
+    flushSync();
     expect(view.el.querySelector('.vicher-quiz-note')!.textContent).toBe('Wait for the reply to finish, then submit.');
     markdown.accept = true;
     view.el.querySelector<HTMLButtonElement>('.vicher-quiz-submit')!.click();
+    flushSync();
     expect(markdown.sent).toEqual(['My answer: y (correct). Question: Which?', 'My answer: y (correct). Question: Which?']);
     expect(view.el.querySelector('.vicher-quiz-bar')).toBeNull();
+  });
+
+  describe('controls', () => {
+    afterEach(() => vi.useRealTimers());
+
+    async function playing(): Promise<{ view: FigureView; runs: ReturnType<typeof sandbox> }> {
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+      const markdown = host();
+      const runs = sandbox((params) => payload([
+        { caption: 'a', root: el('Node', { id: 'a', label: String(params.n ?? 3) }) },
+        { caption: 'b', root: el('Node', { id: 'a', label: 'b' }) },
+      ], { n: { label: 'n', min: 1, max: 9, step: 1, value: 3 } }));
+      const view = new FigureView(document.body, markdown, runs);
+      void view.run('src');
+      await flush();
+      markdown.finish();
+      await flush();
+      view.el.querySelector<HTMLButtonElement>('.vicher-player .is-play')!.click();
+      flushSync();
+      return { view, runs };
+    }
+
+    it('stops the player\'s timer when the figure is destroyed', async () => {
+      const { view } = await playing();
+      expect(vi.getTimerCount()).toBe(1);
+
+      view.destroy();
+
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('stops the player\'s timer and keeps one step list and one player when a param change redraws the figure', async () => {
+      const { view, runs } = await playing();
+      expect(vi.getTimerCount()).toBe(1);
+
+      const slider = view.el.querySelector<HTMLInputElement>('.vicher-slider input')!;
+      slider.value = '5';
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+      await flush();
+      await flush();
+
+      expect(runs.calls.at(-1)).toEqual({ n: 5 });
+      expect(vi.getTimerCount()).toBe(0);
+      expect(view.el.querySelectorAll('.vicher-player')).toHaveLength(1);
+      expect(view.el.querySelectorAll('.vicher-steps')).toHaveLength(1);
+      expect(view.el.querySelector('.vicher-player .is-play')!.getAttribute('aria-label')).toBe('Play');
+    });
+
+    it('keeps the step the student is on across a redraw', async () => {
+      const { view } = await playing();
+      view.el.querySelector<HTMLButtonElement>('.vicher-step-button')!.click();
+      view.el.querySelectorAll<HTMLButtonElement>('.vicher-step-button')[1].click();
+
+      const slider = view.el.querySelector<HTMLInputElement>('.vicher-slider input')!;
+      slider.value = '5';
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+      await flush();
+      await flush();
+
+      expect(view.el.querySelector('.vicher-steps .is-current .vicher-step-dot')!.textContent).toBe('2');
+      expect(view.el.querySelector('.vicher-player-count')!.textContent).toBe('2 / 2');
+    });
+  });
+
+  it('waits for the Markdown a Quiz and a step list render before it resolves', async () => {
+    const markdown = host();
+    const view = new FigureView(document.body, markdown, sandbox(() => payload([{ caption: '**cap**', root: el('Quiz', { question: '**Which?**', options: ['**x**', 'y'], correct: 'y', explanation: 'e' }) }])));
+    let done = false;
+    void view.run('src').then(() => { done = true; });
+    await flush();
+    expect(markdown.rendered.sort()).toEqual(['**Which?**', '**cap**', '**x**']);
+    expect(done).toBe(false);
+
+    markdown.finish();
+    await flush();
+    expect(done).toBe(true);
+  });
+
+  it('keeps the figure on screen until the Markdown of a redrawn Quiz has rendered', async () => {
+    const markdown = host();
+    const runs = sandbox((params) => payload([{ caption: '', root: el('Quiz', { question: `**Q${params.n ?? 3}**`, options: ['x', 'y'], correct: 'y' }) }], { n: { label: 'n', min: 1, max: 9, step: 1, value: 3 } }));
+    const view = new FigureView(document.body, markdown, runs);
+    void view.run('src');
+    await flush();
+    markdown.finish();
+    await flush();
+
+    const slider = view.el.querySelector<HTMLInputElement>('.vicher-slider input')!;
+    slider.value = '5';
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
+    await flush();
+    expect(view.el.querySelectorAll('.vicher-figure-body')).toHaveLength(2);
+
+    markdown.finish();
+    await flush();
+    expect(view.el.querySelectorAll('.vicher-figure-body')).toHaveLength(1);
+    expect(view.el.querySelector('.vicher-quiz-question')!.textContent).toBe('**Q5**');
   });
 
   it('keeps a sent Quiz answered when the figure redraws', async () => {
@@ -281,6 +382,7 @@ describe('FigureView', () => {
     void view.run('src');
     await flush();
     view.el.querySelectorAll<HTMLButtonElement>('.vicher-quiz-option')[0].click();
+    flushSync();
     view.el.querySelector<HTMLButtonElement>('.vicher-quiz-submit')!.click();
     view.retheme();
     markdown.finish();
@@ -335,7 +437,7 @@ describe('FigureView', () => {
     const ran = view.run('src');
     await flush();
     const box = HTMLElement.prototype.getBoundingClientRect;
-    const rendered = jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    const rendered = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       return this.classList.contains('vicher-figure-diagram-label') ? ({ width: 900, height: 60 } as DOMRect) : box.call(this);
     });
     markdown.finish();
@@ -353,7 +455,7 @@ describe('FigureView', () => {
     const view = new FigureView(document.body, host(), sandbox(() => payload([{ caption: 'a', root: el('Tex', { id: 't', tex: 'x' }) }, { caption: 'b', root: el('Tex', { id: 't', tex: 'y' }) }])));
     Object.defineProperty(view.el, 'clientWidth', { get: () => width });
     const box = HTMLElement.prototype.getBoundingClientRect;
-    const laidOut = jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    const laidOut = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       return this.classList.contains('vicher-figure-tex') ? ({ width: Math.max(width, parseFloat(this.style.minWidth) || 0), height: 40 } as DOMRect) : box.call(this);
     });
     await expect(view.run('src')).resolves.toEqual({ drawn: true });
@@ -469,7 +571,7 @@ describe('a 3D Plot in a figure', () => {
     expect(angle(view)).toBe('50/15');
     const slider = view.el.querySelector<HTMLInputElement>('input[type="range"]')!;
     slider.value = '2';
-    slider.dispatchEvent(new Event('input'));
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
     await flush();
     await flush();
     expect(twoSteps.calls.at(-1)).toEqual({ k: 2 });

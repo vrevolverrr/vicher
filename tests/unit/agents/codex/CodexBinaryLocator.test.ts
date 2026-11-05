@@ -2,6 +2,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
+vi.mock('fs', { spy: true });
+
 import {
   findCodexBinaryPath,
 } from '@/agents/codex/CodexBinaryLocator';
@@ -46,7 +48,7 @@ describe('CodexBinaryLocator', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     Object.defineProperty(process, 'platform', originalPlatform);
     restoreEnvironmentVariable('CODEX_INSTALL_DIR');
     restoreEnvironmentVariable('HOME');
@@ -134,7 +136,7 @@ describe('CodexBinaryLocator', () => {
     expect(findCodexBinaryPath()).toBe(newerCompleteCliPath);
   });
 
-  it('breaks equal desktop runtime timestamps by path regardless of directory enumeration order', () => {
+  it('breaks equal desktop runtime timestamps by path regardless of directory enumeration order', async () => {
     process.env.LOCALAPPDATA = tempDir;
     delete process.env.CODEX_INSTALL_DIR;
     const root = path.join(tempDir, 'OpenAI', 'Codex', 'bin');
@@ -145,7 +147,7 @@ describe('CodexBinaryLocator', () => {
     fs.utimesSync(second, timestamp, timestamp);
     const entries = fs.readdirSync(root, { withFileTypes: true });
     entries.sort((left, right) => right.name.localeCompare(left.name));
-    jest.spyOn(jest.requireActual<typeof fs>('fs'), 'readdirSync').mockReturnValueOnce(entries as never);
+    vi.spyOn(fs, 'readdirSync').mockReturnValueOnce(entries as never);
 
     setPlatform('win32');
 

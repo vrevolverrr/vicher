@@ -1,6 +1,7 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
+import type { Mock } from 'vitest';
 import { loadPrism } from 'obsidian';
 
 import {
@@ -8,7 +9,7 @@ import {
   restoreDisplayOnlyCodeFences,
 } from '@/renderer/markdown/obsidian/DisplayOnlyCodeFences';
 
-jest.mock('obsidian', () => ({ loadPrism: jest.fn() }), { virtual: true });
+vi.mock('obsidian', () => ({ loadPrism: vi.fn() }));
 
 function createEl(parent: HTMLElement, tag: string, cls: string, text = ''): HTMLElement {
   const el = parent.appendChild(document.createElement(tag));
@@ -19,7 +20,7 @@ function createEl(parent: HTMLElement, tag: string, cls: string, text = ''): HTM
 
 describe('DisplayOnlyCodeFences', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('replaces every fenced language while preserving fence structure and metadata', () => {
@@ -100,8 +101,8 @@ describe('DisplayOnlyCodeFences', () => {
   });
 
   it('restores original language classes and reapplies Prism highlighting', async () => {
-    const highlightElement = jest.fn();
-    (loadPrism as jest.Mock).mockResolvedValueOnce({ highlightElement });
+    const highlightElement = vi.fn();
+    (loadPrism as Mock).mockResolvedValueOnce({ highlightElement });
     const container = document.createElement('div');
     const code = createEl(container, 'code', 'language-vicher-display-only-fence-0 extra-class', 'const value = 1;');
 
@@ -117,12 +118,12 @@ describe('DisplayOnlyCodeFences', () => {
   });
 
   it('restores the nested code element when Prism copies the placeholder class to pre', async () => {
-    const highlightElement = jest.fn((element: HTMLElement) => {
+    const highlightElement = vi.fn((element: HTMLElement) => {
       if (element.tagName === 'PRE') {
         element.replaceChildren();
       }
     });
-    (loadPrism as jest.Mock).mockResolvedValueOnce({ highlightElement });
+    (loadPrism as Mock).mockResolvedValueOnce({ highlightElement });
     const container = document.createElement('div');
     const placeholderClass = 'language-vicher-display-only-fence-0';
     const pre = createEl(container, 'pre', placeholderClass);
@@ -141,7 +142,7 @@ describe('DisplayOnlyCodeFences', () => {
   });
 
   it('restores language classes even when Prism loading fails', async () => {
-    (loadPrism as jest.Mock).mockRejectedValueOnce(new Error('Prism unavailable'));
+    (loadPrism as Mock).mockRejectedValueOnce(new Error('Prism unavailable'));
     const container = document.createElement('div');
     const code = createEl(container, 'code', 'language-vicher-display-only-fence-0', 'TABLE file.name');
 

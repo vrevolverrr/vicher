@@ -1,7 +1,7 @@
 import { ChatDefaults } from '@/chat/ChatDefaults';
 
 function selection(saved: unknown) {
-  const save = jest.fn(async () => undefined);
+  const save = vi.fn(async () => undefined);
   return { save, selection: new ChatDefaults(saved, save) };
 }
 

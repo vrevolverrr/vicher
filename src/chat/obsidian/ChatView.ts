@@ -1,14 +1,16 @@
-import { ItemView, Notice, setIcon, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
+import { ItemView, Notice, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
+import { flushSync, mount, unmount } from 'svelte';
 
 import type { AgentSession } from '@/agents/types';
 import { ChatPane, type ChatHost } from '@/chat/obsidian/ChatPane';
-import { ChatTabs, type ChatTab } from '@/chat/view/ChatTabs';
-import { HistoryMenu } from '@/chat/view/HistoryMenu';
+import type { ChatTab } from '@/chat/view/chatList';
+import ChatTabs from '@/chat/view/ChatTabs.svelte';
+import HistoryMenu from '@/chat/view/HistoryMenu.svelte';
 import type { Chat, ChatEvents } from '@/chat/Chat';
 import type { ChatRecord } from '@/chat/ChatRecord';
 import { CHAT_ID } from '@/chat/ChatStore';
 import type { ChatStore } from '@/chat/ChatStore';
-import { createIconButton } from '@/shared/view/iconButtons';
+import { createIconButton } from '@/shared/view/icon';
 import { messageOf } from '@/shared/messageOf';
 
 export const VIEW_TYPE_CHAT = 'vicher-chat';
@@ -26,9 +28,9 @@ export class ChatView extends ItemView {
   private readonly closing = new Map<string, Promise<void>>();
   private selectionRequest = 0;
   private selected: string | undefined;
-  private tabs!: ChatTabs;
+  private tabs!: ReturnType<typeof ChatTabs>;
   private tabBar!: HTMLElement;
-  private history!: HistoryMenu;
+  private history!: ReturnType<typeof HistoryMenu>;
   private panels!: HTMLElement;
   private closed = false;
   private opened!: () => void;
@@ -64,12 +66,14 @@ export class ChatView extends ItemView {
     const header = this.contentEl.createDiv({ cls: 'vicher-chat-header' });
     this.panels = this.contentEl.createDiv({ cls: 'vicher-chat-panels' });
     this.tabBar = this.panels.createDiv({ cls: 'vicher-chat-tab-bar' });
-    this.tabs = new ChatTabs(this.tabBar, {
+    const tabs = mount(ChatTabs, { target: this.tabBar, props: { host: {
       create: () => void this.openChat({ fresh: true }),
       select: (id) => this.select(id),
       close: (id) => void this.closeChat(id),
-    });
-    this.register(() => this.tabs.destroy());
+    } } });
+    flushSync();
+    this.tabs = tabs;
+    this.register(() => void unmount(tabs));
     const create = createIconButton(header, 'square-pen', 'New chat') as HTMLButtonElement;
     this.registerDomEvent(create, 'click', () => {
       create.disabled = true;
@@ -77,16 +81,15 @@ export class ChatView extends ItemView {
         new Notice(`Could not start a new chat: ${messageOf(error)}`);
       }).finally(() => { create.disabled = false; });
     });
-    const history = header.createEl('button', { cls: 'vicher-icon-action clickable-icon vicher-history-button', attr: { type: 'button' } });
-    setIcon(history, 'history');
-    history.createSpan({ cls: 'vicher-visually-hidden', text: 'Open and recent chats' });
-    this.history = new HistoryMenu(history, {
+    const history = mount(HistoryMenu, { target: header, props: { host: {
       chats: () => this.store.list(),
       tabs: () => this.openTabs(),
       current: () => this.selected,
       open: (chatId) => void this.host.openChat({ chatId }),
       showAll: () => void this.host.pickChat(),
-    });
+    } } });
+    this.history = history;
+    this.register(() => void unmount(history));
     this.opened();
     const timer = window.setTimeout(() => {
       if (!this.panes.size && !this.opening.size && !this.closed) void this.openChat({ fresh: true });

@@ -186,7 +186,7 @@ describe('HighlightTour', () => {
       clear: () => undefined,
     };
     const tour = new HighlightTour(stage, async () => undefined);
-    jest.spyOn(console, 'debug').mockImplementation(() => undefined);
+    vi.spyOn(console, 'debug').mockImplementation(() => undefined);
 
     tour.add(step('bad'));
     tour.add(step('good'));

@@ -35,7 +35,7 @@ describe('cliBinaryLocator', () => {
     expect(resolveConfiguredCLIPath(`"${cliPath}"`)).toBe(cliPath);
   });
 
-  it('finds Windows npm .cmd shims on a PATH entry', () => {
+  it('finds Windows npm .cmd shims on a PATH entry', async () => {
     const binDir = path.join(tempDir, 'bin');
     const shimPath = path.join(binDir, 'vicher-probe.cmd');
     fs.mkdirSync(binDir, { recursive: true });
@@ -44,10 +44,8 @@ describe('cliBinaryLocator', () => {
     Object.defineProperty(process, 'platform', { value: 'win32' });
 
     // env.ts reads the platform when it loads
-    let found: string | null = null;
-    jest.isolateModules(() => {
-      found = jest.requireActual<typeof import('@/agents/process/cliBinaryLocator')>('@/agents/process/cliBinaryLocator').findCLIBinaryPath('vicher-probe');
-    });
+    vi.resetModules();
+    const found = (await import('@/agents/process/cliBinaryLocator')).findCLIBinaryPath('vicher-probe');
 
     expect(found).toBe(shimPath);
   });

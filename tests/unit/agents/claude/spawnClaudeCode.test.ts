@@ -1,14 +1,15 @@
+import type { MockedFunction } from 'vitest';
 import type { SpawnOptions } from '@anthropic-ai/claude-agent-sdk';
 import spawn from 'cross-spawn';
 import { PassThrough } from 'stream';
 
 import { releaseClaudeSdk, spawnClaudeCode } from '@/agents/claude/spawnClaudeCode';
 
-jest.mock('cross-spawn', () => jest.fn());
+vi.mock('cross-spawn', () => ({ default: vi.fn() }));
 
 describe('spawnClaudeCode', () => {
   const originalPlatform = process.platform;
-  const spawnMock = spawn as jest.MockedFunction<typeof spawn>;
+  const spawnMock = spawn as MockedFunction<typeof spawn>;
 
   beforeEach(() => {
     Object.defineProperty(process, 'platform', { value: 'linux' });
@@ -16,7 +17,7 @@ describe('spawnClaudeCode', () => {
 
   afterEach(() => {
     Object.defineProperty(process, 'platform', { value: originalPlatform });
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     spawnMock.mockReset();
   });
 
@@ -29,17 +30,17 @@ describe('spawnClaudeCode', () => {
       pid: 12345,
       killed: false,
       exitCode: null,
-      kill: jest.fn(),
-      on: jest.fn(),
-      once: jest.fn(),
-      off: jest.fn(),
+      kill: vi.fn(),
+      on: vi.fn(),
+      once: vi.fn(),
+      off: vi.fn(),
     };
   };
 
   it('pipes stderr and hands each chunk to its reader', () => {
     const mockProcess = createMockProcess();
     spawnMock.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
-    const onStderr = jest.fn();
+    const onStderr = vi.fn();
 
     spawnClaudeCode({ command: 'claude', args: [], cwd: '/tmp', env: {}, signal: new AbortController().signal }, onStderr);
 
@@ -87,10 +88,10 @@ describe('spawnClaudeCode', () => {
       stderr: null,
       killed: false,
       exitCode: null,
-      kill: jest.fn(),
-      on: jest.fn(),
-      once: jest.fn(),
-      off: jest.fn(),
+      kill: vi.fn(),
+      on: vi.fn(),
+      once: vi.fn(),
+      off: vi.fn(),
     };
     spawnMock.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
 

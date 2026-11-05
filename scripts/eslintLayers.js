@@ -45,10 +45,10 @@ const PROVIDER_NAME = /claude|codex|anthropic|openai/i;
 
 const SRC = path.join(process.cwd(), 'src');
 
-/** The file's path inside `src/`, or null for a file outside it. */
+/** The file's path inside `src/`, or null for a file outside it or not a `.ts` or `.svelte` file. */
 function sourceOf(filename) {
   const relative = path.relative(SRC, filename).split(path.sep).join('/');
-  return relative.startsWith('..') || !relative.endsWith('.ts') ? null : relative;
+  return relative.startsWith('..') || !/\.(?:ts|svelte)$/.test(relative) ? null : relative;
 }
 
 function moduleOf(file) {
@@ -79,7 +79,8 @@ function targetOf(file, from) {
   const raw = from.startsWith('@/') ? from.slice(2) : from.startsWith('.') ? path.posix.join(path.posix.dirname(file), from) : null;
   if (raw === null) return null;
   const base = path.posix.normalize(raw).replace(/\.(?:ts|js)$/, '');
-  return [`${base}.ts`, `${base}/index.ts`].find((candidate) => existsSync(path.join(SRC, candidate))) ?? null;
+  const candidates = base.endsWith('.svelte') ? [base] : [`${base}.ts`, `${base}/index.ts`];
+  return candidates.find((candidate) => existsSync(path.join(SRC, candidate))) ?? null;
 }
 
 const isHostModule = (from) => from === 'obsidian' || from.startsWith('@codemirror/');

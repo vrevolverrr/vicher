@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import type { AgentAdapter, AgentEvent, AgentMessage, AgentSession, AgentSessionOptions, ModelOption } from '@/agents/types';
 import type { ChatContext } from '@/context/ChatContext';
 import { ChatDefaults } from '@/chat/ChatDefaults';
@@ -10,10 +11,10 @@ interface FakeSession extends AgentSession {
   options: AgentSessionOptions;
   sent: AgentMessage[];
   emit(...events: AgentEvent[]): void;
-  interrupt: jest.Mock;
-  stopTask: jest.Mock;
-  setModel: jest.Mock;
-  close: jest.Mock;
+  interrupt: Mock;
+  stopTask: Mock;
+  setModel: Mock;
+  close: Mock;
 }
 
 const ID = '00000000-0000-4000-8000-000000000001';
@@ -27,9 +28,9 @@ function fakeSession(id: string, options: AgentSessionOptions, title?: string): 
     subscribe: (listener) => { listeners.add(listener); return () => void listeners.delete(listener); },
     emit: (...events) => { for (const event of events) listeners.forEach((listener) => listener(event)); },
     send(message) { this.sent.push(message); },
-    interrupt: jest.fn(), stopTask: jest.fn(async () => undefined), started: async () => undefined,
+    interrupt: vi.fn(), stopTask: vi.fn(async () => undefined), started: async () => undefined,
     ...(title ? { title: async () => title } : {}),
-    skills: async () => [], setModel: jest.fn(async () => undefined), close: jest.fn(async () => undefined),
+    skills: async () => [], setModel: vi.fn(async () => undefined), close: vi.fn(async () => undefined),
   };
 }
 
@@ -52,7 +53,7 @@ function setup(record: Partial<ChatRecord> = {}, title?: string, claudeModels: P
     list: async () => [...disk.keys()],
     remove: async (path) => { disk.delete(path); },
   });
-  const events: { [K in keyof ChatEvents]: jest.Mock } = { changed: jest.fn(), switched: jest.fn(), lost: jest.fn(), notice: jest.fn(), warn: jest.fn() };
+  const events: { [K in keyof ChatEvents]: Mock } = { changed: vi.fn(), switched: vi.fn(), lost: vi.fn(), notice: vi.fn(), warn: vi.fn() };
   const chat = new Chat({ id: ID, agent: 'claude', title: '', updatedAt: 0, turns: [], ...record }, {
     defaults, agents: { claude: adapter('claude'), codex: adapter('codex') }, models: { claude: claudeModels, codex: Promise.resolve([]) }, store, cwd: '/vault',
   }, events);
@@ -194,7 +195,7 @@ describe('Chat', () => {
   });
 
   it('shows a failure with no output as an empty failed turn, logs its detail without saving it, and ignores a bare completed end', async () => {
-    const log = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const { chat, session } = setup();
     chat.open(); await settle();
     void chat.send(context);
@@ -264,7 +265,7 @@ describe('Chat', () => {
   it('saves after each message taken in and each reply ended', async () => {
     const { chat, store, answer } = setup();
     chat.open(); await settle();
-    const save = jest.spyOn(store, 'save');
+    const save = vi.spyOn(store, 'save');
     const sending = chat.send(context);
     await settle(); answer(); await sending; await settle();
     expect(save.mock.calls.map(([saved]) => saved.turns.length)).toEqual([1, 2]);
@@ -359,7 +360,7 @@ describe('Chat', () => {
   it('does not save an empty chat when its policy changes', async () => {
     const { chat, sessions, store } = setup();
     chat.open(); await settle();
-    const save = jest.spyOn(store, 'save');
+    const save = vi.spyOn(store, 'save');
     await chat.choosePermission('bypass');
     expect(save).not.toHaveBeenCalled();
     expect(sessions.at(-1)!.options.permissionPolicy).toBe('bypass');
@@ -397,7 +398,7 @@ describe('Chat', () => {
 
     const empty = setup();
     empty.chat.open(); await settle();
-    const save = jest.spyOn(empty.store, 'save');
+    const save = vi.spyOn(empty.store, 'save');
     await empty.chat.choose('codex', {});
     expect(save).not.toHaveBeenCalled();
   });

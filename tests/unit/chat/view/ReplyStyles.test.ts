@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -13,7 +13,7 @@ describe('reply Markdown styles', () => {
     style.textContent = `
       .markdown-rendered ul > li, .markdown-rendered ol > li { margin-inline-start: 3ch; }
       .markdown-rendered ul ul > li, .markdown-rendered ol ol > li { margin-inline-start: 4ch; }
-    ` + readFileSync(resolve(__dirname, '../../../../styles.css'), 'utf8');
+    ` + readFileSync(resolve(__dirname, '../../../../src/styles.css'), 'utf8');
     const lists = '<ul><li>Bullet<ul><li>Nested bullet</li></ul></li></ul><ol start="10"><li>Number<ol><li>Nested number</li></ol></li></ol>';
     const reply = document.body.appendChild(document.createElement('div'));
     // ChatView gives the reply both classes on the same element.
@@ -26,15 +26,16 @@ describe('reply Markdown styles', () => {
     const margins = (host: HTMLElement, selector: string) => [...host.querySelectorAll(selector)]
       .map(item => getComputedStyle(item).marginInlineStart);
 
-    expect(margins(note, 'ul > li')).toEqual(['3ch', '4ch']);
-    expect(margins(note, 'ol > li')).toEqual(['3ch', '4ch']);
+    // jsdom computes 1ch as 8px.
+    expect(margins(note, 'ul > li')).toEqual(['24px', '32px']);
+    expect(margins(note, 'ol > li')).toEqual(['24px', '32px']);
   });
 
   it('keeps reply table styles out of notes', () => {
     const style = document.head.appendChild(document.createElement('style'));
     // jsdom does not resolve CSS variables; substitute a light theme's two surfaces.
     style.textContent = '.markdown-rendered table { width: fit-content; }'
-      + readFileSync(resolve(__dirname, '../../../../styles.css'), 'utf8')
+      + readFileSync(resolve(__dirname, '../../../../src/styles.css'), 'utf8')
         .replaceAll('var(--background-secondary)', '#eeeeee')
         .replaceAll('var(--background-primary)', '#ffffff');
     const table = '<div class="table-wrapper"><table><thead><tr><th>Join</th><th>Disk I/Os</th></tr></thead><tbody><tr><td>Nested loop</td><td>5,500</td></tr></tbody></table></div>';

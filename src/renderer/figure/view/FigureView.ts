@@ -1,17 +1,18 @@
+import { flushSync, mount, unmount } from 'svelte';
 import { BLOCK_CONTAINERS, isLink, NODE_DEFINITIONS } from '@/renderer/figure/components/registry';
 import { computedColour, div, parseColour } from '@/renderer/figure/view/dom';
 import type { DrawContext, Drawn, ElementView, Lane } from '@/renderer/figure/view/components/ElementView';
 import { type DrawnType, VIEWS } from '@/renderer/figure/view/components/registry';
 import { drawLinks, type Link } from '@/renderer/figure/view/drawLinks';
-import { drawParams } from '@/renderer/figure/view/drawParams';
 import type { FigureData, FigureNode, Param } from '@/renderer/figure/FigureData';
 import { TAGS, type Tag } from '@/renderer/figure/Tag';
 import { figureSandbox, type FigureSandbox } from '@/renderer/figure/view/FigureSandbox';
 import { drawTex, drawTexIn, mapMath, type Rgb, type TagColour, texTags, TYPESET_MATH } from '@/renderer/figure/figureTex';
 import { figureText, isPlain } from '@/renderer/figure/figureText';
 import { formatFigure } from '@/renderer/figure/formatFigure';
-import { Playback } from '@/renderer/figure/view/Playback';
-import { StepList } from '@/renderer/figure/view/StepList';
+import ParamControls from '@/renderer/figure/view/ParamControls.svelte';
+import Playback from '@/renderer/figure/view/Playback.svelte';
+import StepList from '@/renderer/figure/view/StepList.svelte';
 import { validateFigure } from '@/renderer/figure/validateFigure';
 
 export interface FigureHost {
@@ -136,11 +137,14 @@ export class FigureView {
   private current = 0;
   private generation = 0;
   private steps: StepView[] = [];
-  private playback?: Playback;
+  private playback?: ReturnType<typeof Playback>;
+  /** Unmounts the shown drawing's step list and player. */
+  private release?: () => void;
   private narrate?: (index: number) => void;
   private placeSide?: () => void;
   private settle?: number;
   private params?: HTMLElement;
+  private paramControls?: ReturnType<typeof ParamControls>;
   private paramError?: HTMLElement;
   private body?: HTMLElement;
   private rerunning = false;
@@ -308,11 +312,18 @@ export class FigureView {
   private clear(): void {
     this.generation += 1;
     this.keeps.clear();
-    this.playback?.stop();
+    this.release?.();
+    this.release = this.playback = undefined;
+    this.releaseParams();
     destroy(this.steps);
     this.steps = [];
     this.body = undefined;
     this.el.replaceChildren();
+  }
+
+  private releaseParams(): void {
+    if (this.paramControls) void unmount(this.paramControls);
+    this.paramControls = undefined;
   }
 
   /**
@@ -350,11 +361,22 @@ export class FigureView {
     };
 
     if (figure.params.length && !this.params?.isConnected) {
+      this.releaseParams();
       this.params = this.el.appendChild(div('vicher-figure-params'));
-      drawParams(this.params, figure.params, this.values, drawing.markdown, (key, value) => {
-        this.values.set(key, value);
-        void this.rerun();
+      this.paramControls = mount(ParamControls, {
+        target: this.params,
+        props: {
+          params: figure.params,
+          values: this.values,
+          label: drawing.markdown,
+          change: (key, value) => {
+            this.values.set(key, value);
+            void this.rerun();
+          },
+        },
       });
+      // The labels render through effects, which must run now for `renders` to hold them.
+      flushSync();
       this.paramError = this.el.appendChild(div('vicher-figure-param-error'));
     }
     const body = this.el.appendChild(div('vicher-figure-body'));
@@ -387,18 +409,28 @@ export class FigureView {
     });
 
     const side = main.appendChild(div('vicher-figure-side'));
-    let playback: Playback | undefined;
+    let playback: ReturnType<typeof Playback> | undefined;
+    let list: ReturnType<typeof StepList> | undefined;
     const listed = figure.steps.length > 1 && figure.steps.length <= MAX_LISTED;
     let narrate: ((index: number) => void) | undefined;
     let placeSide: (() => void) | undefined;
     if (figure.steps.some((step) => step.caption || step.heading)) {
-      const list = new StepList(figure.steps, (el, text) => drawing.markdown(el, text), (index) => {
-        this.playback?.stop();
-        this.show(index);
+      const stepList = mount(StepList, {
+        target: side,
+        props: {
+          steps: figure.steps,
+          write: drawing.markdown,
+          pick: (index) => {
+            this.playback?.stop();
+            this.show(index);
+          },
+        },
       });
-      list.single = !listed;
-      side.append(list.el);
-      narrate = (index) => list.show(index);
+      list = stepList;
+      stepList.single(!listed);
+      // The captions render through effects, which must run now for `renders` to hold them.
+      flushSync();
+      narrate = (index) => stepList.show(index);
       // Under the drawing, a list would push the current step out of view; one caption with the full player stays beside it.
       // A wrapped side column starts at the drawing's left edge, whatever its height.
       if (listed) {
@@ -407,8 +439,9 @@ export class FigureView {
           side.classList.remove('is-under');
           const under = side.offsetLeft <= scroll.offsetLeft + 1;
           side.classList.toggle('is-under', under);
-          list.single = under;
-          playback?.el.classList.toggle('is-play-only', !under);
+          stepList.single(under);
+          playback?.playOnly(!under);
+          flushSync();
         };
       }
     }
@@ -425,17 +458,21 @@ export class FigureView {
       }
     }
     if (figure.steps.length > 1) {
-      playback = new Playback((index) => this.show(index));
+      playback = mount(Playback, { target: side, props: { change: (index) => this.show(index) } });
       // The list already shows where the student is and moves on a click, so the player keeps only Play.
-      playback.el.classList.toggle('is-play-only', listed);
-      side.append(playback.el);
+      playback.playOnly(listed);
+      flushSync();
     }
     side.classList.toggle('is-player', figure.steps.length > 1 && !listed);
 
     this.fitGraphs(body);
 
+    const release = (): void => {
+      if (list) void unmount(list);
+      if (playback) void unmount(playback);
+    };
     const commit = (): void => {
-      this.playback?.stop();
+      this.release?.();
       destroy(this.steps);
       shown?.remove();
       body.classList.remove('is-pending');
@@ -444,6 +481,7 @@ export class FigureView {
       this.narrate = narrate;
       this.placeSide = placeSide;
       this.playback = playback;
+      this.release = release;
       this.body = body;
       this.markdown = drawing.markdown;
       this.show(keepStep ? Math.min(this.current, figure.steps.length - 1) : 0);
@@ -455,7 +493,7 @@ export class FigureView {
     if (generation !== this.generation) {
       if (body !== this.body) {
         body.remove();
-        playback?.stop();
+        release();
         destroy(steps);
       }
       return;
@@ -498,6 +536,7 @@ export class FigureView {
     if (step?.dirty) this.repaint(step);
     this.narrate?.(index);
     this.playback?.update(this.steps.length - 1, index, { ms: STEP_MS, offset: 1 });
+    flushSync();
   }
 
   private resized(): void {

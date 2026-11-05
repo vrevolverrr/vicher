@@ -1,12 +1,14 @@
 import type { App, Component } from 'obsidian';
-import { Notice, setIcon } from 'obsidian';
+import { Notice } from 'obsidian';
+import { flushSync, mount, unmount } from 'svelte';
 
 import type { AgentId, SkillOption, SkillSyntax } from '@/agents/types';
-import { ContextChips } from '@/chat/view/ContextChips';
-import { type ContextMeter, contextMeter } from '@/chat/view/ContextMeter';
-import type { ModelPickerHost } from '@/chat/view/ModelPicker';
-import { type PermissionMenuHost, pickerBar } from '@/chat/view/ModelPicker';
-import { filterSkills, SkillMenu } from '@/chat/view/SkillMenu';
+import ContextChips from '@/chat/view/ContextChips.svelte';
+import ContextMeter from '@/chat/view/ContextMeter.svelte';
+import PickerBar from '@/chat/view/PickerBar.svelte';
+import type { PickerHost } from '@/chat/view/PickerHost';
+import SendButton from '@/chat/view/SendButton.svelte';
+import SkillMenu, { filterSkills } from '@/chat/view/SkillMenu.svelte';
 import { appendMessageText } from '@/chat/view/appendMessageText';
 import { skillTrigger } from '@/context/skillSyntax';
 import { OpenDocument } from '@/context/obsidian/OpenDocument';
@@ -15,8 +17,8 @@ import { PASTE_FILE_MIN_CHARS } from '@/attachments/attachmentStorage';
 import { mentionToken, mentionTokens, mentionTrigger } from '@/attachments/mentionSyntax';
 import type { MentionFile } from '@/attachments/obsidian/VaultFileIndex';
 import { type Dropped, dragCarriesFiles, imageFiles, readDrop } from '@/attachments/obsidian/droppedFiles';
-import { AttachmentChips } from '@/attachments/view/AttachmentChips';
-import type { ChipExit } from '@/shared/view/Chip';
+import AttachmentChips from '@/attachments/view/AttachmentChips.svelte';
+import type { ChipExit } from '@/shared/view/motion';
 import { messageOf } from '@/shared/messageOf';
 
 const MAX_INPUT_HEIGHT = 192;
@@ -40,18 +42,19 @@ export interface ComposerHost {
 export class Composer {
   /** What the next turn carries from the open document. */
   readonly document: OpenDocument;
-  readonly meter: ContextMeter;
+  readonly meter: ReturnType<typeof ContextMeter>;
   private readonly el: HTMLElement;
   private readonly inputEl: HTMLTextAreaElement;
   private readonly mirrorEl: HTMLElement;
-  private readonly sendEl: HTMLButtonElement;
-  private readonly pickers: ReturnType<typeof pickerBar>;
-  private readonly chips: AttachmentChips;
+  private readonly sendButton: ReturnType<typeof SendButton>;
+  private readonly contextChips: ReturnType<typeof ContextChips>;
+  private readonly pickers: ReturnType<typeof PickerBar>;
+  private readonly chips: ReturnType<typeof AttachmentChips>;
   private attachments: ChatAttachment[] = [];
   /** Images being stored, which a send must wait for. */
   private storing = 0;
-  private skillMenu: SkillMenu | null = null;
-  private mentionMenu: SkillMenu<MentionFile> | null = null;
+  private skillMenu?: ReturnType<typeof SkillMenu<SkillOption>>;
+  private mentionMenu?: ReturnType<typeof SkillMenu<MentionFile>>;
   /** The CLI's skills, read when a skill name starts being typed and kept until the menu closes. */
   private skillsRead: Promise<SkillOption[]> | null = null;
   private streaming = false;
@@ -61,16 +64,23 @@ export class Composer {
     owner: Component & { app: App; contentEl: HTMLElement },
     parent: HTMLElement,
     private readonly host: ComposerHost,
-    private readonly chat: ModelPickerHost & PermissionMenuHost & { readonly skillSyntax: SkillSyntax; skills(): Promise<SkillOption[]> },
+    private readonly chat: PickerHost & { readonly skillSyntax: SkillSyntax; skills(): Promise<SkillOption[]> },
   ) {
     const composer = (this.el = parent.createDiv({ cls: 'vicher-composer' }));
     // The chips come first: the document reports its state as soon as it starts following the editor.
-    const contextChips = new ContextChips(composer, {
-      toggleNote: () => this.document.toggleNote(),
-      removeSelection: () => this.document.removeSelection(),
+    this.contextChips = mount(ContextChips, {
+      target: composer,
+      props: {
+        host: {
+          toggleNote: () => this.document.toggleNote(),
+          removeSelection: () => this.document.removeSelection(),
+        },
+      },
     });
-    this.document = new OpenDocument(owner, (state, sent, animate) => contextChips.set(state, sent ? 'sent' : 'dropped', animate));
-    this.chips = new AttachmentChips(contextChips.tray, (key) => this.removeChip(key));
+    this.document = new OpenDocument(owner, (state, sent, animate) => this.contextChips.set(state, sent ? 'sent' : 'dropped', animate));
+    // The tray binds in an effect, and the attachment chips need it now.
+    flushSync();
+    this.chips = mount(AttachmentChips, { target: this.contextChips.trayEl(), props: { onRemove: (key) => this.removeChip(key) } });
     // The textarea's own text is transparent; the mirror behind it draws the same text with skill names and picked files colored.
     const inputWrap = composer.createDiv({ cls: 'vicher-input-wrap' });
     this.mirrorEl = inputWrap.createDiv({ cls: 'vicher-input-mirror', attr: { 'aria-hidden': 'true' } });
@@ -83,7 +93,7 @@ export class Composer {
     });
     owner.registerDomEvent(this.inputEl, 'blur', () => this.closeMenus());
     owner.registerDomEvent(this.inputEl, 'keydown', (event) => {
-      const menu = [this.skillMenu, this.mentionMenu].find((candidate) => candidate?.isOpen);
+      const menu = [this.skillMenu, this.mentionMenu].find((candidate) => candidate?.isOpen());
       if (menu && this.menuKey(menu, event)) return;
       if (event.key === 'Escape' && this.streaming) {
         event.preventDefault();
@@ -126,12 +136,11 @@ export class Composer {
     });
 
     const bar = composer.createDiv({ cls: 'vicher-composer-bar' });
-    this.pickers = pickerBar(bar, composer, chat);
-    this.meter = contextMeter(bar);
+    this.pickers = mount(PickerBar, { target: bar, props: { host: chat, container: composer } });
+    this.meter = mount(ContextMeter, { target: bar });
 
     bar.createDiv({ cls: 'vicher-composer-spacer' });
-    this.sendEl = bar.createEl('button', { cls: 'vicher-send' });
-    owner.registerDomEvent(this.sendEl, 'click', () => (this.stops ? host.stop() : host.send()));
+    this.sendButton = mount(SendButton, { target: bar, props: { onSend: () => host.send(), onStop: () => host.stop() } });
     this.setStreaming(false);
   }
 
@@ -219,7 +228,7 @@ export class Composer {
   dispose(): void {
     this.disposed = true;
     this.discardAttachments();
-    this.close();
+    for (const component of [this.contextChips, this.chips, this.meter, this.pickers, this.sendButton, this.skillMenu, this.mentionMenu]) if (component) void unmount(component);
   }
 
   private closeSkillMenu(): void {
@@ -229,14 +238,8 @@ export class Composer {
 
   private updateSend(): void {
     const stops = this.stops;
-    if (this.sendEl.hasClass('is-streaming') !== stops || !this.sendEl.hasChildNodes()) {
-      this.sendEl.empty();
-      setIcon(this.sendEl, stops ? 'square' : 'arrow-up');
-      this.sendEl.setAttr('aria-label', stops ? 'Stop' : 'Send');
-      this.sendEl.toggleClass('is-streaming', stops);
-    }
     const empty = !this.inputEl.value.trim() && !this.hasAttachments;
-    this.sendEl.disabled = !stops && (empty || this.storing > 0);
+    this.sendButton.set(stops, !stops && (empty || this.storing > 0));
   }
 
   private async attach({ images: files, attachments }: Dropped): Promise<void> {
@@ -298,7 +301,7 @@ export class Composer {
   }
 
   /** Handles the keys the open menu owns; false leaves the key to the input. */
-  private menuKey(menu: Pick<SkillMenu, 'move' | 'pickActive' | 'hide'>, event: KeyboardEvent): boolean {
+  private menuKey(menu: { move(step: number): void; pickActive(): void; hide(): void }, event: KeyboardEvent): boolean {
     switch (event.key) {
       case 'ArrowDown':
       case 'ArrowUp':
@@ -336,7 +339,7 @@ export class Composer {
       this.closeSkillMenu();
       return;
     }
-    this.skillMenu ??= new SkillMenu(this.el, (skill) => this.pickSkill(skill));
+    this.skillMenu ??= mount(SkillMenu<SkillOption>, { target: this.el, props: { onPick: (skill) => this.pickSkill(skill) } });
     this.skillMenu.show(filterSkills(skills, trigger.query), trigger.query, syntax.prefix);
   }
 
@@ -355,7 +358,7 @@ export class Composer {
       this.mentionMenu?.hide();
       return;
     }
-    this.mentionMenu ??= new SkillMenu(this.el, (file) => this.pickMention(file), 'Files');
+    this.mentionMenu ??= mount(SkillMenu<MentionFile>, { target: this.el, props: { onPick: (file) => this.pickMention(file), label: 'Files' } });
     this.mentionMenu.show(this.host.mentions(trigger.query), trigger.query, '@');
   }
 

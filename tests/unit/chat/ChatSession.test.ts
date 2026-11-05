@@ -1,12 +1,13 @@
+import type { Mock } from 'vitest';
 import { type AgentAdapter, type AgentSession, type AgentSessionOptions, ConversationNotFoundError } from '@/agents/types';
 import { ChatSession } from '@/chat/ChatSession';
 
 function fakeSession(id: string): AgentSession {
-  return { id, send: jest.fn(), skills: async () => [], setModel: async () => undefined, close: async () => undefined } as unknown as AgentSession;
+  return { id, send: vi.fn(), skills: async () => [], setModel: async () => undefined, close: async () => undefined } as unknown as AgentSession;
 }
 
 function setup(openSession: (options: AgentSessionOptions) => Promise<AgentSession>) {
-  const adapter = { openSession: jest.fn(openSession) } as unknown as AgentAdapter & { openSession: jest.Mock };
+  const adapter = { openSession: vi.fn(openSession) } as unknown as AgentAdapter & { openSession: Mock };
   return { adapter, choice: () => ({ model: 'sonnet' }) };
 }
 
@@ -42,7 +43,7 @@ describe('ChatSession', () => {
       if (resume) throw new ConversationNotFoundError(resume, new Error('gone'));
       return fakeSession('fresh');
     });
-    const onLost = jest.fn();
+    const onLost = vi.fn();
 
     const session = await new ChatSession(adapter, choice, { cwd: '/vault', resume: 'gone', onLost }).open();
 
@@ -53,7 +54,7 @@ describe('ChatSession', () => {
 
   it('reports an agent that cannot open at all as an error, not as a lost conversation', async () => {
     const { adapter, choice } = setup(async () => { throw new Error('CLI not found'); });
-    const onLost = jest.fn();
+    const onLost = vi.fn();
 
     await expect(new ChatSession(adapter, choice, { cwd: '/vault', resume: 'gone', onLost }).open()).rejects.toThrow('CLI not found');
 

@@ -22,7 +22,7 @@ it.each<[ThreadItem, string, string]>([
   [{ type: 'mcpToolCall', id: 'i', tool: 'external', status: 'completed' }, 'external', 'Used external'],
   [{ type: 'webSearch', id: 'i', query: 'topic' }, 'WebSearch', 'Searched the web for topic'],
   [{ type: 'imageView', id: 'i', path: '/vault/picture.png' }, 'ViewImage', 'Viewed picture.png'],
-])('normalizes native %s activity', (item, name, title) => {
+])('normalizes native %j activity', (item, name, title) => {
   const adapter = new CodexToolAdapter('/vault', [custom]);
   expect([...adapter.events({ item, phase: 'started' })]).toEqual([{ type: 'tool', id: 'i', name, title, status: 'running' }]);
   expect([...adapter.events({ item, phase: 'completed' })]).toEqual([{ type: 'tool', id: 'i', name, title, status: 'done' }]);

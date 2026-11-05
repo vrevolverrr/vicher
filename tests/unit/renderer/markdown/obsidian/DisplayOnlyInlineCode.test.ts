@@ -1,5 +1,5 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 import { prepareDisplayOnlyInlineCode, restoreDisplayOnlyInlineCode } from '@/renderer/markdown/obsidian/DisplayOnlyInlineCode';
 

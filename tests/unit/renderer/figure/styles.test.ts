@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { TAGS } from '@/renderer/figure/Tag';
 
-const css = readFileSync(path.join(__dirname, '../../../../styles.css'), 'utf8');
+const css = readFileSync(path.join(__dirname, '../../../../src/styles.css'), 'utf8');
 const selectors = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{/g)].map((match) => match[1].trim());
 const SURFACES = ['vicher-figure-node', 'vicher-network-node', 'vicher-figure-cell', 'vicher-figure-seq-cell', 'vicher-network-edge', 'vicher-network-edge-label', 'vicher-figure-link', 'vicher-figure-pointer', 'vicher-figure-key-mark'];
 

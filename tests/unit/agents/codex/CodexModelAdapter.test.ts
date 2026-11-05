@@ -9,7 +9,7 @@ const rows: CodexModel[] = [
   { id: 'new', displayName: 'GPT-1.10-Family', supportedReasoningEfforts: [{ reasoningEffort: 'high' }, { reasoningEffort: 'max' }], defaultReasoningEffort: 'high', isDefault: false },
   { id: 'alias', displayName: 'Native alias', supportedReasoningEfforts: [{ reasoningEffort: 'medium' }], defaultReasoningEffort: 'medium', isDefault: false },
 ];
-const create = (defaults: NativeDefaults = { model: 'old', reasoningEffort: null }, probe = jest.fn(async () => defaults)): AgentModelAdapter =>
+const create = (defaults: NativeDefaults = { model: 'old', reasoningEffort: null }, probe = vi.fn(async () => defaults)): AgentModelAdapter =>
   new CodexModelAdapter(async () => ({ data: rows, nextCursor: null }), probe);
 const expected = [
   { id: 'new', name: 'Family', efforts: ['high', 'max'], isDefault: true },
@@ -21,7 +21,7 @@ it('normalizes versions, older defaults and unfamiliar names', async () => {
 });
 
 it('fetches every native page in cursor order', async () => {
-  const request = jest.fn()
+  const request = vi.fn()
     .mockResolvedValueOnce({ data: rows.slice(0, 1), nextCursor: 'second' })
     .mockResolvedValueOnce({ data: rows.slice(1), nextCursor: null });
   const adapter: AgentModelAdapter = new CodexModelAdapter(request, async () => ({ model: 'old' }));
@@ -54,7 +54,7 @@ describe('Auto follows config.toml', () => {
   });
 
   it('(e) never probes when model and effort are both chosen', async () => {
-    const probe = jest.fn(async () => ({ model: 'alias' }));
+    const probe = vi.fn(async () => ({ model: 'alias' }));
     await create(undefined, probe).setModel('new', 'max');
     expect(probe).not.toHaveBeenCalled();
   });

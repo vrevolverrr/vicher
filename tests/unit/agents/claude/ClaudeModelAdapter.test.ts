@@ -10,7 +10,7 @@ it('maps an older default onto the latest family and retains unfamiliar names', 
     { value: 'odd', displayName: 'Custom alias', description: '' },
   ];
   const adapter: AgentModelAdapter = new ClaudeModelAdapter({
-    supportedModels: async () => rows, setModel: jest.fn(), applyFlagSettings: jest.fn(),
+    supportedModels: async () => rows, setModel: vi.fn(), applyFlagSettings: vi.fn(),
   });
   expect(await adapter.listModels()).toEqual([
     { id: 'new-id', name: 'Family', efforts: ['low', 'high'], isDefault: true },

@@ -1,19 +1,22 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
+import { flushSync, mount, unmount } from 'svelte';
+
 import type { ToolStatus } from '@/agents/types';
-import { ReplyView } from '@/chat/view/ReplyView';
+import type { Rating } from '@/chat/ChatRecord';
+import ReplyView from '@/chat/view/ReplyView.svelte';
 import type { MarkdownTarget } from '@/chat/view/TextBlock';
 import { figureSandbox } from '@/renderer/figure/view/FigureSandbox';
 import type { TourEvent } from '@/tour/HighlightTour';
-import type { WalkthroughHost } from '@/tour/view/Walkthrough';
+import type { WalkthroughHost } from '@/tour/view/WalkthroughHost';
 
-jest.mock('obsidian', () => ({ setIcon: jest.fn() }), { virtual: true });
+vi.mock('obsidian', () => ({ setIcon: vi.fn() }));
 // A figure's fence here holds the payload a program would return, as JSON; `!` starts one that fails.
-jest.mock('@/renderer/figure/view/FigureSandbox', () => ({
+vi.mock('@/renderer/figure/view/FigureSandbox', () => ({
   figureSandbox: {
-    warm: jest.fn(),
-    run: jest.fn((source: string) => Promise.resolve(source.startsWith('!') ? { ok: false, error: source.slice(1), repairable: true } : { ok: true, payload: JSON.parse(source) as unknown })),
+    warm: vi.fn(),
+    run: vi.fn((source: string) => Promise.resolve(source.startsWith('!') ? { ok: false, error: source.slice(1), repairable: true } : { ok: true, payload: JSON.parse(source) as unknown })),
   },
 }));
 
@@ -41,6 +44,47 @@ function hostOf(): WalkthroughHost & { listeners: Array<(event: TourEvent) => vo
   };
 }
 
+type ReplyProps = Partial<{ markdown: MarkdownTarget; ask: (message: string) => boolean; live: boolean; handover: boolean }> & { walkthrough?: WalkthroughHost };
+
+const advance = (ms: number): void => {
+  vi.advanceTimersByTime(ms);
+  flushSync();
+};
+
+const press = (button: HTMLElement): void => {
+  button.click();
+  flushSync();
+};
+
+const mounted: Array<ReturnType<typeof ReplyView>> = [];
+
+/** A reply in `target` whose calls draw what they changed, as the chat does between events. */
+function replyOf(target: HTMLElement, { walkthrough = hostOf(), markdown: draw = markdown, ...props }: ReplyProps = {}) {
+  const view = mount(ReplyView, { target, props: { markdown: draw, walkthrough, copyRefused: vi.fn(), ...props } });
+  mounted.push(view);
+  const drawn = <A extends unknown[], R>(call: (...args: A) => R) => (...args: A): R => {
+    const result = call(...args);
+    flushSync();
+    return result;
+  };
+  return {
+    appendText: drawn(view.appendText),
+    highlight: drawn(view.highlight),
+    thinking: drawn(view.thinking),
+    tool: drawn(view.tool),
+    finish: drawn(view.finish),
+    text: view.text,
+    destroy: () => {
+      mounted.splice(mounted.indexOf(view), 1);
+      void unmount(view);
+    },
+  };
+}
+
+afterEach(() => {
+  for (const view of mounted.splice(0)) void unmount(view);
+});
+
 function blocks(el: HTMLElement): string[] {
   return [...el.children].filter((child) => !child.matches('.vicher-reply-footer')).map((child) => `${child.className.split(' ')[0]}: ${
     child.querySelector('.vicher-tools-summary')?.textContent ?? child.textContent}`);
@@ -49,24 +93,26 @@ function blocks(el: HTMLElement): string[] {
 describe('ReplyView', () => {
   it('releases playing figures and pending renders when its chat closes', async () => {
     const el = document.body.createDiv();
-    const reply = new ReplyView(el, markdown, hostOf());
+    const reply = replyOf(el);
     const stepped = JSON.stringify({ params: {}, frames: [{ caption: 'One', root: node('1') }, { caption: 'Two', root: node('2') }] });
     reply.appendText('```figure\n' + stepped + '\n```');
     reply.finish();
     await settle();
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
-      const idle = jest.getTimerCount();
+      const idle = vi.getTimerCount();
       el.querySelector<HTMLButtonElement>('[aria-label="Play"]')!.click();
-      expect(jest.getTimerCount()).toBeGreaterThan(idle);
+      expect(vi.getTimerCount()).toBeGreaterThan(idle);
       reply.destroy();
-      expect(jest.getTimerCount()).toBe(idle);
-      jest.advanceTimersByTime(1000);
+      // Svelte's click delegation leaves a zero-delay timer behind; the playback's interval is what must be gone.
+      vi.advanceTimersByTime(0);
+      expect(vi.getTimerCount()).toBe(idle);
+      vi.advanceTimersByTime(1000);
       expect(el.querySelector('.vicher-player')).toBeNull();
-    } finally { jest.useRealTimers(); }
+    } finally { vi.useRealTimers(); }
   });
   let el: HTMLElement;
-  let reply: ReplyView;
+  let reply: ReturnType<typeof replyOf>;
   let host: ReturnType<typeof hostOf>;
   const tool = (id: string, name: string, status: ToolStatus, title = `${name} ${id}`) =>
     reply.tool({ type: 'tool', id, name, title, status });
@@ -74,7 +120,7 @@ describe('ReplyView', () => {
   beforeEach(() => {
     el = document.createElement('div');
     host = hostOf();
-    reply = new ReplyView(el, markdown, host);
+    reply = replyOf(el, { walkthrough: host });
   });
 
   afterEach(() => reply.finish());
@@ -132,14 +178,14 @@ describe('ReplyView', () => {
 
   function withFakeTimers(run: () => void): void {
     reply.finish();
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
       el = document.createElement('div');
       host = hostOf();
-    reply = new ReplyView(el, markdown, host);
+      reply = replyOf(el, { walkthrough: host });
       run();
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   }
 
@@ -149,16 +195,16 @@ describe('ReplyView', () => {
       const time = () => el.querySelector('.vicher-tools-time')!.textContent;
       expect(time()).toBe('');
 
-      jest.advanceTimersByTime(3000);
+      advance(3000);
       expect(time()).toBe('3s');
 
-      jest.advanceTimersByTime(62_000);
+      advance(62_000);
       expect(time()).toBe('1m 5s');
 
       reply.finish();
-      jest.advanceTimersByTime(5000);
+      advance(5000);
       expect(time()).toBe('1m 5s');
-      expect(jest.getTimerCount()).toBe(0);
+      expect(vi.getTimerCount()).toBe(0);
     });
   });
 
@@ -181,13 +227,13 @@ describe('ReplyView', () => {
 
   it('settles a longer working line as the time spent thinking', () => {
     withFakeTimers(() => {
-      jest.advanceTimersByTime(3000);
+      advance(3000);
       reply.appendText('Look at line 3.');
       reply.finish();
       expect(blocks(el)).toEqual(['vicher-tools: Thought for 3s', 'vicher-reply-text: Look at line 3.']);
       expect(el.querySelector('.vicher-tools-time')!.textContent).toBe('');
 
-      el.querySelector<HTMLElement>('.vicher-tools-header')!.click();
+      press(el.querySelector<HTMLElement>('.vicher-tools-header')!);
       expect(el.querySelector('.vicher-tools')!.classList.contains('is-open')).toBe(false);
     });
   });
@@ -196,7 +242,7 @@ describe('ReplyView', () => {
     withFakeTimers(() => {
       tool('a', 'Read', 'running');
       tool('a', 'Read', 'done');
-      jest.advanceTimersByTime(3000);
+      advance(3000);
       reply.appendText('It tracks active users.');
       reply.finish();
       expect(blocks(el)).toEqual(['vicher-tools: Used 1 Read', 'vicher-reply-text: It tracks active users.']);
@@ -216,9 +262,9 @@ describe('ReplyView', () => {
   });
 
   it('keeps a run that just ended active, so a call that follows at once joins it with no working line between', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
-      reply = new ReplyView(el = document.createElement('div'), markdown, host, undefined, true);
+      reply = replyOf(el = document.createElement('div'), { walkthrough: host, live: true });
       tool('a', 'Read', 'running');
       reply.thinking();
       expect(el.children).toHaveLength(1);
@@ -229,7 +275,7 @@ describe('ReplyView', () => {
       expect(blocks(el)).toEqual(['vicher-tools: Using Grep']);
 
       tool('b', 'Grep', 'done');
-      jest.advanceTimersByTime(600);
+      advance(600);
       expect(blocks(el)).toEqual(['vicher-tools: Used 1 Read and 1 Grep', expect.stringMatching(/^vicher-tools: \w.+\w$/)]);
       tool('c', 'Read', 'running');
       expect(blocks(el)).toEqual(['vicher-tools: Using Read']);
@@ -239,7 +285,97 @@ describe('ReplyView', () => {
       reply.appendText('Found it.');
       expect(el.querySelector('.vicher-tools')?.classList.contains('is-running')).toBe(false);
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([
+    ['a live reply\'s working line eases in', { live: true }, true],
+    ['one that takes over a working line already on screen does not', { live: true, handover: true }, false],
+    ['a saved reply draws at once', {}, false],
+  ])('%s', (_name, props, entering) => {
+    const target = document.createElement('div');
+    replyOf(target, props);
+    expect(target.querySelector('.vicher-tools')!.classList.contains('is-entering')).toBe(entering);
+  });
+
+  it('stops holding a run of calls when its chat closes', () => {
+    vi.useFakeTimers();
+    try {
+      reply = replyOf(el = document.createElement('div'), { live: true });
+      tool('a', 'Read', 'running');
+      tool('a', 'Read', 'done');
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+
+      reply.destroy();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps a run\'s "Used" line above the text that ends a long pause, not "Thought for"', () => {
+    vi.useFakeTimers();
+    try {
+      reply = replyOf(el = document.createElement('div'), { live: true });
+      tool('a', 'Read', 'running');
+      tool('a', 'Read', 'done');
+      advance(600);
+      advance(3000);
+      reply.appendText('It tracks active users.');
+      reply.finish();
+
+      expect(blocks(el)).toEqual(['vicher-tools: Used 1 Read', 'vicher-reply-text: It tracks active users.']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('puts no working line after a run of calls in a saved reply', () => {
+    vi.useFakeTimers();
+    try {
+      reply = replyOf(el = document.createElement('div'));
+      tool('a', 'Read', 'running');
+      tool('a', 'Read', 'done');
+      advance(600);
+
+      expect(blocks(el)).toEqual(['vicher-tools: Used 1 Read']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('adds no working line once a call that follows a held run has started', () => {
+    vi.useFakeTimers();
+    try {
+      reply = replyOf(el = document.createElement('div'), { live: true });
+      tool('a', 'Read', 'running');
+      tool('a', 'Read', 'done');
+      tool('b', 'Grep', 'running');
+      advance(600);
+
+      expect(blocks(el)).toEqual(['vicher-tools: Using Grep']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('counts the time from the start of the group to when it last became active or settled, whatever the clock did between ticks', () => {
+    vi.useFakeTimers();
+    try {
+      reply = replyOf(el = document.createElement('div'));
+      const time = () => el.querySelector('.vicher-tools-time')!.textContent;
+      tool('a', 'Bash', 'running');
+      vi.setSystemTime(Date.now() + 5000);
+      tool('a', 'Bash', 'done');
+      expect(time()).toBe('5s');
+
+      // A call that joins the settled group reactivates it at once, without waiting for a tick.
+      vi.setSystemTime(Date.now() + 5000);
+      tool('b', 'Read', 'running');
+      expect(time()).toBe('10s');
+    } finally {
+      vi.useRealTimers();
     }
   });
 
@@ -268,7 +404,7 @@ describe('ReplyView', () => {
     Object.defineProperty(window, 'matchMedia', { configurable: true, value: () => ({ matches: false }) });
     let finish!: () => void;
     const finished = new Promise<Animation>((resolve) => { finish = () => resolve({} as Animation); });
-    Object.defineProperty(HTMLElement.prototype, 'animate', { configurable: true, value: jest.fn(() => ({ finished })) });
+    Object.defineProperty(HTMLElement.prototype, 'animate', { configurable: true, value: vi.fn(() => ({ finished })) });
     try {
       const source = kind === 'mermaid' ? 'flowchart LR\nA --> B' : figure(node('Total'));
       reply.appendText(`\`\`\`${kind}\n${source}\n`);
@@ -309,7 +445,7 @@ describe('ReplyView', () => {
   });
 
   it('shows a drawing card while a figure streams, and draws it once the fence closes', async () => {
-    const run = jest.mocked(figureSandbox.run);
+    const run = vi.mocked(figureSandbox.run);
     run.mockClear();
     const frame = () => el.querySelector('.vicher-reply-figure')!;
     reply.appendText('```figure\n' + figure(node('Total')) + '\n');
@@ -326,6 +462,15 @@ describe('ReplyView', () => {
     expect(frame().querySelector('.vicher-figure-node')?.textContent).toBe('Total');
   });
 
+  it('draws the error card of a failed figure that settles after the reply has ended', async () => {
+    const live = replyOf(el = document.createElement('div'), { live: true });
+    live.appendText('```figure\n!Step 1: broken\n```');
+    live.finish();
+    await settle();
+
+    expect(el.querySelector('.vicher-figure-error-message')?.textContent).toBe('Step 1: broken');
+  });
+
   it('shows a figure past the fourth in a reply as code, with a note', async () => {
     reply.appendText([1, 2, 3, 4, 5].map((n) => '```figure\n' + figure(node(String(n))) + '\n```').join('\n\n'));
     reply.finish();
@@ -334,8 +479,20 @@ describe('ReplyView', () => {
     expect(el.querySelector('.vicher-figure-note')?.textContent).toBe('Only four figures are drawn per reply');
   });
 
+  it('counts the figures of a reply across its text blocks, so the limit holds for the whole reply', async () => {
+    const fence = (n: number) => '```figure\n' + figure(node(String(n))) + '\n```';
+    reply.appendText([1, 2, 3].map(fence).join('\n\n'));
+    tool('a', 'Read', 'done');
+    reply.appendText([4, 5].map(fence).join('\n\n'));
+    reply.finish();
+    await settle();
+
+    expect(el.querySelectorAll('.vicher-figure-node')).toHaveLength(4);
+    expect(el.querySelectorAll('.vicher-figure-note')).toHaveLength(1);
+  });
+
   it('holds a live reply\'s repairable failure behind its drawing card until the reply ends', async () => {
-    const live = new ReplyView(el = document.createElement('div'), markdown, hostOf(), undefined, true);
+    const live = replyOf(el = document.createElement('div'), { live: true });
     live.appendText('```figure\n!Step 1: broken\n```\nMore ');
     await new Promise((resolve) => window.requestAnimationFrame(resolve));
     await settle();
@@ -354,14 +511,16 @@ describe('ReplyView', () => {
 
   it('asks for diagrams in a Mermaid fence, never in prose or a figure', async () => {
     const asked: Array<[string, boolean | undefined]> = [];
-    reply = new ReplyView(el = document.createElement('div'), {
-      render: async (_target: HTMLElement, text: string, options?: { diagrams?: boolean }) => {
-        asked.push([text.split('\n')[0]!, options?.diagrams]);
+    reply = replyOf(el = document.createElement('div'), {
+      markdown: {
+        render: async (_target: HTMLElement, text: string, options?: { diagrams?: boolean }) => {
+          asked.push([text.split('\n')[0]!, options?.diagrams]);
+        },
+        release: () => undefined,
+        renderMath: () => document.createElement('span'),
+        finishRenderMath: () => Promise.resolve(),
       },
-      release: () => undefined,
-      renderMath: () => document.createElement('span'),
-      finishRenderMath: () => Promise.resolve(),
-    }, hostOf());
+    });
     reply.appendText('Prose.\n\n```mermaid\nflowchart LR\n```\n\n```figure\n' + figure({ type: 'Text', props: { text: '**Inside** $x$' }, children: [] }) + '\n```\n');
     reply.finish();
     await settle();
@@ -370,13 +529,15 @@ describe('ReplyView', () => {
 
   it('renders each finished paragraph once while the next one streams', async () => {
     const rendered: string[] = [];
-    reply = new ReplyView(el = document.createElement('div'), {
-      render: async (target: HTMLElement, text: string) => {
-        rendered.push(text);
-        target.textContent = text;
-      },
-      release: () => undefined,
-    } as unknown as MarkdownTarget, hostOf());
+    reply = replyOf(el = document.createElement('div'), {
+      markdown: {
+        render: async (target: HTMLElement, text: string) => {
+          rendered.push(text);
+          target.textContent = text;
+        },
+        release: () => undefined,
+      } as unknown as MarkdownTarget,
+    });
     const frame = () => new Promise((resolve) => window.requestAnimationFrame(resolve));
 
     reply.appendText('First paragraph.\n\nSec');
@@ -396,7 +557,7 @@ describe('ReplyView', () => {
   });
 
   it('adds one copy button when the reply ends, which copies the text as written', async () => {
-    const writeText = jest.fn().mockResolvedValue(undefined);
+    const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
     reply.appendText('Look at **line 3**.');
     tool('a', 'Read', 'done');
@@ -408,6 +569,7 @@ describe('ReplyView', () => {
     expect(buttons).toHaveLength(1);
     buttons[0]!.click();
     await Promise.resolve();
+    flushSync();
     expect(writeText).toHaveBeenCalledWith('Look at **line 3**.\n\nThen $x^2$.');
     expect(buttons[0]!.classList.contains('is-copied')).toBe(true);
   });
@@ -447,39 +609,45 @@ describe('ReplyView', () => {
       const { up, down, given } = rated('up');
       expect(el.querySelector('.vicher-reply-copy')!.nextElementSibling).toBe(up);
       expect([up, down].map((thumb) => thumb.getAttribute('aria-pressed'))).toEqual(['true', 'false']);
-      down.click();
+      press(down);
       expect(given).toEqual(['down']);
     });
 
     it('lights the pressed thumb and puts the other out', () => {
       const { up, down } = rated('down');
-      up.click();
+      press(up);
       expect(up.classList.contains('is-active')).toBe(true);
       expect(down.classList.contains('is-active')).toBe(false);
     });
 
+    it('keeps the thumb it shows when the reply is finished again', () => {
+      rated('up');
+      reply.finish();
+      expect([...el.querySelectorAll('.vicher-reply-rate')].map((thumb) => thumb.getAttribute('aria-pressed'))).toEqual(['true', 'false']);
+    });
+
     it('takes the thumb back when the lit one is pressed again', () => {
       const { up, given } = rated();
-      up.click();
-      up.click();
+      press(up);
+      press(up);
       expect(given).toEqual(['up', undefined]);
       expect(up.getAttribute('aria-pressed')).toBe('false');
     });
 
     it('animates clicks when selecting and clearing a thumb', () => {
-      window.matchMedia = jest.fn().mockReturnValue({ matches: false });
+      window.matchMedia = vi.fn().mockReturnValue({ matches: false });
       const { up } = rated();
-      up.animate = jest.fn();
-      up.click();
-      up.click();
+      up.animate = vi.fn();
+      press(up);
+      press(up);
       expect(up.animate).toHaveBeenCalledTimes(2);
     });
 
     it('keeps the selected state without animation when reduced motion is preferred', () => {
-      window.matchMedia = jest.fn().mockReturnValue({ matches: true });
+      window.matchMedia = vi.fn().mockReturnValue({ matches: true });
       const { down } = rated();
-      down.animate = jest.fn();
-      down.click();
+      down.animate = vi.fn();
+      press(down);
       expect(down.animate).not.toHaveBeenCalled();
       expect(down.classList.contains('is-active')).toBe(true);
     });
@@ -502,17 +670,21 @@ describe('ReplyView', () => {
     const group = el.querySelector<HTMLElement>('.vicher-tools')!;
     const header = group.querySelector<HTMLElement>('.vicher-tools-header')!;
 
-    header.click();
+    press(header);
     expect(group.classList.contains('is-open')).toBe(true);
     expect(header.getAttribute('aria-expanded')).toBe('true');
 
-    header.click();
+    press(header);
     expect(group.classList.contains('is-open')).toBe(false);
   });
 
   describe('stops the agent pointed at', () => {
     const stop = (quote: string, extra: Partial<{ comment: string; path: string }> = {}) => ({ path: 'a.md', quote, ...extra });
     const rows = () => Array.from(el.querySelectorAll<HTMLElement>('.vicher-walk-step'));
+    const tell = (event: TourEvent): void => {
+      host.listeners.forEach((listener) => listener(event));
+      flushSync();
+    };
 
     it('draws each stop where it was written, between the prose around it', () => {
       reply.appendText('Look here.');
@@ -555,11 +727,11 @@ describe('ReplyView', () => {
       reply.highlight(first);
       reply.highlight(second);
 
-      host.listeners.forEach((listener) => listener({ step: first, state: 'playing' }));
+      tell({ step: first, state: 'playing' });
       expect(rows().map((row) => row.classList.contains('is-current'))).toEqual([true, false]);
-      host.listeners.forEach((listener) => listener({ step: second, state: 'missed' }));
+      tell({ step: second, state: 'missed' });
       expect(rows().map((row) => [row.classList.contains('is-current'), row.classList.contains('is-missed')])).toEqual([[false, false], [false, true]]);
-      host.listeners.forEach((listener) => listener(null));
+      tell(null);
       expect(rows().some((row) => row.classList.contains('is-current'))).toBe(false);
     });
 
@@ -571,16 +743,61 @@ describe('ReplyView', () => {
       reply.highlight(c);
       const seen = () => rows().map((row) => row.classList.contains('is-done'));
 
-      host.listeners.forEach((listener) => listener({ step: c, state: 'playing' }));
+      tell({ step: c, state: 'playing' });
       expect(seen()).toEqual([true, true, false]);
-      host.listeners.forEach((listener) => listener({ step: b, state: 'playing' }));
+      tell({ step: b, state: 'playing' });
       expect(seen()).toEqual([true, false, false]);
-      host.listeners.forEach((listener) => listener(null));
+      tell(null);
       expect(seen()).toEqual([true, false, false]);
     });
 
+    it('labels each stop for a screen reader and explains a missed one', () => {
+      const first = stop('first');
+      reply.highlight(first);
+      reply.highlight(stop('second'));
+      const [one, two] = rows();
+
+      expect([one!.getAttribute('aria-label'), two!.getAttribute('aria-label'), one!.getAttribute('type')]).toEqual(['Show stop 1', 'Show stop 2', 'button']);
+      expect(one!.title).toBe('');
+      tell({ step: first, state: 'missed' });
+      expect(one!.title).toBe('The text was not found, so the note may have changed.');
+      tell({ step: first, state: 'playing' });
+      expect([one!.title, one!.classList.contains('is-missed')]).toEqual(['', false]);
+    });
+
+    it('hears the tour from the moment the first stop is added', () => {
+      const own = hostOf();
+      const view = mount(ReplyView, { target: document.createElement('div'), props: { markdown, walkthrough: own, copyRefused: vi.fn() } });
+      mounted.push(view);
+
+      view.highlight(stop('a'));
+
+      expect(own.listeners).toHaveLength(1);
+    });
+
+    it('keeps a missed stop marked while the tour moves on', () => {
+      const [a, b] = [stop('a'), stop('b')];
+      reply.highlight(a);
+      reply.highlight(b);
+
+      tell({ step: a, state: 'missed' });
+      tell({ step: b, state: 'playing' });
+
+      expect(rows().map((row) => [row.classList.contains('is-missed'), row.classList.contains('is-current')])).toEqual([[true, false], [false, true]]);
+    });
+
+    it('draws a stop that joins a run without redrawing the ones in it', () => {
+      reply.highlight(stop('a'));
+      const first = rows()[0]!;
+      reply.highlight(stop('b'));
+
+      expect(el.querySelectorAll('.vicher-walkthrough')).toHaveLength(1);
+      expect(rows()).toHaveLength(2);
+      expect(rows()[0]).toBe(first);
+    });
+
     it('keeps stops out of the copied text', () => {
-      const writeText = jest.fn().mockResolvedValue(undefined);
+      const writeText = vi.fn().mockResolvedValue(undefined);
       Object.assign(navigator, { clipboard: { writeText } });
       reply.appendText('The answer.');
       reply.highlight(stop('first', { comment: 'Look' }));
@@ -604,7 +821,7 @@ describe('ReplyView', () => {
 
     function answer(accept: (message: string) => boolean) {
       const quizEl = document.createElement('div');
-      const quizReply = new ReplyView(quizEl, markdown, hostOf(), (message) => accept(message));
+      const quizReply = replyOf(quizEl, { ask: (message) => accept(message) });
       quizReply.appendText(QUIZ);
       quizReply.finish();
       return quizEl;
@@ -616,7 +833,9 @@ describe('ReplyView', () => {
       await settle();
 
       quizEl.querySelectorAll<HTMLElement>('.vicher-quiz-option')[1]!.click();
+      flushSync();
       quizEl.querySelector<HTMLElement>('.vicher-quiz-submit')!.click();
+      flushSync();
 
       expect(sent).toEqual(['My answer: 4 (correct). Question: Pick the even number']);
       expect(quizEl.querySelectorAll('.vicher-quiz-option')[1]!.classList.contains('is-correct')).toBe(true);
@@ -628,7 +847,9 @@ describe('ReplyView', () => {
       await settle();
 
       quizEl.querySelectorAll<HTMLElement>('.vicher-quiz-option')[0]!.click();
+      flushSync();
       quizEl.querySelector<HTMLElement>('.vicher-quiz-submit')!.click();
+      flushSync();
 
       expect(quizEl.querySelector('.vicher-quiz-submit')).not.toBeNull();
       expect(quizEl.querySelector('.vicher-quiz-note')!.textContent).toMatch(/finish/i);
@@ -636,10 +857,10 @@ describe('ReplyView', () => {
   });
 
   it('does not draw a finished figure again while later text streams in', async () => {
-    const run = jest.mocked(figureSandbox.run);
+    const run = vi.mocked(figureSandbox.run);
     run.mockClear();
     const streamEl = document.createElement('div');
-    const streaming = new ReplyView(streamEl, markdown, hostOf());
+    const streaming = replyOf(streamEl);
 
     streaming.appendText('```figure\n' + figure(node('Total')) + '\n```\nFirst ');
     await new Promise((resolve) => window.requestAnimationFrame(resolve));

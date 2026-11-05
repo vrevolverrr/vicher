@@ -1,0 +1,1970 @@
+/* Shared motion curves and focus ring; `ease()` in `src/shared/view/motion.ts` reads the curves for the Web Animations API. */
+body {
+  --vicher-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --vicher-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --vicher-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --vicher-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --vicher-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --vicher-ease-overshoot: cubic-bezier(0.2, 1.4, 0.4, 1);
+  --vicher-focus-ring: 2px solid var(--interactive-accent);
+}
+
+.workspace-leaf-content .vicher-chat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-inline: var(--size-4-3);
+}
+
+.vicher-messages {
+  --vicher-message-fade: 64px;
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-6);
+  padding-block: var(--size-4-12) calc(var(--vicher-message-fade) + var(--size-4-2));
+  padding-inline: var(--size-2-1) var(--size-4-3);
+  user-select: text;
+  container-type: size;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb-bg) transparent;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--vicher-message-fade)), transparent);
+}
+
+.vicher-turn {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: var(--size-4-3);
+}
+
+/* The newest turn fills the view, so a sent message can scroll to the top with room below for the reply. */
+.vicher-turn:last-child {
+  min-height: 100cqh;
+}
+
+/* A message just sent rises into place from the composer below; one redrawn from a saved chat does not. */
+.vicher-turn.is-sent > :is(.vicher-user-attachments, .vicher-user-quote, .vicher-user-message) {
+  transform-origin: right bottom;
+  animation: vicher-pop-in 260ms var(--vicher-ease-emphasized) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vicher-turn.is-sent > :is(.vicher-user-attachments, .vicher-user-quote, .vicher-user-message) {
+    animation: none;
+  }
+}
+
+.vicher-user-message {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 6px 16px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--text-normal) 5%, transparent);
+  font-size: var(--font-ui-medium);
+  line-height: var(--line-height-normal);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.vicher-user-quote {
+  align-self: flex-end;
+  max-width: 85%;
+  margin-bottom: 4px;
+  padding-left: 10px;
+  border-left: 2px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: var(--line-height-normal);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.vicher-user-quote:hover {
+  color: var(--text-normal);
+}
+
+.vicher-reply {
+  --vicher-reply-line-height: 1.75;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+  padding-inline: var(--size-4-2);
+  font-size: var(--font-ui-medium);
+  line-height: var(--vicher-reply-line-height);
+}
+
+.vicher-reply pre {
+  line-height: var(--line-height-normal);
+}
+
+.vicher-reply.markdown-rendered ul > li {
+  margin-inline-start: 2ch;
+}
+
+.vicher-reply.markdown-rendered ol > li {
+  margin-inline-start: 2.5ch;
+}
+
+/* Tall inline math (fractions, subscripts) would otherwise push its line away from its neighbours.
+   The zero line height holds only for one line, so a formula never wraps; a narrow table cell scrolls instead. */
+.vicher-reply mjx-container:not([display='true']) {
+  display: inline-block;
+  margin-block: -0.5em;
+  line-height: 0;
+  white-space: nowrap;
+}
+
+/* MathJax 4 breaks inline math at operators through these elements, which set their own `white-space: normal`. */
+.vicher-reply mjx-container:not([display='true']) mjx-break {
+  white-space: nowrap;
+}
+
+/* A wide formula scrolls in its own row; MathJax's default lets it widen, and so pan, the whole chat. */
+.vicher-reply mjx-container[display='true'] {
+  overflow: auto clip;
+  min-width: initial !important;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb-bg) transparent;
+}
+
+.vicher-reply-error {
+  color: var(--text-error);
+}
+
+.vicher-reply-status {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.vicher-notice {
+  margin: var(--size-4-3) 0;
+}
+
+.vicher-composer {
+  --vicher-ink: var(--text-normal);
+  --vicher-ring-shadow:
+    0 0 0 0.5px color-mix(in srgb, var(--vicher-ink) 16%, transparent),
+    0 1px 0 0 color-mix(in srgb, var(--vicher-ink) 6%, transparent),
+    0 1px 1px 0 color-mix(in srgb, var(--vicher-ink) 1%, transparent),
+    0 0 2px 0 color-mix(in srgb, var(--vicher-ink) 11%, transparent),
+    0 2px 7px -2px color-mix(in srgb, var(--vicher-ink) 13%, transparent);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2-1);
+  padding: 12px 8px 8px 12px;
+  border-radius: 20px;
+  background: var(--background-primary);
+  margin-bottom: var(--size-4-2);
+}
+
+.theme-dark .vicher-composer {
+  --vicher-shade: color-mix(in srgb, var(--background-primary) 20%, black);
+  --vicher-ring-shadow:
+    inset 0 0.5px 0 0 color-mix(in srgb, var(--vicher-ink) 7%, transparent),
+    inset 0 0 0 0.5px color-mix(in srgb, var(--vicher-ink) 10%, transparent),
+    0 1px 2px 0 color-mix(in srgb, var(--vicher-shade) 24%, transparent),
+    0 0 2px 0 color-mix(in srgb, var(--vicher-shade) 19%, transparent),
+    0 1px 6px -1px color-mix(in srgb, var(--vicher-shade) 14%, transparent);
+}
+
+.vicher-composer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: var(--vicher-ring-shadow);
+}
+
+.vicher-context-chip {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-2-2);
+  max-width: 100%;
+  overflow: hidden;
+  padding: 3px var(--size-4-2) 3px var(--size-4-2);
+  border-radius: var(--radius-s);
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 150ms ease;
+}
+
+.vicher-context-chip:hover {
+  background: color-mix(in srgb, var(--text-normal) 12%, var(--background-modifier-hover));
+  color: var(--text-normal);
+}
+
+.vicher-context-chip:active:not(:has(.vicher-context-remove:active)) {
+  transform: scale(0.97);
+}
+
+.vicher-context-chip:focus-visible {
+  outline: 2px solid var(--background-modifier-border-focus);
+  outline-offset: 1px;
+}
+
+.vicher-context-chip.is-leaving {
+  pointer-events: none;
+}
+
+.vicher-context-chip .vicher-context-icon,
+.vicher-context-chip .svg-icon {
+  display: inline-flex;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+  flex: none;
+}
+
+.vicher-context-chip .vicher-context-label {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vicher-context-label::after {
+  content: '';
+  position: absolute;
+  inset: 50% 0 auto;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 180ms var(--vicher-ease-out);
+}
+
+.vicher-context-chip.is-excluded {
+  opacity: 0.6;
+}
+
+.vicher-context-chip.is-excluded .vicher-context-label::after {
+  transform: scaleX(1);
+}
+
+.vicher-context-chip .vicher-context-remove {
+  width: auto;
+  height: auto;
+  padding: 0;
+  box-shadow: none;
+  background: none;
+  color: inherit;
+  opacity: 0.7;
+  transition: color 150ms ease, opacity 150ms ease, transform 150ms ease;
+}
+
+.vicher-context-chip .vicher-context-remove:hover {
+  background: none;
+  color: var(--text-error);
+  opacity: 1;
+}
+
+.vicher-context-chip .vicher-context-remove:active {
+  transform: scale(0.85);
+}
+
+.vicher-composer.is-dragging::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px dashed var(--interactive-accent);
+  pointer-events: none;
+}
+
+.vicher-user-attachments {
+  align-self: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--size-2-2);
+  max-width: 85%;
+}
+
+.vicher-user-attachments img {
+  max-width: 160px;
+  max-height: 120px;
+  border-radius: var(--radius-s);
+  object-fit: cover;
+}
+
+.vicher-input-wrap {
+  position: relative;
+  margin: 8px 4px 0;
+}
+
+.vicher-input,
+.vicher-input-mirror {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 1.5em;
+  max-height: 192px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-family: var(--font-interface);
+  font-size: var(--font-ui-medium);
+  line-height: var(--line-height-normal);
+  letter-spacing: normal;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.vicher-input {
+  position: relative;
+  display: block;
+  height: auto;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--text-normal);
+  resize: none;
+}
+
+.vicher-input::placeholder {
+  color: var(--text-faint);
+}
+
+.vicher-input-mirror {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  color: var(--text-normal);
+  pointer-events: none;
+}
+
+/* Obsidian fills a hovered or pressed textarea, which would hide the mirror behind this one. */
+.vicher-input-wrap .vicher-input {
+  background: transparent;
+  box-shadow: none;
+}
+
+.vicher-input:focus,
+.vicher-input:focus-visible {
+  box-shadow: none;
+  outline: none;
+}
+
+.vicher-composer-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  margin-top: 6px;
+  gap: 2px;
+}
+
+.vicher-composer-spacer {
+  flex: 1;
+}
+
+.vicher-composer-bar .svg-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.vicher-agent-icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--vicher-agent-color, var(--text-normal));
+}
+
+@keyframes vicher-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+}
+
+@keyframes vicher-check-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vicher-diagram-rings {
+    display: none;
+  }
+
+  .vicher-tools.is-running .vicher-tools-orb::before,
+  .vicher-diagram-card .vicher-tools-orb::before {
+    animation: none;
+  }
+
+  .vicher-context-chip,
+  .vicher-context-label::after,
+  .vicher-context-chip .vicher-context-remove {
+    transition: none;
+  }
+}
+
+.vicher-reply-figure {
+  position: relative;
+  margin: var(--size-4-2) 0;
+  line-height: var(--line-height-normal);
+}
+
+.vicher-reply-figure .vicher-diagram-card,
+.vicher-figure-canvas {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-l);
+  background: var(--background-primary);
+}
+
+/* FigureView reads this padding and border to size what it draws inside. */
+.vicher-figure-canvas {
+  width: fit-content;
+  padding: var(--size-4-3);
+}
+
+.vicher-mermaid {
+  --pele-bg: var(--background-primary);
+  --pele-fg: var(--text-normal);
+  --pele-muted: var(--text-muted);
+  --pele-line: var(--text-normal);
+  --pele-surface: color-mix(in srgb, var(--interactive-accent) 12%, var(--background-primary));
+  --pele-surface-alt: color-mix(in srgb, var(--interactive-accent) 22%, var(--background-primary));
+  --pele-border: color-mix(in srgb, var(--interactive-accent) 60%, var(--background-primary));
+  --pele-accent: var(--interactive-accent);
+  --pele-critical: var(--text-error);
+  --pele-error: var(--text-error);
+  --pele-font: var(--font-interface);
+  --pele-font-mono: var(--font-monospace);
+  --pele-radius: var(--radius-s);
+}
+
+.vicher-reply-mermaid,
+.vicher-reply-figure .vicher-diagram-card,
+.vicher-figure-canvas.is-graph,
+.modal.vicher-diagram-modal {
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--background-modifier-border) 55%, transparent) 0.9px, transparent 1.4px) 0 0 / 16px 16px,
+    var(--background-primary);
+}
+
+.vicher-reply-mermaid {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: var(--size-4-4);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-l);
+  animation: vicher-pop-in 240ms ease-out;
+}
+
+.vicher-reply-mermaid.is-drawing,
+.vicher-reply-figure.is-drawing {
+  min-height: 160px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.vicher-reply-mermaid pre {
+  margin: 0;
+}
+
+.vicher-diagram-card {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-2-3);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-medium);
+  isolation: isolate;
+}
+
+.vicher-diagram-card > span {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * Two staggered rings ripple out from the label and light the grid's dots: each is a soft ring that scales up
+ * under a stencil cut out at the dots, so only transform and opacity animate and the lit dots stay on the grid.
+ */
+.vicher-diagram-rings,
+.vicher-diagram-stencil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.vicher-diagram-rings::before,
+.vicher-diagram-rings::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 900px;
+  height: 900px;
+  margin: -450px 0 0 -450px;
+  background: radial-gradient(circle closest-side, transparent 58%, var(--interactive-accent) 68%, transparent 78%);
+  animation: vicher-ripple 2.8s var(--vicher-ease-emphasized) infinite;
+}
+
+.vicher-diagram-rings::after {
+  animation-delay: 1.4s;
+}
+
+.vicher-diagram-stencil {
+  background: var(--background-primary);
+  mask: radial-gradient(circle, transparent 1.6px, #000 2.4px) 0 0 / 16px 16px;
+}
+
+@keyframes vicher-ripple {
+  from {
+    transform: scale(0);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Pele fits the drawing to the pane's width. Past three quarters of its own size the text drops under 10 px, so a wider
+   diagram scrolls instead. The modal sets no width and zooms. */
+.vicher-mermaid > svg {
+  display: block;
+  min-width: calc(var(--vicher-diagram-width, 0px) * 0.75);
+  margin-inline: auto;
+}
+
+.vicher-mermaid:not(.vicher-diagram-modal .vicher-mermaid) {
+  overflow-x: auto;
+}
+
+.vicher-mermaid-header {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-1);
+  margin: calc(-1 * var(--size-2-3)) calc(-1 * var(--size-2-3)) var(--size-4-2) 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-medium);
+  line-height: var(--line-height-tight);
+}
+
+.vicher-mermaid-title {
+  flex: 1;
+}
+
+.vicher-icon-action.clickable-icon {
+  color: var(--text-faint);
+  cursor: var(--cursor-link);
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.vicher-icon-action.clickable-icon:hover {
+  color: var(--text-normal);
+}
+
+.vicher-icon-action.is-copied .svg-icon {
+  color: var(--color-green);
+  animation: vicher-check-in 200ms ease-out;
+}
+
+.modal.vicher-diagram-modal {
+  width: 90vw;
+  height: 85vh;
+  max-width: none;
+}
+
+.vicher-diagram-modal .modal-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  container-type: size;
+}
+
+.vicher-diagram-modal .vicher-mermaid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  /* Pele fits by width only, so a tall diagram overflows and its top is clipped. Padding narrows the box until the width fit is also the height fit. */
+  padding-inline: max(0px, calc((100cqw - 100cqh * var(--vicher-diagram-ratio, 1)) / 2));
+  --pele-zoom-top: auto;
+  --pele-zoom-bottom: var(--size-4-2);
+  --pele-zoom-right: var(--size-4-2);
+}
+
+/* The figure lays out at full width under the card, and shows once the card fades. */
+.vicher-reply-mermaid.is-drawing .vicher-diagram,
+.vicher-reply-figure.is-drawing .vicher-figure {
+  position: absolute;
+  inset-inline: var(--size-4-4);
+  visibility: hidden;
+}
+
+.vicher-reply-figure.is-drawing .vicher-figure {
+  inset-inline: 0;
+}
+
+.vicher-reply-mermaid:not(.is-drawing) .vicher-diagram,
+.vicher-reply-figure:not(.is-drawing) .vicher-figure {
+  animation: vicher-fade-in 320ms ease 80ms both;
+}
+
+@keyframes vicher-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.vicher-network-node,
+.vicher-network-edge-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  border-radius: var(--radius-s);
+}
+
+.vicher-network-node,
+.vicher-network-edge-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-align: center;
+  color: var(--text-normal);
+  background: var(--background-primary);
+}
+
+.vicher-network-node {
+  border: 1px solid var(--text-muted);
+  z-index: 2;
+}
+
+.vicher-network-edge-label {
+  z-index: 1;
+  padding: 0;
+  background: none;
+}
+
+.vicher-network-edge-label > span {
+  padding: 0 4px;
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+}
+
+.vicher-network-edges {
+  position: absolute;
+  inset: 0;
+}
+
+.vicher-network-edge {
+  stroke: var(--text-muted);
+  stroke-width: 2;
+}
+
+.vicher-network-node[data-tag='active'] {
+  border: 2px solid var(--interactive-accent);
+}
+
+.vicher-network-edge[data-tag='active'] {
+  stroke: var(--interactive-accent);
+  stroke-width: 4;
+}
+
+.vicher-network-edge[data-tag='done'] {
+  stroke-dasharray: 7 4;
+}
+
+/* Fade only the text, so the label still covers the dot grid. */
+.vicher-network-edge-label[data-tag='dim'] {
+  opacity: 1;
+  color: var(--text-faint);
+}
+
+/* Markdown tables share one presentation in prose and OpenUI text. */
+.vicher-reply.markdown-rendered .table-wrapper {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.vicher-reply.markdown-rendered table {
+  width: 100%;
+}
+
+.vicher-reply.markdown-rendered .vicher-reply-prose table {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  line-height: var(--line-height-tight);
+}
+
+.vicher-reply.markdown-rendered .vicher-reply-prose th,
+.vicher-reply.markdown-rendered .vicher-reply-prose td {
+  padding: var(--size-4-2) var(--size-4-3);
+  vertical-align: middle;
+}
+
+.vicher-reply.markdown-rendered .vicher-reply-prose th {
+  background: var(--background-secondary);
+}
+
+.vicher-reply.markdown-rendered .vicher-reply-prose td {
+  background: var(--background-primary);
+}
+
+.vicher-reply.markdown-rendered .vicher-reply-prose tbody tr:hover > td {
+  background: var(--background-modifier-hover);
+}
+
+/* A plot draws with Obsidian's own colours, so its series follow the vault's theme. */
+.vicher-plot {
+  --vicher-series-1: var(--color-blue);
+  --vicher-series-2: var(--color-orange);
+  --vicher-series-3: var(--color-green);
+  --vicher-series-4: var(--color-purple);
+  --vicher-series-5: var(--color-cyan);
+  --vicher-series-6: var(--color-pink);
+  min-width: 0;
+}
+
+.vicher-plot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--size-2-2) var(--size-4-5);
+  margin-bottom: var(--size-4-2);
+  color: var(--text-normal);
+  font-size: calc(var(--font-ui-small) - 1px);
+}
+
+.vicher-plot-legend:empty {
+  display: none;
+}
+
+.vicher-plot-swatch {
+  display: inline-block;
+  margin-right: var(--size-2-3);
+  background: var(--vicher-swatch);
+  vertical-align: middle;
+}
+
+.vicher-plot-swatch.is-area,
+.vicher-plot-swatch.is-bars {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.vicher-plot-swatch.is-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.vicher-plot-frame {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.vicher-plot-svg {
+  display: block;
+}
+
+.vicher-plot-svg text {
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.vicher-plot-tick {
+  fill: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.vicher-plot-svg .vicher-plot-title {
+  font-size: 13px;
+}
+
+.vicher-plot-label {
+  fill: var(--text-normal);
+  paint-order: stroke;
+  stroke: var(--background-primary);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.vicher-plot-label.is-strong {
+  font-weight: var(--font-semibold);
+}
+
+/* A label with Markdown or maths, which SVG text cannot typeset, drawn like `.vicher-plot-label` over the plot. */
+.vicher-plot-rich-label {
+  position: absolute;
+  padding: 0 2px;
+  border-radius: var(--radius-s);
+  background: color-mix(in srgb, var(--background-primary) 85%, transparent);
+  color: var(--text-normal);
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.vicher-plot-rich-label.is-strong {
+  font-weight: var(--font-semibold);
+}
+
+.vicher-plot-rich-label.is-title {
+  padding: 0;
+  background: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  transform: translate(-50%, -50%);
+}
+
+.vicher-plot-rich-label.is-vertical {
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+
+.vicher-plot-grid,
+.vicher-plot-axis {
+  stroke: var(--background-modifier-border);
+  stroke-width: 1;
+}
+
+.vicher-plot-grid {
+  stroke-dasharray: 5 4;
+}
+
+.vicher-plot-axis {
+  stroke: var(--background-modifier-border-hover);
+}
+
+.vicher-plot-line {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vicher-plot-rule {
+  stroke-width: 1.5;
+}
+
+.vicher-plot-dot {
+  stroke: var(--background-primary);
+  stroke-width: 2;
+}
+
+/* A 3D plot's height colours (viridis), its cell edges and its box. The dark ramp lifts the low end off the background. */
+.vicher-plot3 {
+  --vicher-surface-1: #440154;
+  --vicher-surface-2: #3b528b;
+  --vicher-surface-3: #21918c;
+  --vicher-surface-4: #5ec962;
+  --vicher-surface-5: #fde725;
+  --vicher-surface-edge: rgb(0 0 0 / 22%);
+  --vicher-surface-box: var(--text-faint);
+}
+
+.theme-dark .vicher-plot3 {
+  --vicher-surface-1: #5b2a86;
+  --vicher-surface-2: #41609a;
+}
+
+.vicher-plot3-frame {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.vicher-plot3-frame:active {
+  cursor: grabbing;
+}
+
+.vicher-plot3-frame:focus-visible {
+  outline: var(--vicher-focus-ring);
+  outline-offset: 2px;
+}
+
+.vicher-plot3-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.vicher-plot3-svg {
+  position: relative;
+}
+
+.vicher-plot-cross {
+  stroke: var(--text-faint);
+  stroke-width: 1;
+}
+
+.vicher-plot-hit {
+  fill: transparent;
+  pointer-events: all;
+  touch-action: pan-y;
+}
+
+.vicher-plot-tip {
+  position: absolute;
+  z-index: 2;
+  max-width: 240px;
+  padding: var(--size-2-2) var(--size-4-2);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  box-shadow: var(--shadow-s);
+  color: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+  pointer-events: none;
+}
+
+.vicher-plot-tip-head {
+  color: var(--text-muted);
+}
+
+/* The reply's gap alone spaces its blocks, so paragraph margins at a text block's edges don't widen it. */
+.vicher-reply-text > :first-child > :first-child,
+.vicher-reply-text > .vicher-reply-prose:first-child > :first-child > :first-child {
+  margin-top: 0;
+}
+
+.vicher-reply-text > :last-child > :last-child,
+.vicher-reply-text > .vicher-reply-prose:last-child > :last-child > :last-child {
+  margin-bottom: 0;
+}
+
+/* A heading sits closer to its section than to the one before. Each block renders in its own div, so app.css's wider
+   gap above a heading after a paragraph never matches here, and a vault snippet may widen the gap below with !important. */
+.vicher-reply.markdown-rendered .vicher-reply-prose :is(h1, h2, h3, h4, h5, h6) {
+  margin-top: 1.25em !important;
+  margin-bottom: var(--size-4-2) !important;
+}
+
+.vicher-reply.markdown-rendered .vicher-reply-text > .vicher-reply-prose:first-child > :first-child > :is(h1, h2, h3, h4, h5, h6):first-child {
+  margin-top: 0 !important;
+}
+
+/* The shimmer and the orb below are shared with the drawing card of a streaming figure (TextBlock), so they stay here. */
+.vicher-tools.is-running .vicher-tools-summary,
+.vicher-tools.is-open .vicher-tool[data-status='running'],
+.vicher-diagram-card-label {
+  background: linear-gradient(90deg, var(--text-muted) 40%, var(--text-normal) 50%, var(--text-muted) 60%) 0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: vicher-shimmer 1.6s linear infinite;
+}
+
+.vicher-tools-orb {
+  position: relative;
+  flex-shrink: 0;
+  width: 0;
+  height: 12px;
+  margin-inline-end: calc(-1 * var(--size-2-2));
+  opacity: 0;
+  transition:
+    width 240ms ease,
+    margin 240ms ease,
+    opacity 240ms ease;
+}
+
+.vicher-tools.is-running .vicher-tools-orb,
+.vicher-diagram-card .vicher-tools-orb {
+  width: 12px;
+  margin-inline-end: var(--size-2-1);
+  opacity: 1;
+  animation: vicher-breathe 2.6s ease-in-out infinite;
+}
+
+.vicher-tools-orb::before {
+  content: '';
+  position: relative;
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 58% 42% 54% 46% / 46% 56% 44% 54%;
+  background: radial-gradient(
+    circle at 32% 28%,
+    color-mix(in srgb, var(--interactive-accent) 35%, white) 0%,
+    var(--interactive-accent) 55%,
+    color-mix(in srgb, var(--interactive-accent) 65%, black) 100%
+  );
+}
+
+/* A soft gradient halo instead of an animated box-shadow, so the glow pulses by opacity alone. */
+.vicher-tools-orb::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -5px;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--interactive-accent) 60%, transparent),
+    transparent
+  );
+  opacity: 0;
+}
+
+.vicher-tools.is-running .vicher-tools-orb::before,
+.vicher-diagram-card .vicher-tools-orb::before {
+  animation:
+    vicher-squish 1.7s ease-in-out infinite,
+    vicher-spin 3.6s linear infinite;
+}
+
+.vicher-tools.is-running .vicher-tools-orb::after,
+.vicher-diagram-card .vicher-tools-orb::after {
+  animation: vicher-glow 2.6s ease-in-out infinite;
+}
+
+/* Only rotate, scale and opacity animate, so the orb never repaints; the uneven outline turning under an uneven squish reads as a morph. */
+@keyframes vicher-squish {
+  0%,
+  100% {
+    scale: 1 0.9;
+  }
+  25% {
+    scale: 0.91 1;
+  }
+  50% {
+    scale: 1 0.94;
+  }
+  75% {
+    scale: 0.93 0.99;
+  }
+}
+
+@keyframes vicher-spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+/* Quick inhale, slow exhale. */
+@keyframes vicher-breathe {
+  0%,
+  100% {
+    scale: 0.78;
+  }
+  38% {
+    scale: 1;
+  }
+}
+
+@keyframes vicher-glow {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  38% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes vicher-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+.vicher-skill-token,
+.vicher-skill-match {
+  color: var(--text-accent);
+}
+
+/* No padding or margin: the input's mirror must keep the textarea's text metrics. */
+.vicher-mention-token {
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 18%, transparent);
+  border-radius: 4px;
+  box-decoration-break: clone;
+}
+
+.vicher-chat-header {
+  position: absolute;
+  top: var(--size-4-2);
+  inset-inline-end: var(--size-4-3);
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+}
+
+.vicher-chat-header .vicher-icon-action {
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-primary);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--text-normal) 8%, transparent);
+  color: var(--text-muted);
+}
+
+.vicher-chat-header .vicher-icon-action .svg-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.vicher-chat-panels,
+.vicher-chat-panel {
+  display: grid;
+  min-height: 0;
+  min-width: 0;
+}
+
+.vicher-chat-panels {
+  position: relative;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto auto auto;
+}
+
+.vicher-chat-panel {
+  grid-area: 1 / 1 / 5 / 2;
+  grid-template-rows: subgrid;
+}
+
+.vicher-chat-panel .vicher-messages {
+  grid-row: 1;
+  min-height: 0;
+}
+
+.vicher-chat-panel[hidden] { display: none; }
+
+.vicher-chat-composer-area {
+  grid-row: 4;
+  container-type: inline-size;
+  min-width: 0;
+  padding: 0 4px 4px;
+  margin-bottom: var(--size-4-2);
+}
+
+.vicher-chat-composer-area .vicher-composer {
+  margin-bottom: 0;
+}
+
+.vicher-chat-tab-bar {
+  position: absolute;
+  grid-area: 4 / 1;
+  inset-inline: 7px;
+  bottom: 100%;
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  margin: 0 0 6px;
+  pointer-events: none;
+}
+
+.vicher-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Beats Obsidian's own cursor on buttons and icons, but not the rules that set another cursor (an empty tool header). */
+:is(.vicher-chat, .vicher-chat-modal) :is(button:not(:disabled), .clickable-icon) {
+  cursor: pointer;
+}
+
+.vicher-highlight,
+::highlight(vicher-highlight) {
+  background-color: color-mix(in srgb, var(--interactive-accent) 30%, transparent);
+}
+
+.vicher-highlight {
+  border-radius: 2px;
+}
+
+.vicher-tour {
+  --vicher-accent: var(--color-purple, #8b5cf6);
+}
+
+.vicher-tour {
+  position: fixed;
+  inset: 0;
+  z-index: var(--layer-popover, 30);
+  display: none;
+  pointer-events: none;
+}
+
+.vicher-tour.is-active {
+  display: block;
+}
+
+.vicher-tour.is-hidden > * {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.vicher-tour-cursor,
+.vicher-tour-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: opacity 120ms ease;
+}
+
+.vicher-tour.is-gliding > .vicher-tour-cursor,
+.vicher-tour.is-gliding > .vicher-tour-card {
+  transition: opacity 120ms ease, transform 450ms var(--vicher-ease-out);
+}
+
+.vicher-tour-cursor svg {
+  display: block;
+  /* The tip is the svg's top-left corner, drawn two units in; this puts it on the point. */
+  margin: -2px 0 0 -2px;
+  overflow: visible;
+  fill: var(--vicher-accent);
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  paint-order: stroke;
+  filter: drop-shadow(0 0 1.5px rgb(0 0 0 / 0.5)) drop-shadow(0 2px 5px rgb(0 0 0 / 0.35));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vicher-tour.is-gliding > .vicher-tour-cursor,
+  .vicher-tour.is-gliding > .vicher-tour-card {
+    transition: none;
+  }
+}
+
+.vicher-env-setting {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--size-4-2);
+}
+
+.vicher-env-setting textarea {
+  width: 100%;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+}
+
+.vicher-env-problems {
+  color: var(--text-error);
+  font-size: var(--font-ui-smaller);
+}
+
+/* Figures: model-written programs drawn with the host's own layout. Tag colours are per surface, never one rule for every [data-tag]. */
+.vicher-figure {
+  --vicher-figure-tex-size: 1.3em;
+  --vicher-figure-ink: color-mix(in srgb, var(--text-normal) 80%, var(--background-primary));
+  --vicher-figure-tag-active: var(--interactive-accent);
+  --vicher-figure-tag-done: var(--text-muted);
+  --vicher-figure-tag-match: var(--color-cyan);
+  --vicher-figure-tag-new: var(--color-yellow);
+  --vicher-figure-tag-dim: var(--text-faint);
+  --vicher-figure-tag-good: var(--color-green);
+  --vicher-figure-tag-bad: var(--color-red);
+  --vicher-figure-fill-active: color-mix(in srgb, var(--interactive-accent) 22%, var(--background-primary));
+  --vicher-figure-fill-done: var(--background-secondary);
+  --vicher-figure-fill-match: color-mix(in srgb, var(--color-cyan) 24%, var(--background-primary));
+  --vicher-figure-fill-new: color-mix(in srgb, var(--color-yellow) 30%, var(--background-primary));
+  --vicher-figure-fill-dim: var(--background-secondary);
+  --vicher-figure-fill-good: color-mix(in srgb, var(--color-green) 22%, var(--background-primary));
+  --vicher-figure-fill-bad: color-mix(in srgb, var(--color-red) 22%, var(--background-primary));
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+  min-width: 0;
+  max-width: 100%;
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+}
+
+.vicher-figure-title {
+  font-weight: var(--font-semibold);
+}
+
+.vicher-figure-params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-4-2) var(--size-4-4);
+}
+
+.vicher-figure-param-error:empty {
+  display: none;
+}
+
+.vicher-figure-param-error,
+.vicher-figure-error-message {
+  color: var(--text-error);
+  overflow-wrap: anywhere;
+}
+
+.vicher-figure-error pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* On screen but invisible: Chromium starves the process of a display:none cross-origin frame, and its workers with it. */
+.vicher-figure-sandbox {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* A redraw lays out hidden over the drawing on screen until it can take its place. */
+.vicher-figure-body.is-pending {
+  position: absolute;
+  inset-inline: 0;
+  visibility: hidden;
+}
+
+.vicher-figure-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+  min-width: 0;
+}
+
+/* The caption sits beside a drawing narrow enough to leave it room, and wraps under one that is not. */
+.vicher-figure-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--size-4-2) var(--size-4-6);
+}
+
+/* The side column takes nearly all the spare width on a shared line, so the drawing stays its own size there; alone on its line after a wrap, the drawing takes the full width. */
+.vicher-figure-side {
+  display: flex;
+  flex: 1000 1 18em;
+  flex-direction: column;
+  gap: var(--size-4-3);
+  font-size: calc(var(--font-ui-medium) - 1px);
+}
+
+.vicher-figure-side:not(:has(> :not([hidden]))) {
+  display: none;
+}
+
+/* With the full player, the caption and player always sit under the figure, centred, and the player is wide enough to scrub. */
+.vicher-figure-side:is(.is-player, .is-under) {
+  flex-basis: 100%;
+  min-width: 0;
+  align-items: center;
+}
+
+/* A vertical stepper, for a figure's steps and a tour's stops: numbered dots joined by a line that fills in as the steps pass. */
+.vicher-step {
+  position: relative;
+}
+
+/* From each dot's bottom edge to the next one's top, so it never shows through a faded dot. It sits above the next row's
+   background, which would hide its end. */
+.vicher-step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: calc(var(--vicher-step-y, 0px) + 24px);
+  bottom: calc(-1 * var(--vicher-step-y, 0px));
+  left: calc(var(--vicher-step-x, 0px) + 11.5px);
+  width: 1px;
+  background: var(--background-modifier-border);
+  transition: background-color 0.25s ease;
+}
+
+.vicher-step.is-done::before {
+  background: var(--vicher-step-done);
+}
+
+.vicher-step-dot {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--background-modifier-border-hover);
+  border-radius: 50%;
+  background: var(--background-primary);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-medium);
+  font-variant-numeric: tabular-nums;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+.vicher-step.is-done .vicher-step-dot {
+  border-color: var(--vicher-step-done);
+  color: var(--vicher-step-done);
+}
+
+.vicher-step.is-current .vicher-step-dot {
+  border-color: var(--vicher-step-accent);
+  background: color-mix(in srgb, var(--vicher-step-accent) 10%, var(--background-primary));
+  color: var(--vicher-step-accent-text);
+  font-weight: var(--font-semibold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vicher-step::before,
+  .vicher-step-dot {
+    transition: none;
+  }
+}
+
+.vicher-figure-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.vicher-figure-stack {
+  display: grid;
+  width: 100%;
+}
+
+/* Whatever a step draws is centred, so what is left of the pane's width falls on both sides. `safe` starts one wider than the
+   pane at its left edge, where it can scroll, instead of spilling past it. */
+.vicher-figure-step {
+  grid-area: 1 / 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: safe center;
+  visibility: hidden;
+  padding: 4px 0 8px;
+}
+
+.vicher-figure-step.is-current {
+  visibility: visible;
+}
+
+.vicher-figure-row {
+  display: flex;
+  flex-flow: row wrap;
+}
+
+.vicher-figure-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.vicher-figure-row > .vicher-figure-node {
+  align-self: stretch;
+}
+
+/* A Quiz is read, not looked at: it keeps the step's full width. */
+.vicher-figure-step > .vicher-figure-quiz {
+  align-self: stretch;
+}
+
+/* A root Row wide enough to wrap fills the step, so its own lines are centred as well. */
+.vicher-figure-step > .vicher-figure-row {
+  justify-content: safe center;
+}
+
+/* A formula in a column is centred too; auto margins fall back to the left edge when it overflows. */
+.vicher-figure-column > .vicher-figure-tex {
+  margin-inline: auto;
+}
+
+.vicher-figure-tex {
+  width: fit-content;
+}
+
+/* A column of cards takes the widest card's width. */
+.vicher-figure .vicher-figure-column:not(:has(> :not(.vicher-figure-node))) {
+  align-items: stretch;
+}
+
+.vicher-figure .is-gap-sm { gap: 6px; }
+.vicher-figure .is-gap-md { gap: 14px; }
+.vicher-figure .is-gap-lg { gap: 28px; }
+.vicher-figure .is-align-start { align-items: flex-start; }
+.vicher-figure .is-align-center { align-items: center; }
+.vicher-figure .is-align-end { align-items: flex-end; }
+
+.vicher-figure-panel {
+  padding: 8px 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-secondary);
+}
+
+.vicher-figure-panel-title,
+.vicher-figure-title:not(:first-child),
+.vicher-figure-table > .vicher-figure-title,
+.vicher-figure-seq > .vicher-figure-title {
+  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-weight: var(--font-semibold);
+}
+
+.vicher-figure p {
+  margin: 0;
+}
+
+/* The frame is the table's own and the lines are the cells', by class: Obsidian and vault table rules on bare cells cannot reach them. */
+.vicher-figure .vicher-figure-table table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  background: var(--background-primary);
+}
+
+/* A vault snippet may size every Markdown table cell with !important; a figure's table keeps the figure's size. */
+.vicher-figure .vicher-figure-table .vicher-figure-cell {
+  padding: 4px 10px !important;
+  font-size: var(--font-ui-small) !important;
+  line-height: 1.5 !important;
+  /* Translucent, so a gridline still shows across a tag's fill, which the theme's border grey matches in brightness. */
+  border: 0 solid color-mix(in srgb, var(--text-normal) 12%, transparent);
+  border-width: 1px 0 0 1px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.vicher-figure .vicher-figure-table .vicher-figure-cell:first-child {
+  border-left-width: 0;
+}
+
+.vicher-figure .vicher-figure-table thead .vicher-figure-cell {
+  border-top-width: 0;
+  color: var(--text-muted);
+  font-weight: var(--font-semibold);
+  background: var(--background-secondary-alt, var(--background-secondary));
+}
+
+.vicher-figure-seq-items {
+  display: flex;
+}
+
+.vicher-figure-seq-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.vicher-figure-seq-index {
+  height: 16px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.vicher-figure-seq-cell {
+  min-width: 32px;
+  margin-left: -1px;
+  padding: 6px 8px;
+  border: 1px solid var(--text-muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  background: var(--background-primary);
+}
+
+.vicher-figure-node {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  padding: 6px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  text-align: center;
+  background: var(--background-primary);
+}
+
+.vicher-figure-node.is-circle {
+  min-height: 48px;
+  border-radius: 999px;
+}
+
+.vicher-figure-node-sub,
+.vicher-network-node-sub {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* A Tex element is often the figure itself (a matrix, a derivation), so it is set larger than the figure's UI text. Its
+   formula sits between an empty column and its pointers' column, which share the spare width equally, so the formula stays
+   centred; short of room, the formula keeps its width first and the pointer names wrap, down to their longest word. */
+.vicher-figure-tex {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(min-content, 1fr);
+  font-size: var(--vicher-figure-tex-size);
+}
+
+.vicher-figure-tex-math {
+  grid-column: 2;
+  min-width: 0;
+}
+
+/* Doubled up to outrank MathJax's own spacing around display maths. */
+.vicher-figure .vicher-figure-tex mjx-container[display='true'] {
+  margin: 0;
+}
+
+.vicher-figure-tex-lane {
+  position: relative;
+  grid-column: 3;
+}
+
+/* Every step's pointer names, laid over each other unseen, so the column takes the widest in any step and keeps it. */
+.vicher-figure-tex-sizes {
+  display: grid;
+  height: 0;
+  visibility: hidden;
+}
+
+.vicher-figure-tex-sizes > .vicher-figure-pointer {
+  grid-area: 1 / 1;
+  position: static;
+  justify-self: start;
+  margin-left: 8px;
+  transform: none;
+}
+
+.vicher-figure-tex-lane > .vicher-figure-pointer {
+  left: 8px;
+  transform: translateY(-50%);
+}
+
+/* A formula's pointers are larger than other pointers, as the formula is, but smaller than the formula itself. */
+.vicher-figure-tex .vicher-figure-pointer {
+  font-size: var(--font-ui-medium);
+  white-space: normal;
+}
+
+.vicher-figure-text {
+  max-width: 60ch;
+}
+
+.vicher-figure-graph {
+  position: relative;
+  flex: none;
+  isolation: isolate;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.vicher-figure-graph .vicher-network-node {
+  flex-direction: column;
+  padding: 4px 8px;
+}
+
+.vicher-figure-plot {
+  max-width: 100%;
+}
+
+.vicher-figure-diagram {
+  position: relative;
+  max-width: 100%;
+}
+
+.vicher-figure-diagram svg {
+  display: block;
+}
+
+.vicher-figure-mark {
+  color: var(--vicher-figure-ink);
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vicher-figure-mark.is-closed {
+  fill: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.vicher-figure-mark.is-point {
+  fill: currentColor;
+  stroke: none;
+}
+
+.vicher-figure-mark.is-dimension {
+  stroke-width: 1;
+}
+
+.vicher-figure-diagram-label {
+  position: absolute;
+  padding: 0 4px;
+  border-radius: var(--radius-s);
+  background: color-mix(in srgb, var(--background-primary) 85%, transparent);
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.vicher-figure-diagram-label.is-inside {
+  background: none;
+}
+
+.vicher-figure-links,
+.vicher-plot-rich {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.vicher-figure-links-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+}
+
+.vicher-figure-link {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+}
+
+.vicher-figure-link-label {
+  position: absolute;
+  padding: 0 4px;
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  font-size: 12px;
+  white-space: nowrap;
+  transform: translate(-50%, -100%);
+}
+
+.vicher-figure-pointer {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-active);
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  border-radius: var(--radius-s);
+  color: var(--text-normal);
+  font-size: 12px;
+  font-weight: var(--font-medium);
+  line-height: 20px;
+  white-space: nowrap;
+  background: var(--background-secondary);
+  transform: translateX(-50%);
+}
+
+.vicher-figure-pointer-mark {
+  color: var(--vicher-figure-pointer-ink);
+  font-weight: var(--font-semibold);
+}
+
+.vicher-figure-pointer p,
+.vicher-figure-link-label p {
+  display: inline;
+}
+
+.vicher-figure-pointer.is-left {
+  transform: translate(-100%, -50%);
+}
+
+/* Under the drawing whose marks it explains. `contain` keeps a long key from widening the drawing's column; it wraps instead. */
+.vicher-figure-key {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  contain: inline-size;
+  gap: 4px 14px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.vicher-figure-key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vicher-figure-key-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  border: 1px solid var(--text-muted);
+  border-radius: var(--radius-s);
+  font-size: 10px;
+  background: var(--background-primary);
+}
+
+.vicher-figure-probe {
+  position: absolute;
+  visibility: hidden;
+}
+
+
+/* Tags, one rule per surface: boxes (nodes, cells, key marks), lines (edges, links) and text (edge labels, pointers). A table cell's rule outranks Obsidian's striped columns. */
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='active'] {
+  outline: 2px solid var(--vicher-figure-tag-active);
+  outline-offset: -2px;
+  font-weight: var(--font-semibold);
+}
+.vicher-figure-table tr[data-tag='active'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-tag='active'] {
+  font-weight: var(--font-semibold);
+  background: var(--vicher-figure-fill-active);
+}
+:is(.vicher-network-edge, .vicher-figure-link)[data-tag='active'] {
+  stroke: var(--vicher-figure-tag-active);
+  stroke-width: 3;
+}
+.vicher-network-edge-label[data-tag='active'] {
+  color: var(--vicher-figure-tag-active);
+}
+.vicher-figure-pointer[data-tag='active'] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-active);
+}
+
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='done'],
+.vicher-figure-table tr[data-tag='done'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-tag='done'] {
+  color: var(--vicher-figure-tag-done);
+  background: var(--vicher-figure-fill-done);
+}
+:is(.vicher-network-edge, .vicher-figure-link)[data-tag='done'] {
+  stroke: var(--vicher-figure-tag-done);
+  stroke-dasharray: 7 4;
+}
+.vicher-network-edge-label[data-tag='done'] {
+  color: var(--vicher-figure-tag-done);
+}
+.vicher-figure-pointer[data-tag='done'] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-done);
+}
+
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='match'],
+.vicher-figure-table tr[data-tag='match'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-tag='match'] {
+  background: var(--vicher-figure-fill-match);
+}
+:is(.vicher-network-edge, .vicher-figure-link)[data-tag='match'] {
+  stroke: var(--vicher-figure-tag-match);
+  stroke-width: 3;
+}
+.vicher-network-edge-label[data-tag='match'] {
+  color: var(--vicher-figure-tag-match);
+}
+.vicher-figure-pointer[data-tag='match'] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-match);
+}
+
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='new'],
+.vicher-figure-table tr[data-tag='new'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-tag='new'] {
+  background: var(--vicher-figure-fill-new);
+}
+:is(.vicher-network-edge, .vicher-figure-link)[data-tag='new'] {
+  stroke: var(--vicher-figure-tag-new);
+  stroke-width: 3;
+}
+.vicher-network-edge-label[data-tag='new'] {
+  color: var(--text-normal);
+}
+.vicher-figure-pointer[data-tag='new'] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-new);
+}
+
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='dim'],
+.vicher-figure-table tr[data-tag='dim'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-tag='dim'] {
+  opacity: 0.45;
+}
+:is(.vicher-network-edge, .vicher-figure-link)[data-tag='dim'] {
+  opacity: 0.35;
+}
+.vicher-network-edge-label[data-tag='dim'] {
+  color: var(--vicher-figure-tag-dim);
+}
+.vicher-figure-pointer[data-tag='dim'] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-dim);
+}
+
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='good'],
+.vicher-figure-table tr[data-tag='good'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-tag='good'] {
+  color: var(--vicher-figure-tag-good);
+  outline: 1.5px solid var(--vicher-figure-tag-good);
+  outline-offset: -2px;
+}
+:is(.vicher-network-edge, .vicher-figure-link)[data-tag='good'] {
+  stroke: var(--vicher-figure-tag-good);
+  stroke-width: 3;
+}
+.vicher-network-edge-label[data-tag='good'] {
+  color: var(--vicher-figure-tag-good);
+}
+.vicher-figure-pointer[data-tag='good'] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-good);
+}
+
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='bad'],
+.vicher-figure-table tr[data-tag='bad'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-tag='bad'] {
+  color: var(--vicher-figure-tag-bad);
+  outline: 1.5px solid var(--vicher-figure-tag-bad);
+  outline-offset: -2px;
+}
+:is(.vicher-network-edge, .vicher-figure-link)[data-tag='bad'] {
+  stroke: var(--vicher-figure-tag-bad);
+  stroke-width: 3;
+}
+.vicher-network-edge-label[data-tag='bad'] {
+  color: var(--vicher-figure-tag-bad);
+}
+.vicher-figure-pointer[data-tag='bad'] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-tag-bad);
+}
+
+.vicher-user-label {
+  align-self: flex-end;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.vicher-user-label.is-error {
+  color: var(--text-error);
+}
