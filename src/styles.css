@@ -318,10 +318,6 @@ body {
   object-fit: cover;
 }
 
-.vicher-folding {
-  overflow: hidden;
-}
-
 .vicher-input-wrap {
   position: relative;
   margin: 8px 4px 0;
@@ -427,20 +423,6 @@ body {
   color: var(--vicher-agent-color, var(--text-normal));
 }
 
-/* The chat list's rows reset Obsidian's button look. */
-.vicher-chat-modal .vicher-chat-open {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  height: auto;
-  border: none;
-  background: transparent;
-  box-shadow: none;
-  color: var(--text-normal);
-  font-size: inherit;
-  text-align: start;
-}
-
 @keyframes vicher-pop-in {
   from {
     opacity: 0;
@@ -471,40 +453,6 @@ body {
   .vicher-context-chip .vicher-context-remove {
     transition: none;
   }
-}
-
-.vicher-composer .vicher-composer-bar .vicher-send {
-  flex: none;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  justify-content: center;
-  border-radius: 50%;
-  corner-shape: round;
-  background: var(--text-normal);
-  color: var(--background-primary);
-}
-
-.vicher-composer .vicher-composer-bar .vicher-send .svg-icon {
-  width: 14px;
-  height: 14px;
-}
-
-.vicher-composer .vicher-composer-bar .vicher-send:hover {
-  background: var(--text-normal);
-  color: var(--background-primary);
-  opacity: 0.9;
-  transform: scale(1.05);
-}
-
-.vicher-composer .vicher-composer-bar .vicher-send:active {
-  transform: scale(0.94);
-}
-
-.vicher-composer .vicher-composer-bar .vicher-send:disabled {
-  opacity: 0.3;
-  transform: none;
-  cursor: default;
 }
 
 .vicher-reply-figure {
@@ -1705,158 +1653,6 @@ body {
   cursor: pointer;
 }
 
-.vicher-chat-list {
-  min-height: 0;
-}
-
-.vicher-chat-group {
-  padding: 10px 8px 4px;
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
-  font-weight: var(--font-semibold);
-}
-
-.vicher-chat-empty {
-  padding: 12px 8px;
-  color: var(--text-faint);
-}
-
-.vicher-chat-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border-radius: 8px;
-  corner-shape: round;
-}
-
-.vicher-chat-row:is(:hover, .is-active, :focus-within) {
-  background: var(--background-modifier-hover);
-}
-
-.vicher-chat-modal .vicher-chat-open {
-  flex: 1;
-  gap: 8px;
-  min-width: 0;
-  padding: 6px 14px 6px 8px;
-}
-
-.vicher-chat-open .vicher-agent-icon {
-  flex: none;
-  width: 14px;
-  height: 14px;
-}
-
-.vicher-chat-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.vicher-chat-title,
-.vicher-chat-confirm-text {
-  line-height: 20px;
-}
-
-.vicher-chat-title,
-.vicher-chat-snippet {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.vicher-chat-snippet {
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
-}
-
-.vicher-chat-when {
-  flex: none;
-  width: 56px;
-  color: var(--text-faint);
-  font-size: var(--font-ui-smaller);
-  text-align: right;
-  transition: opacity 120ms ease;
-}
-
-.vicher-chat-delete {
-  position: absolute;
-  top: 50%;
-  right: 12px;
-  transform: translateY(-50%) scale(0.8);
-  opacity: 0;
-  color: var(--text-muted);
-  transition: opacity 120ms ease, transform 160ms var(--vicher-ease-out);
-}
-
-.vicher-chat-row:is(:hover, :has(.vicher-chat-delete:focus-visible)) .vicher-chat-when {
-  opacity: 0;
-}
-
-.vicher-chat-row:is(:hover, :has(.vicher-chat-delete:focus-visible)) .vicher-chat-delete {
-  transform: translateY(-50%);
-  opacity: 1;
-}
-
-.vicher-chat-delete:hover {
-  color: var(--text-error);
-}
-
-.vicher-chat-row.is-confirming {
-  background: color-mix(in srgb, var(--text-error) 10%, transparent);
-  animation: vicher-confirm-bg 160ms ease-out;
-}
-
-.is-confirming :is(.vicher-chat-confirm-text, .vicher-chat-confirm) {
-  animation: vicher-confirm-in 180ms var(--vicher-ease-out);
-}
-
-@keyframes vicher-confirm-bg {
-  from {
-    background-color: transparent;
-  }
-}
-
-@keyframes vicher-confirm-in {
-  from {
-    opacity: 0;
-    transform: translateX(6px);
-  }
-}
-
-.vicher-chat-confirm-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  padding: 6px 8px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.vicher-chat-confirm {
-  display: flex;
-  flex: none;
-  gap: 4px;
-  padding-right: 10px;
-}
-
-.vicher-chat-confirm button {
-  height: auto;
-  padding: 3px 10px;
-  font-size: var(--font-ui-smaller);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .vicher-chat-row.is-confirming,
-  .is-confirming :is(.vicher-chat-confirm-text, .vicher-chat-confirm) {
-    animation-duration: 1ms;
-  }
-
-  .vicher-chat-delete,
-  .vicher-chat-when {
-    transition-duration: 1ms;
-  }
-}
-
 .vicher-highlight,
 ::highlight(vicher-highlight) {
   background-color: color-mix(in srgb, var(--interactive-accent) 30%, transparent);
@@ -1866,8 +1662,7 @@ body {
   border-radius: 2px;
 }
 
-.vicher-tour,
-.vicher-walkthrough {
+.vicher-tour {
   --vicher-accent: var(--color-purple, #8b5cf6);
 }
 

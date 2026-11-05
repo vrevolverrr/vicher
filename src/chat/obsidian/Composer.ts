@@ -1,5 +1,5 @@
 import type { App, Component } from 'obsidian';
-import { Notice, setIcon } from 'obsidian';
+import { Notice } from 'obsidian';
 import { flushSync, mount, unmount } from 'svelte';
 
 import type { AgentId, SkillOption, SkillSyntax } from '@/agents/types';
@@ -7,6 +7,7 @@ import ContextChips from '@/chat/view/ContextChips.svelte';
 import ContextMeter from '@/chat/view/ContextMeter.svelte';
 import type { ModelPickerHost, PermissionMenuHost } from '@/chat/view/ModelPickerHost';
 import PickerBar from '@/chat/view/PickerBar.svelte';
+import SendButton from '@/chat/view/SendButton.svelte';
 import SkillMenu, { filterSkills } from '@/chat/view/SkillMenu.svelte';
 import { appendMessageText } from '@/chat/view/appendMessageText';
 import { skillTrigger } from '@/context/skillSyntax';
@@ -45,7 +46,7 @@ export class Composer {
   private readonly el: HTMLElement;
   private readonly inputEl: HTMLTextAreaElement;
   private readonly mirrorEl: HTMLElement;
-  private readonly sendEl: HTMLButtonElement;
+  private readonly sendButton: ReturnType<typeof SendButton>;
   private readonly contextChips: ReturnType<typeof ContextChips>;
   private readonly pickers: ReturnType<typeof PickerBar>;
   private readonly chips: AttachmentChips;
@@ -139,8 +140,7 @@ export class Composer {
     this.meter = mount(ContextMeter, { target: bar });
 
     bar.createDiv({ cls: 'vicher-composer-spacer' });
-    this.sendEl = bar.createEl('button', { cls: 'vicher-send' });
-    owner.registerDomEvent(this.sendEl, 'click', () => (this.stops ? host.stop() : host.send()));
+    this.sendButton = mount(SendButton, { target: bar, props: { onSend: () => host.send(), onStop: () => host.stop() } });
     this.setStreaming(false);
   }
 
@@ -228,7 +228,7 @@ export class Composer {
   dispose(): void {
     this.disposed = true;
     this.discardAttachments();
-    for (const component of [this.contextChips, this.meter, this.pickers, this.skillMenu, this.mentionMenu]) if (component) void unmount(component);
+    for (const component of [this.contextChips, this.meter, this.pickers, this.sendButton, this.skillMenu, this.mentionMenu]) if (component) void unmount(component);
   }
 
   private closeSkillMenu(): void {
@@ -238,14 +238,8 @@ export class Composer {
 
   private updateSend(): void {
     const stops = this.stops;
-    if (this.sendEl.hasClass('is-streaming') !== stops || !this.sendEl.hasChildNodes()) {
-      this.sendEl.empty();
-      setIcon(this.sendEl, stops ? 'square' : 'arrow-up');
-      this.sendEl.setAttr('aria-label', stops ? 'Stop' : 'Send');
-      this.sendEl.toggleClass('is-streaming', stops);
-    }
     const empty = !this.inputEl.value.trim() && !this.hasAttachments;
-    this.sendEl.disabled = !stops && (empty || this.storing > 0);
+    this.sendButton.set(stops, !stops && (empty || this.storing > 0));
   }
 
   private async attach({ images: files, attachments }: Dropped): Promise<void> {

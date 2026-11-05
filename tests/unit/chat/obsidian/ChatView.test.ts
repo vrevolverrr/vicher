@@ -583,6 +583,56 @@ describe('concurrent chat tabs', () => {
 });
 
 describe('agent stream', () => {
+  it('sets the send button from the text, the running turn and an attachment being stored', async () => {
+    const { start, panel, send, type, input, sessions } = setup();
+    await start();
+    const button = () => panel().querySelector<HTMLButtonElement>('.vicher-send')!;
+    const state = () => [button().getAttribute('aria-label'), button().disabled];
+    expect(state()).toEqual(['Send', true]);
+    type('  ');
+    expect(state()).toEqual(['Send', true]);
+    type('Hello');
+    expect(state()).toEqual(['Send', false]);
+    send('Hello'); await settle();
+    expect(state()).toEqual(['Stop', false]);
+    expect(button().classList.contains('is-streaming')).toBe(true);
+    type('Next');
+    expect(state()).toEqual(['Send', false]);
+    type('');
+    expect(state()).toEqual(['Stop', false]);
+    sessions[0]!.events.push({ type: 'done', status: 'completed' }); await settle();
+    expect(state()).toEqual(['Send', true]);
+  });
+  it('offers Send instead of Stop while an attachment is on the message', async () => {
+    const { start, panel, send, input } = setup();
+    await start();
+    const button = () => panel().querySelector<HTMLButtonElement>('.vicher-send')!;
+    send('Hello'); await settle();
+    expect(button().getAttribute('aria-label')).toBe('Stop');
+    const paste = new Event('paste', { cancelable: true });
+    Object.defineProperty(paste, 'clipboardData', { value: { getData: () => 'x'.repeat(2100), files: [] } });
+    input().dispatchEvent(paste);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect([button().getAttribute('aria-label'), button().disabled]).toEqual(['Send', false]);
+  });
+  it('keeps Send disabled while a pasted text is being stored', async () => {
+    const { start, panel, type, input, vault, disk } = setup();
+    await start();
+    let finish!: () => void;
+    let began!: () => void;
+    const pending = new Promise<void>((resolve) => { finish = resolve; });
+    const started = new Promise<void>((resolve) => { began = resolve; });
+    vault.write = async (path: string, text: string) => { began(); await pending; disk.set(path, text); };
+    const button = () => panel().querySelector<HTMLButtonElement>('.vicher-send')!;
+    type('Hello');
+    const paste = new Event('paste', { cancelable: true });
+    Object.defineProperty(paste, 'clipboardData', { value: { getData: () => 'x'.repeat(2100), files: [] } });
+    input().dispatchEvent(paste);
+    await started;
+    expect(button().disabled).toBe(true);
+    finish(); await settle();
+    expect(button().disabled).toBe(false);
+  });
   it('queues a message sent during a turn below the reply, and takes the label off once the agent takes it in', async () => {
     const { start, panel, send, type, sessions } = setup();
     await start();
