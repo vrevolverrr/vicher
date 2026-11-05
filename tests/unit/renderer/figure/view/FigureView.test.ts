@@ -71,8 +71,8 @@ function host(): FigureHost & { rendered: string[]; math: string[]; finish(): vo
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 const linked = payload([
-  { caption: '**First**', root: el('Row', {}, el('Node', { id: 'a', label: 'A', tag: 'active' }), el('Node', { id: 'b', label: 'B' }), el('Arrow', { from: 'a', to: 'b' })) },
-  { caption: '**Second**', root: el('Row', {}, el('Node', { id: 'a', label: 'A', tag: 'done' }), el('Node', { id: 'b', label: 'B', tag: 'new' }), el('Arrow', { from: 'a', to: 'b' })) },
+  { caption: '**First**', root: el('Row', {}, el('Node', { id: 'a', label: 'A', state: 'active' }), el('Node', { id: 'b', label: 'B' }), el('Arrow', { from: 'a', to: 'b' })) },
+  { caption: '**Second**', root: el('Row', {}, el('Node', { id: 'a', label: 'A', state: 'done' }), el('Node', { id: 'b', label: 'B', group: 'new' }), el('Arrow', { from: 'a', to: 'b' })) },
 ]);
 
 describe('FigureView', () => {
@@ -125,13 +125,13 @@ describe('FigureView', () => {
     expect(steps.map((step) => step.classList.contains('is-current'))).toEqual([false, true]);
   });
 
-  it('lists every caption as a step, and keys only the tags whose mark does not explain itself', async () => {
+  it('lists every caption as a step, and keys its groups but not the states whose mark explains itself', async () => {
     const markdown = host();
     const view = new FigureView(document.body, markdown, sandbox(() => linked));
     void view.run('src');
     await flush();
     expect([...view.el.querySelectorAll('.vicher-step .vicher-step-text')].map((caption) => caption.textContent)).toEqual(['**First**', '**Second**']);
-    expect([...view.el.querySelectorAll('.vicher-figure-key-mark')].map((mark) => (mark as HTMLElement).dataset.tag)).toEqual(['new']);
+    expect([...view.el.querySelectorAll('.vicher-figure-key-mark')].map((mark) => (mark as HTMLElement).dataset.color)).toEqual(['blue']);
   });
 
   it('draws a step heading over its caption in the list', async () => {
@@ -209,6 +209,26 @@ describe('FigureView', () => {
       expect(height()).toBe(first);
     }
     expect(runs.calls.map((params) => params.n).filter((n) => n !== undefined)).toEqual(expect.arrayContaining([1, 2, 3, 4, 5, 6, 7, 8, 9]));
+  });
+
+  it('keeps a group\'s colour when a param removes another group and brings it back', async () => {
+    const node = (id: string, group: string): El => el('Node', { id, label: id, group });
+    const runs = sandbox((params) => payload(
+      [{ caption: '', root: el('Row', {}, ...(params.n === 1 ? [] : [node('a', 'failed')]), node('b', 'passed')) }],
+      { n: { label: 'n', min: 0, max: 1, step: 1, value: 0 } },
+    ));
+    const view = new FigureView(document.body, host(), runs);
+    await view.run('src');
+    for (let i = 0; i < 4; i += 1) await flush();
+    const color = (id: string): string | undefined => view.el.querySelector<HTMLElement>(`.vicher-figure-body:not(.is-pending) [data-figure-id="${id}"]`)?.dataset.color;
+    expect([color('a'), color('b')]).toEqual(['blue', 'orange']);
+    const slider = view.el.querySelector<HTMLInputElement>('input[type="range"]')!;
+    for (const [value, shown] of [['1', [undefined, 'orange']], ['0', ['blue', 'orange']]] as const) {
+      slider.value = value;
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+      for (let i = 0; i < 4; i += 1) await flush();
+      expect([color('a'), color('b')]).toEqual(shown);
+    }
   });
 
   it('creates one ResizeObserver per figure however many plots it has, and disconnects it on destroy', async () => {

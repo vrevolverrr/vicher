@@ -20,6 +20,12 @@ const FIGURE = `export default function () {
   return <Figure steps={steps} caption={(step) => step.text} render={() => <Text>A figure with a player</Text>} />;
 }`;
 
+const CARDS = `export default function () {
+  const card = (id, title, a, b) => <Panel id={id} title={title}><Column gap="sm"><Node label={a} sub="private" state="dim" /><Node label={b} sub="shared key" group="the same key" /></Column></Panel>;
+  const steps = [1, 2, 3, 4].map((n) => ({ text: 'Alice computes the key, and Bob computes the same key, in step ' + n + ' of the exchange.' }));
+  return <Figure steps={steps} caption={(step) => step.text} render={() => <Row gap="lg">{card('a', 'Alice', 'a = 5', 'K = 16')}{card('e', 'Public channel (Eve)', 'p = 29, g = 2', 'A = 3, B = 7')}{card('b', 'Bob', 'b = 12', 'K = 16')}</Row>} />;
+}`;
+
 const OPEN = `(async () => {
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const leaf = app.workspace.openPopoutLeaf({ size: { width: 520, height: 760 } });
@@ -36,7 +42,7 @@ const OPEN = `(async () => {
   const press = () => doc.body.dispatchEvent(new win.PointerEvent('pointerdown', { bubbles: true }));
   const step = (quote, comment) => ({ type: 'highlight', step: { path: 'note.md', quote, comment } });
   view.panes.get(view.selected).replayReply({ at: Date.now(), parts: [
-    { type: 'text', text: 'Figure.\\n\\n\`\`\`figure\\n' + ${JSON.stringify(FIGURE)} + '\\n\`\`\`\\n' },
+    { type: 'text', text: 'Figure.\\n\\n\`\`\`figure\\n' + ${JSON.stringify(FIGURE)} + '\\n\`\`\`\\n\\n\`\`\`figure\\n' + ${JSON.stringify(CARDS)} + '\\n\`\`\`\\n' },
     step('A quote', 'A comment long enough that it has to wrap in a narrow pane, so it must not run past the card'),
     step('Second stop'),
   ] }, 0);
@@ -96,6 +102,21 @@ test('the player drops its scrubber when its count would not fit', async () => {
   const wide = await at<{ scrubber: string; past: number }>(520, measure);
   assert.notEqual(wide.scrubber, 'none');
   assert.ok(wide.past <= 0, `the count runs ${wide.past}px past the player`);
+});
+
+test('a root Row of cards fills the pane and wraps once it cannot', async () => {
+  const measure = `const row = ui.panel().querySelector('.vicher-figure-step.is-current > .vicher-figure-row');
+    const step = row.parentElement.getBoundingClientRect();
+    const boxes = [...row.children].map((el) => el.getBoundingClientRect());
+    return { fill: boxes.at(-1).right - boxes[0].left, step: step.width, lines: new Set(boxes.map((box) => Math.round(box.top))).size, over: row.scrollWidth - row.clientWidth };`;
+
+  const wide = await at<{ fill: number; step: number; lines: number }>(760, measure);
+  assert.equal(wide.lines, 1);
+  assert.ok(Math.abs(wide.fill - wide.step) < 2, `cards span ${wide.fill} of ${wide.step}`);
+
+  const narrow = await at<{ lines: number; over: number }>(320, measure);
+  assert.ok(narrow.lines > 1, 'cards should wrap in a narrow pane');
+  assert.ok(narrow.over <= 0, `cards overflow by ${narrow.over}`);
 });
 
 test('a menu in a popout window opens on a click and closes on Escape or a press outside', async () => {

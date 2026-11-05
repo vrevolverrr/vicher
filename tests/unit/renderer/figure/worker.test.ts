@@ -27,9 +27,9 @@ export default function () {
   return <Figure steps={steps} caption={step => step.text} render={step => (
     <Row gap="lg" align="center">
       <Graph id="g" nodes={nodes.map(n => ({ id: \`g-\${n}\`, label: n }))} edges={edges.map(([a, b, w], i) => ({ id: \`e\${i}\`, from: \`g-\${a}\`, to: \`g-\${b}\`, label: w }))}
-        tags={Object.fromEntries(nodes.map(n => [\`g-\${n}\`, n === step.u ? 'active' : step.done.includes(n) ? 'done' : null]))} />
+        states={Object.fromEntries(nodes.map(n => [\`g-\${n}\`, n === step.u ? 'active' : step.done.includes(n) ? 'done' : null]))} />
       <Table id="dist" title="Distance" columns={['Node', 'Distance']} rows={nodes.map(n => [n, show(step.d[n])])} rowIds={nodes.map(n => \`t-\${n}\`)}
-        tags={Object.fromEntries(nodes.map(n => [\`t-\${n}\`, n === step.u ? 'active' : step.done.includes(n) ? 'done' : null]))} />
+        states={Object.fromEntries(nodes.map(n => [\`t-\${n}\`, n === step.u ? 'active' : step.done.includes(n) ? 'done' : null]))} />
     </Row>
   )} />;
 }

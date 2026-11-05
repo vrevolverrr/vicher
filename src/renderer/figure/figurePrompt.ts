@@ -6,7 +6,8 @@ function propForm(name: string, field: Field): string {
   const inner = field.kind === 'optional' ? field.of! : field;
   const item = inner.of;
   const form = inner.kind === 'choice' ? `="${inner.values!.join('|')}"`
-    : inner.kind === 'tags' ? '={{id: tag}}'
+    : inner.kind === 'groups' ? '={{id: name}}'
+      : inner.kind === 'states' ? '={{id: state}}'
       : inner.kind === 'range' ? '={[lo, hi]}'
         : inner.kind === 'point' ? '={[x, y]}'
           : inner.kind === 'object' ? `={{ ${Object.keys(inner.shape!).join(', ')} }}`
@@ -56,11 +57,11 @@ export default function ({ n }) {
 \`\`\`
 
 - The default export is a function of the parameters (an object; \`{}\` when there are none). It returns \`<Figure>\` or, for a static drawing, one element tree (drawn as a single step without playback).
-- \`<Figure steps caption heading? render title?>\`: \`steps\` is a non-empty array of plain values, one per step. \`render(step, i)\` returns the tree for that step. \`caption(step, i)\` returns the step's caption: Markdown with \`$...$\` maths, required when there are two or more steps. \`heading(step, i)\` optionally names the step in a few words, shown bold over its caption. \`title\` is optional text over the figure.
+- \`<Figure steps caption heading? render title? legend?>\`: \`steps\` is a non-empty array of plain values, one per step. \`render(step, i)\` returns the tree for that step. \`caption(step, i)\` returns the step's caption: Markdown with \`$...$\` maths, required when there are two or more steps. \`heading(step, i)\` optionally names the step in a few words, shown bold over its caption. \`title\` is optional text over the figure.
 - Ordinary JavaScript: loops, local functions, arrays, \`Math\`, template strings. No imports, no DOM, no network, no React. The elements below exist already; nothing else does. The data the figure shows is written into the program as literals, and every number shown is computed by the program from them.
 - Name the step parameter \`step\` (not \`f\`, which models then reuse for a curve function). Do not declare a variable with an element's name.
 - Group several elements without a box, in a \`.map\` callback or a \`Plot\` or \`Diagram\`, with a fragment: \`<>...</>\`.
-- Return the same structure in every step and change text and tags. Give an \`id\` to anything an arrow or pointer points at, anything tagged, and anything that should keep its place between steps.
+- Return the same structure in every step and change text, groups and states. Give an \`id\` to anything an arrow or pointer points at, anything named in \`groups\` or \`states\`, and anything that should keep its place between steps.
 - Any string prop is Markdown and may hold \`$maths$\`. Numbers are printed with up to six significant digits, so \`0.1 + 0.2\` reads \`0.3\`; format money yourself.
 - An error stops the figure: check every array you index, and that a function you call exists in the step it is called in.
 
@@ -86,9 +87,16 @@ Cards: \`Node\`s in the same \`Row\` take the height of the tallest, and a Row o
 
 Do not draw electrical circuits or logic gates; say a figure cannot show them and describe them in prose.
 
-### Tags
+### Groups and states
 
-A tag marks state; the host shows what each means in a key under the figure, so never explain colours. \`active\`: being worked on now (outlined, ▶). \`done\` (✓, muted). \`match\`: a found or equal pair. \`new\`: just added or changed. \`dim\`: out of play. \`good\`, \`bad\`: a verdict.
+A group says what kind of thing an object is, and you name it. A state says where it stands, and the host names it. An element can take both.
+
+- \`group="pivot"\`, or \`groups={{ id: 'pivot' }}\` on \`Graph\`, \`Seq\` and \`Table\`: the name is what the key under the figure shows, at most 60 characters and at most 8 names in a figure. Every element with one name shares a colour. Use a group for real categories; for "look here", use a state.
+- \`state="active"\`, or \`states={{ id: 'active' }}\`: \`active\` being worked on now (outlined, ▶), \`done\` finished (✓, muted), \`dim\` out of play (faded).
+- A \`Plot\` line or area's \`label\` is its name, so it needs no group.
+- \`legend={{ wrong: 'red' }}\` on \`<Figure>\` is optional and pins a name to a colour, when the colour carries meaning or a formula must match it; each colour holds one name. The host picks every other colour.
+
+Never rely on red against green alone: pair them with a state, a label or a shape.
 
 ### TeX in figures
 
@@ -98,7 +106,7 @@ Backslashes: in a quoted JSX attribute, write TeX as it is: \`label="$A \\cap B$
 
 Two things are the host's:
 
-- Colour. In \`\\rowcolor{c}\`, \`\\cellcolor{c}\`, \`\\colorbox{c}{...}\`, \`\\bbox[c]{...}\` and \`\\color{c}{...}\`, the colour \`c\` is one of the seven tag names. The host replaces it with the current theme's colour for that tag and redraws on a theme change. Any other colour (\`red\`, \`#d0453a\`, \`rgb(...)\`) and \`\\definecolor\` fail validation with the allowed tags named.
+- Colour. In \`\\rowcolor{c}\`, \`\\cellcolor{c}\`, \`\\colorbox{c}{...}\`, \`\\bbox[c]{...}\` and \`\\color{c}{...}\`, the colour \`c\` is one of \`blue\`, \`orange\`, \`purple\`, \`cyan\`, \`pink\`, \`yellow\`, \`green\`, \`red\`. It is a highlight, so it needs no group and no key. The host replaces it with the current theme's colour and redraws on a theme change. Any other colour (\`teal\`, \`#d0453a\`, \`rgb(...)\`) and \`\\definecolor\` fail validation with the allowed names listed.
 - Anchors. \`\\cssId{name}{...}\` marks a part of a formula as an anchor: \`name\` joins the step's ids, follows the id rules, and an \`Arrow\` or \`Pointer\` can target it. \`\\class\` and \`\\data\` are the host's and fail validation.
 
 Everything else in MathJax stays allowed, including \`\\cancel\`, \`\\underbrace\`, \`\\overbrace\` and \`array\` with a \`|\` for an augmented matrix. A row reduction step:
@@ -106,7 +114,7 @@ Everything else in MathJax stays allowed, including \`\\cancel\`, \`\\underbrace
 \`\`\`tex
 \\left[\\begin{array}{ccc|c}
 2 & 1 & -1 & 5 \\\\
-\\rowcolor{new} \\cssId{r2}{0} & 3 & 2 & 4 \\\\
+\\rowcolor{yellow} \\cssId{r2}{0} & 3 & 2 & 4 \\\\
 -2 & 8 & 5 & 9
 \\end{array}\\right]
 \`\`\`
@@ -116,7 +124,7 @@ with \`<Pointer to="r2" name="R2 − 2R1" />\` beside it.
 ### Rules the host checks
 
 - Every id in one step is unique across elements, rows, items, nodes, edges and TeX anchors; prefix ids when two objects show the same thing (\`row-B\`, \`node-B\`).
-- Every \`Arrow\`, \`Pointer\` and tag key names an id that exists in that step. Graph edges join known nodes. A \`Region\` names an \`Fn\` of its own Plot.
+- Every \`Arrow\`, \`Pointer\` and \`groups\` or \`states\` key names an id that exists in that step. Graph edges join known nodes. A \`Region\` names an \`Fn\` of its own Plot.
 - Layers go only inside \`Plot\` or \`Diagram\`, as listed. \`Figure\` is returned once, outermost.
 - An id is 1 to 64 characters matching \`[A-Za-z0-9][A-Za-z0-9_.:-]*\`.
 
@@ -139,7 +147,7 @@ export default function () {
     <Figure steps={steps} caption={step => step.text} render={(step, i) => (
       <Row gap="lg" align="center">
         <Seq id="shelf" title="Shelf" index items={step.shelf.map(b => ({ id: \`b\${b}\`, label: b }))}
-          tags={step.placed === undefined ? {} : { [\`b\${step.placed}\`]: 'new' }} />
+          groups={step.placed === undefined ? {} : { [\`b\${step.placed}\`]: 'just placed' }} />
         {step.placed !== undefined && <Pointer to={\`b\${step.placed}\`} name="placed" />}
         <Panel title="Returned">
           <Text>{\`\${i} of \${returns.length} placed\`}</Text>

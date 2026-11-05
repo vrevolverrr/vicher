@@ -10,15 +10,25 @@ type Plot = Extract<FigureNode, { type: 'Plot' }>;
 
 const CIRCLE_POINTS = 96;
 
+/** A name's colour in this figure. */
+type ColorOf = (name: string | undefined) => string | undefined;
+
+function marksOf({ group, state }: { group?: string; state?: string }, colorOf: ColorOf): { color?: string; state?: string } {
+  const color = colorOf(group);
+  return { ...(color ? { color } : {}), ...(state ? { state } : {}) };
+}
+
 /** The `PlotChart` model of a figure's Plot, with x fitted to the layers when the Plot gives none. */
-export function plotModel(plot: Plot): PlotModel {
+export function plotModel(plot: Plot, colorOf: ColorOf = () => undefined): PlotModel {
   const x = plot.x ?? fitRange(plot.children.flatMap((layer) => coordinates(layer, 0)));
   const fns = new Map(plot.children.flatMap((layer) => (layer.type === 'Fn' && layer.id ? [[layer.id, layer] as const] : [])));
   const box = plot.y ?? finiteRange(plot.children.flatMap((layer) => (layer.type === 'Fn' ? layer.pts.map((p) => p[1]) : [])));
   const curve = (id: string): Point[] => breakJumps(fns.get(id)!.pts.map(([x, y]): Point => [x, y]), box);
   const layers = plot.children.flatMap((layer): Layer[] => {
-    const marks = { ...(layer.tag ? { tag: layer.tag } : {}) };
     const label = 'label' in layer ? layer.label : undefined;
+    // A dot, an arrow or a note writes its label on the plot, so only a line or an area's label names it.
+    const color = colorOf(layer.group ?? (layer.type === 'Points' || layer.type === 'Vector' ? undefined : label));
+    const marks = { ...(color ? { color } : {}), ...(layer.state ? { state: layer.state } : {}) };
     switch (layer.type) {
       case 'Fn':
         return [{ kind: 'line', points: breakJumps(layer.pts.map(([x, y]): Point => [x, y]), box), label, ...marks }];
@@ -31,7 +41,7 @@ export function plotModel(plot: Plot): PlotModel {
       }
       case 'Shape': {
         const pts = layer.pts.map(([x, y]): Point => [x, y]);
-        return pts.length < 2 ? [] : [{ kind: 'line', points: layer.closed ? [...pts, pts[0]] : pts, label, ...marks }];
+        return pts.length < 2 ? [] : [{ kind: 'line', points: layer.closed ? [...pts, pts[0]] : pts, label, ...(label ? {} : { neutral: true }), ...marks }];
       }
       case 'Circle':
         return [{ kind: 'line', points: circle(layer.at, layer.r), label, ...marks }];
@@ -73,7 +83,7 @@ const models3 = new WeakMap<Plot3, Plot3Model>();
  * samples, and a graph's x and y become the Plot's, narrowed by its `from` and `to`. Kept per node, so a redraw reuses the
  * mesh `scene3` caches per model.
  */
-export function plot3Model(plot: Plot3): Plot3Model {
+export function plot3Model(plot: Plot3, colorOf: ColorOf = () => undefined): Plot3Model {
   const kept = models3.get(plot);
   if (kept) return kept;
   const surfaces = plot.children.filter((layer) => layer.type === 'Surface');
@@ -87,8 +97,10 @@ export function plot3Model(plot: Plot3): Plot3Model {
   // apart are data in different units, which one scale would squash to a sliver.
   const solid = plot.x === undefined && plot.y === undefined && plot.z === undefined && Math.max(...spans) <= 10 * Math.min(...spans);
   const children = plot.children.map((layer): Layer3 => {
-    if (layer.type === 'Label') return { type: 'Label', at: layer.at, text: layer.text, ...(layer.tag ? { tag: layer.tag } : {}) };
-    const marks = { ...(layer.id ? { id: layer.id } : {}), ...(layer.tag ? { tag: layer.tag } : {}), ...(layer.label === undefined ? {} : { label: layer.label }) };
+    if (layer.type === 'Label') return { type: 'Label', at: layer.at, text: layer.text, ...marksOf(layer, colorOf) };
+    // As in 2D, a line's label is its name; a surface, a dot or an arrow only writes its label.
+    const line = layer.type === 'Shape' || layer.type === 'Circle' || layer.type === 'Segment';
+    const marks = { ...(layer.id ? { id: layer.id } : {}), ...marksOf({ ...layer, ...(line && !layer.group && layer.label ? { group: layer.label } : {}) }, colorOf), ...(layer.label === undefined ? {} : { label: layer.label }) };
     switch (layer.type) {
       case 'Surface':
         return layer.zs ? { type: 'Fn', zs: layer.zs, x: [layer.from ?? x[0], layer.to ?? x[1]], y, ...marks } : { type: 'Fn', pts: layer.pts!, ...marks };

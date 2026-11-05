@@ -10,7 +10,8 @@ export const Seq = component({
     items: field.list(field.object({ id: field.id(), label: field.text() }), { max: LIMITS.seqItems }),
     index: field.optional(field.either(field.boolean(), field.list(field.text(), { max: LIMITS.seqItems }), 'must be true or a list of labels'))
       .doc('`index` shows 0, 1, 2… above the cells, or an array of labels.'),
-    tags: field.optional(field.tags()),
+    groups: field.optional(field.groups()),
+    states: field.optional(field.states()),
   },
   pointable: (seq) => seq.items.map((item) => item.id),
 });

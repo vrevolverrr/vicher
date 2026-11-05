@@ -1,4 +1,5 @@
-import { computedColour, div, parseColour, svg, tagInk } from '@/renderer/figure/view/dom';
+import { COLORS } from '@/renderer/figure/marks';
+import { computedColour, div, markInk, parseColour, svg } from '@/renderer/figure/view/dom';
 import { clampElevation, type Plot3Model, type View } from '@/renderer/figure/packages/plot3/Plot3Model';
 import { isPlain } from '@/renderer/figure/figureText';
 import { type Box, type LabelBox, placeLabels } from '@/renderer/figure/placeLabels';
@@ -152,11 +153,12 @@ export class Plot3Chart {
 
   private readColours(): Colours & { edge: string; box: string; halo: string } {
     const ramp = Array.from({ length: RAMP }, (_, i) => parseColour(computedColour(this.el, `var(--vicher-surface-${i + 1})`)));
-    return { ramp, edge: computedColour(this.el, 'var(--vicher-surface-edge)'), box: computedColour(this.el, 'var(--vicher-surface-box)'), halo: computedColour(this.el, 'var(--background-primary)') };
+    const tints = new Map(COLORS.map((color) => [color as string, parseColour(computedColour(this.el, `var(--vicher-figure-color-${color})`))]));
+    return { ramp, tints, edge: computedColour(this.el, 'var(--vicher-surface-edge)'), box: computedColour(this.el, 'var(--vicher-surface-box)'), halo: computedColour(this.el, 'var(--background-primary)') };
   }
 
   private ink(overlay: Overlay): string {
-    const css = overlay.tag ? tagInk(overlay.tag) : 'var(--text-normal)';
+    const css = markInk(overlay) ?? 'var(--text-normal)';
     let colour = this.inks.get(css);
     if (colour === undefined) {
       colour = computedColour(this.el, css);
@@ -232,7 +234,7 @@ export class Plot3Chart {
   }
 
   /**
-   * Lines, arrows and dots over the faces, each on a band of the background so a tag colour reads on every height colour.
+   * Lines, arrows and dots over the faces, each on a band of the background so a mark's colour reads on every height colour.
    * On the canvas, not in SVG: a figure can hold thousands of points, and SVG rebuilt each frame of a turn takes seconds.
    */
   private paintOverlays(context: CanvasRenderingContext2D, overlays: readonly Overlay[], halo: string): void {
@@ -243,6 +245,8 @@ export class Plot3Chart {
       context.moveTo(points[0][0], points[0][1]);
       for (let i = 1; i < points.length; i += 1) context.lineTo(points[i][0], points[i][1]);
     };
+    // With no group, `dim`'s own ink already fades it.
+    const faded = (overlay: Overlay): number => (overlay.color && overlay.state === 'dim' ? 0.4 : 1);
     for (let i = 0; i < overlays.length; i += 1) {
       const overlay = overlays[i];
       const ink = this.ink(overlay);
@@ -252,25 +256,31 @@ export class Plot3Chart {
         let j = i;
         for (; j < overlays.length; j += 1) {
           const dot = overlays[j];
-          if (dot.kind !== 'dot' || this.ink(dot) !== ink) break;
+          if (dot.kind !== 'dot' || this.ink(dot) !== ink || dot.state !== overlay.state) break;
           context.moveTo(dot.at[0] + 4.5, dot.at[1]);
           context.arc(dot.at[0], dot.at[1], 4.5, 0, 2 * Math.PI);
         }
         i = j - 1;
+        context.globalAlpha = faded(overlay);
         context.lineWidth = 2;
         context.strokeStyle = halo;
         context.stroke();
         context.fillStyle = ink;
         context.fill();
+        context.globalAlpha = 1;
         continue;
       }
       if (overlay.kind === 'note') continue;
-      for (const [width, colour] of [[5.5, halo], [2.5, ink]] as const) {
+      const extra = overlay.state === 'active' ? 1 : 0;
+      context.globalAlpha = faded(overlay);
+      context.setLineDash(overlay.state === 'done' ? [7, 6] : []);
+      for (const [width, colour] of [[5.5 + extra, halo], [2.5 + extra, ink]] as const) {
         trace(overlay.points);
         context.lineWidth = width;
         context.strokeStyle = colour;
         context.stroke();
       }
+      context.setLineDash([]);
       if (overlay.kind === 'arrow') {
         const [from, to] = overlay.points;
         const length = Math.hypot(to[0] - from[0], to[1] - from[1]) || 1;
@@ -286,6 +296,7 @@ export class Plot3Chart {
         context.fillStyle = ink;
         context.fill();
       }
+      context.globalAlpha = 1;
     }
   }
 

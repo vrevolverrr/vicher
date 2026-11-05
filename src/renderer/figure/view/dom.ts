@@ -35,11 +35,24 @@ export function arrowHeads(drawing: SVGElement, size: Record<string, string | nu
   };
 }
 
-/** A tag's ink, as `styles.css` defines it on `.vicher-figure`. */
-export const tagInk = (tag: string): string => `var(--vicher-figure-tag-${tag})`;
+/** What a surface carries: a group's name and colour for identity, a state for where it stands. */
+export type Marks = { group?: string | undefined; color?: string | undefined; state?: string | undefined };
 
-/** An arrowhead's fill: the colour its line's tag strokes it in (`styles.css`); a dimmed line only fades. */
-export const lineInk = (tag?: string): string => (tag && tag !== 'dim' ? tagInk(tag) : 'var(--text-muted)');
+/** Writes marks where `styles.css` reads them. */
+export function markData(el: HTMLElement | SVGElement, { group, color, state }: Marks): void {
+  // A group is colour alone, so the name is what reaches a reader who cannot see it.
+  if (group) el.setAttribute('title', group);
+  if (color) el.dataset.color = color;
+  if (state) el.dataset.state = state;
+}
+
+/** A mark's ink, as `styles.css` defines it on `.vicher-figure`: its colour, else its state's; undefined with neither. */
+export const markInk = ({ color, state }: Marks): string | undefined =>
+  color ? `var(--vicher-figure-color-${color})` : state ? `var(--vicher-figure-state-${state})` : undefined;
+
+/** An arrowhead's fill: the colour its line strokes it in (`styles.css`); a dimmed line only fades. */
+export const lineInk = ({ color, state }: Marks): string =>
+  markInk({ color, state: state === 'dim' ? undefined : state }) ?? 'var(--text-muted)';
 
 export function div(className: string, role?: string): HTMLElement {
   const el = createDiv();

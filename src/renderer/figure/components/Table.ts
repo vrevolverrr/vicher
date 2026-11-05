@@ -13,8 +13,9 @@ export const Table = component({
     columns: field.list(field.text(), { min: 1, max: LIMITS.tableColumns }),
     rows: field.list(field.list(field.either(field.literal(null), field.text(), 'must be text, a number or null')), { max: LIMITS.tableRows }),
     rowIds: field.optional(field.list(field.id(), { max: LIMITS.tableRows }))
-      .doc('`rowIds` is optional: give it, one id per row, only when a tag, `Arrow` or `Pointer` names a row or cell. A cell then has the id `rowId.column` (0-based column): a DP table, a Punnett square or a pipeline marks `{ \'r2.3\': \'active\' }`.'),
-    tags: field.optional(field.tags()),
+      .doc('`rowIds` is optional: give it, one id per row, only when `groups`, `states`, an `Arrow` or a `Pointer` names a row or cell. A cell then has the id `rowId.column` (0-based column): a DP table, a Punnett square or a pipeline marks `states={{ \'r2.3\': \'active\' }}`.'),
+    groups: field.optional(field.groups()),
+    states: field.optional(field.states()),
   },
   check(table, { fail }) {
     table.rows.forEach((row, r) => {

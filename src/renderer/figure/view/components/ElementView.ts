@@ -1,5 +1,5 @@
 import type { FigureNode } from '@/renderer/figure/FigureData';
-import type { Tag } from '@/renderer/figure/Tag';
+import type { Marks } from '@/renderer/figure/view/dom';
 import type { Markdown } from '@/renderer/figure/view/dom';
 
 /** The pointers one Seq, Table or Tex holds in its busiest step, the longest name's length, and every step's names. */
@@ -17,10 +17,12 @@ export interface DrawContext<P = unknown> {
   readonly markdown: Markdown;
   /** Renders a displayed formula. */
   tex(el: HTMLElement, tex: string): void;
-  /** Sets `el`'s figure id, and its tag: `tag`, else the one the step's tags give the id. */
-  mark<T extends HTMLElement>(el: T, id?: string, tag?: Tag): T;
-  /** The tag the step's tags give an id. */
-  tagOf(id: string): Tag | undefined;
+  /** Sets `el`'s figure id, and its marks: those of `own`, each else the one the step's `groups` and `states` give the id. */
+  mark<T extends HTMLElement>(el: T, id?: string, own?: { group?: string; state?: string }): T;
+  /** The marks the step's `groups` and `states` give an id. */
+  marksOf(id: string): Marks;
+  /** A name's colour in this figure. */
+  colorOf: (name: string | undefined) => string | undefined;
   child(className: string, parent: HTMLElement): HTMLElement;
   /** Draws the blocks a container holds into `parent`. */
   blocks(nodes: readonly FigureNode[], parent: HTMLElement): void;

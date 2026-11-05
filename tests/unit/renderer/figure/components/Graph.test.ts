@@ -1,8 +1,8 @@
 import { el, read } from './read';
 
 describe('Graph', () => {
-  it('claims node and edge ids, so tags and links can name them', () => {
-    expect(read(el('Graph', { nodes: [{ id: 'a' }, { id: 'b' }], edges: [{ id: 'ab', from: 'a', to: 'b' }], tags: { ab: 'active', a: 'done' } }))).toMatchObject({ type: 'Graph' });
+  it('claims node and edge ids, so groups, states and links can name them', () => {
+    expect(read(el('Graph', { nodes: [{ id: 'a' }, { id: 'b' }], edges: [{ id: 'ab', from: 'a', to: 'b' }], states: { ab: 'active', a: 'done' } }))).toMatchObject({ type: 'Graph' });
   });
 
   it('refuses an edge to a node it does not hold', () => {

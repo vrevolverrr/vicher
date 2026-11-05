@@ -1,7 +1,8 @@
-import { arrowHeads, div, lineInk, type Markdown, svg } from '@/renderer/figure/view/dom';
+import { arrowHeads, div, lineInk, type Markdown, markData, type Marks, svg } from '@/renderer/figure/view/dom';
 import type { FigureNode } from '@/renderer/figure/FigureData';
 
-export type Link = Extract<FigureNode, { type: 'Arrow' | 'Pointer' }>;
+/** A link with its group's colour, since links draw after their step and without the figure. */
+export type Link = Extract<FigureNode, { type: 'Arrow' | 'Pointer' }> & Marks;
 type Box = { el: Element; l: number; t: number; r: number; b: number };
 
 /** A pointer is 20 px tall; the next one down sits this far below it. */
@@ -49,11 +50,11 @@ export function drawLinks(step: HTMLElement, links: readonly Link[], markdown: M
       else if (b.r <= a.l + 1) [start, end] = [[a.l, (a.t + a.b) / 2], [b.r, (b.t + b.b) / 2]];
       else if (b.t >= a.b - 1) [start, end] = [[(a.l + a.r) / 2, a.b], [(b.l + b.r) / 2, b.t]];
       else [start, end] = [[(a.l + a.r) / 2, a.t], [(b.l + b.r) / 2, b.b]];
-      const path = svg('path', { d: `M${start[0]} ${start[1]}L${end[0]} ${end[1]}`, class: 'vicher-figure-link', 'marker-end': head(lineInk(link.tag)) }, drawing);
-      if (link.tag) path.dataset.tag = link.tag;
+      const path = svg('path', { d: `M${start[0]} ${start[1]}L${end[0]} ${end[1]}`, class: 'vicher-figure-link', 'marker-end': head(lineInk(link)) }, drawing);
+      markData(path, link);
       if (link.label === undefined) continue;
       const label = layer.appendChild(div('vicher-figure-link-label'));
-      if (link.tag) label.dataset.tag = link.tag;
+      markData(label, link);
       label.style.left = `${(start[0] + end[0]) / 2}px`;
       label.style.top = `${(start[1] + end[1]) / 2}px`;
       markdown(label, link.label);
@@ -84,6 +85,6 @@ export function drawLinks(step: HTMLElement, links: readonly Link[], markdown: M
       pointer.style.left = `${(target.l + target.r) / 2}px`;
       pointer.style.top = `${top}px`;
     }
-    pointer.dataset.tag = link.tag ?? 'active';
+    markData(pointer, link.color || link.state ? link : { state: 'active' });
   }
 }

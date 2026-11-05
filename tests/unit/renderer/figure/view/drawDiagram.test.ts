@@ -39,11 +39,11 @@ describe('drawDiagram', () => {
   });
 
   it('colours a Vector\'s arrowhead like its line', () => {
-    const node = diagram({ type: 'Vector', from: [0, 0], to: [4, 3], tag: 'good' }, { type: 'Vector', from: [0, 3], to: [4, 0] });
+    const node = diagram({ type: 'Vector', from: [0, 0], to: [4, 3], group: 'good' }, { type: 'Vector', from: [0, 3], to: [4, 0] });
     const el = document.createElement('div');
-    drawDiagram(el, node, diagramExtent(node), 480, (box, text) => void (box.textContent = String(text)));
+    drawDiagram(el, node, diagramExtent(node), 480, (box, text) => void (box.textContent = String(text)), undefined, (name) => (name === 'good' ? 'green' : undefined));
     const fills = [...el.querySelectorAll('path.is-vector')].map((path) => el.querySelector<SVGElement>(`${path.getAttribute('marker-end')!.slice(4, -1)} path`)!.style.fill);
-    expect(fills).toEqual(['var(--vicher-figure-tag-good)', 'var(--vicher-figure-ink)']);
+    expect(fills).toEqual(['var(--vicher-figure-color-green)', 'var(--vicher-figure-ink)']);
   });
 
   it('grows above a line along its top edge to hold the line\'s label', () => {

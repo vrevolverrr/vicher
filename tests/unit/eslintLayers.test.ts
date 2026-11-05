@@ -14,7 +14,7 @@ tester.run('layers', rules.layers as never, {
     { filename: at('chat/view/TextBlock.ts'), code: "import { FigureView } from '@/renderer/figure/view/FigureView';" },
     { filename: at('agents/claude/ClaudeAgent.ts'), code: "import { x } from './ClaudeModelAdapter';" },
     { filename: at('shared/view/icon.ts'), code: "export { setIcon } from 'obsidian';" },
-    { filename: at('renderer/figure/packages/plot3/scene3.ts'), code: "import { TAGS } from '@/renderer/figure/Tag'; import { niceTicks } from '@/renderer/figure/packages/plot/plotMath';" },
+    { filename: at('renderer/figure/packages/plot3/scene3.ts'), code: "import { niceTicks } from '@/renderer/figure/packages/plot/plotMath';" },
   ],
   invalid: [
     { filename: at('renderer/figure/geometry.ts'), code: "import { svg } from '@/renderer/figure/view/dom';", errors: 1 },

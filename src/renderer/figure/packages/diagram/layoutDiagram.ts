@@ -1,7 +1,6 @@
 import { angleMark, dimensionMark, rightAngleMark, tickMarks } from '@/renderer/figure/packages/diagram/marks';
 import { bounds, type Extent, pointsOf, type Room, widen } from '@/renderer/figure/packages/diagram/diagramExtent';
 import type { DiagramLayer, FigureNode, Point } from '@/renderer/figure/FigureData';
-import type { Tag } from '@/renderer/figure/Tag';
 import { type LabelBox, placeLabels } from '@/renderer/figure/placeLabels';
 
 type Diagram = Extract<FigureNode, { type: 'Diagram' }>;
@@ -12,10 +11,13 @@ const CHAR_WIDTH = 7.5;
 /** More than the 2 px margin `placeLabels` counts a line crossing within. */
 const LABEL_GAP = 3;
 
+type Ink = { group?: string; state?: string };
+const inkOf = ({ group, state }: Ink): Ink => ({ ...(group ? { group } : {}), ...(state ? { state } : {}) });
+
 /** One SVG shape in pixels; `arrow` puts an arrowhead at its end. */
 export type DiagramMark =
-  | { shape: 'path'; d: string; className?: string; arrow?: boolean; tag?: Tag }
-  | { shape: 'circle'; cx: number; cy: number; r: number; className?: string; tag?: Tag };
+  | { shape: 'path'; d: string; className?: string; arrow?: boolean } & Ink
+  | { shape: 'circle'; cx: number; cy: number; r: number; className?: string } & Ink;
 
 export interface DiagramLayout {
   marks: DiagramMark[];
@@ -52,9 +54,9 @@ export function layoutDiagram(diagram: Diagram, extent: Extent, available: numbe
   const lines: [number, number][][] = [];
   const labels: (LabelBox & { layer: DiagramLayer })[] = [];
   const path = (points: readonly Point[], close = false): string => `M${points.map((p) => px(p).map((v) => v.toFixed(1)).join(',')).join('L')}${close ? 'Z' : ''}`;
-  const polyline = (points: readonly Point[], tag?: Tag, extra: { className?: string; arrow?: boolean } = {}, close = false): void => {
+  const polyline = (points: readonly Point[], ink: Ink = {}, extra: { className?: string; arrow?: boolean } = {}, close = false): void => {
     if (points.length < 2) return;
-    marks.push({ shape: 'path', d: path(points, close), ...extra, ...(tag ? { tag } : {}) });
+    marks.push({ shape: 'path', d: path(points, close), ...extra, ...ink });
     lines.push((close ? [...points, points[0]] : points).map(px));
   };
   const label = (at: Point, layer: DiagramLayer, center = false): void => {
@@ -69,7 +71,7 @@ export function layoutDiagram(diagram: Diagram, extent: Extent, available: numbe
   for (const layer of diagram.children) {
     switch (layer.type) {
       case 'Shape': {
-        polyline(layer.pts, layer.tag, layer.closed ? { className: 'is-closed' } : {}, layer.closed);
+        polyline(layer.pts, inkOf(layer), layer.closed ? { className: 'is-closed' } : {}, layer.closed);
         if (layer.pts.length) {
           const middle: Point = [layer.pts.reduce((s, p) => s + p[0], 0) / layer.pts.length, layer.pts.reduce((s, p) => s + p[1], 0) / layer.pts.length];
           label(layer.closed ? middle : layer.pts[layer.pts.length - 1], layer, layer.closed);
@@ -78,20 +80,20 @@ export function layoutDiagram(diagram: Diagram, extent: Extent, available: numbe
       }
       case 'Circle': {
         const [cx, cy] = px(layer.at);
-        marks.push({ shape: 'circle', cx, cy, r: layer.r * scale, ...(layer.tag ? { tag: layer.tag } : {}) });
+        marks.push({ shape: 'circle', cx, cy, r: layer.r * scale, ...inkOf(layer) });
         lines.push(Array.from({ length: 33 }, (_, i) => px([layer.at[0] + layer.r * Math.cos((i * Math.PI) / 16), layer.at[1] + layer.r * Math.sin((i * Math.PI) / 16)])));
         label([layer.at[0], layer.at[1] + layer.r], layer);
         break;
       }
       case 'Vector':
       case 'Segment':
-        polyline([layer.from, layer.to], layer.tag, layer.type === 'Vector' ? { arrow: true, className: 'is-vector' } : {});
+        polyline([layer.from, layer.to], inkOf(layer), layer.type === 'Vector' ? { arrow: true, className: 'is-vector' } : {});
         label([(layer.from[0] + layer.to[0]) / 2, (layer.from[1] + layer.to[1]) / 2], layer);
         break;
       case 'Points':
         for (const p of layer.pts) {
           const [cx, cy] = px(p);
-          marks.push({ shape: 'circle', cx, cy, r: 3.5, className: 'is-point', ...(layer.tag ? { tag: layer.tag } : {}) });
+          marks.push({ shape: 'circle', cx, cy, r: 3.5, className: 'is-point', ...inkOf(layer) });
         }
         if (layer.pts.length) label(layer.pts[0], layer);
         break;
@@ -105,23 +107,23 @@ export function layoutDiagram(diagram: Diagram, extent: Extent, available: numbe
           const t = ((arc.start + ((arc.end - arc.start) * i) / 24) * Math.PI) / 180;
           return [layer.at[0] + arc.radius * Math.cos(t), layer.at[1] + arc.radius * Math.sin(t)];
         });
-        polyline(points, layer.tag);
+        polyline(points, inkOf(layer));
         label(arc.label, layer, true);
         break;
       }
       case 'RightAngle':
-        polyline(rightAngleMark(layer.at, layer.from, layer.to, units(10)), layer.tag);
+        polyline(rightAngleMark(layer.at, layer.from, layer.to, units(10)), inkOf(layer));
         break;
       case 'Tick':
-        for (const tick of tickMarks(layer.on[0], layer.on[1], layer.n ?? 1, units(10), units(4))) polyline(tick, layer.tag);
+        for (const tick of tickMarks(layer.on[0], layer.on[1], layer.n ?? 1, units(10), units(4))) polyline(tick, inkOf(layer));
         break;
       case 'Dimension': {
         // Offset away from the rest of the drawing, so the measure never lies across it.
         const [dx, dy] = [layer.to[0] - layer.from[0], layer.to[1] - layer.from[1]];
         const side = -dy * (centre[0] - (layer.from[0] + layer.to[0]) / 2) + dx * (centre[1] - (layer.from[1] + layer.to[1]) / 2) > 0 ? -1 : 1;
         const dimension = dimensionMark(layer.from, layer.to, side * units(16));
-        polyline(dimension.line, layer.tag, { className: 'is-dimension' });
-        for (const bar of dimension.bars) polyline(bar, layer.tag, { className: 'is-dimension' });
+        polyline(dimension.line, inkOf(layer), { className: 'is-dimension' });
+        for (const bar of dimension.bars) polyline(bar, inkOf(layer), { className: 'is-dimension' });
         label(dimension.label, layer, true);
         break;
       }

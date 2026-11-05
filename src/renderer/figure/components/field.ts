@@ -3,11 +3,11 @@ import * as z from 'zod/mini';
 import { ID, LIMITS, type Point, type Range } from '@/renderer/figure/FigureData';
 import { texProblems } from '@/renderer/figure/figureTex';
 import { formatFigure } from '@/renderer/figure/formatFigure';
+import { type State, STATES } from '@/renderer/figure/marks';
 import { count, isObject } from '@/renderer/figure/plain';
-import { TAGS, type Tag } from '@/renderer/figure/Tag';
 
 export type Kind =
-  | 'id' | 'text' | 'tex' | 'tag' | 'tags' | 'target' | 'ref' | 'point' | 'range' | 'number' | 'boolean' | 'literal' | 'choice'
+  | 'id' | 'text' | 'tex' | 'group' | 'groups' | 'state' | 'states' | 'target' | 'ref' | 'point' | 'range' | 'number' | 'boolean' | 'literal' | 'choice'
   | 'list' | 'object' | 'either' | 'optional' | 'unused' | 'sampled';
 
 /**
@@ -81,6 +81,23 @@ export function textProblem(value: string, whole = false): string | undefined {
 
 const isPoint = (value: unknown): boolean => Array.isArray(value) && (value.length === 2 || value.length === 3) && value.every(isNumber);
 
+export const groupProblem = (name: unknown): string | undefined => {
+  if (typeof name !== 'string' || !name.trim()) return 'must be a name';
+  if (name.length > LIMITS.groupName) return `is ${name.length} characters; the limit is ${LIMITS.groupName}`;
+  return textProblem(name);
+};
+
+const keyed = <T extends string>(kind: Kind, word: string, problem: (name: unknown) => string | undefined): Field<ReadonlyMap<string, T>, false> =>
+  leaf(kind, isObject, `must be an object of id: ${word}`, (value: Record<string, unknown>) => {
+    for (const key of Object.keys(value)) {
+      const wrong = value[key] === null || value[key] === undefined ? undefined : problem(value[key]);
+      if (wrong) return `has a ${word} for "${key}" that ${wrong}`;
+    }
+    return undefined;
+  }, (value: Record<string, unknown>) => new Map(Object.keys(value).flatMap((key) => (value[key] === null || value[key] === undefined ? [] : [[key, value[key] as T]]))));
+
+const stateProblem = (name: unknown): string | undefined => ((STATES as readonly unknown[]).includes(name) ? undefined : `is not one of ${STATES.join(', ')}`);
+
 export const field = {
   /** 1 to 64 characters matching `[A-Za-z0-9][A-Za-z0-9_.:-]*`, unique in its step. */
   id: (): Field<string, false> =>
@@ -94,16 +111,13 @@ export const field = {
   tex: (): Field<string, false> =>
     leaf('tex', (value) => typeof value === 'string' && value.trim() !== '', 'must be TeX', (value: string) => textProblem(value, true)),
 
-  tag: (): Field<Tag, false> => leaf('tag', (value) => (TAGS as readonly unknown[]).includes(value), `must be one of ${TAGS.join(', ')}`),
-
-  /** A map from ids in the step to tags; a null or undefined tag is left out. */
-  tags: (): Field<ReadonlyMap<string, Tag>, false> => leaf('tags', isObject, 'must be an object of id: tag', (value: Record<string, unknown>) => {
-    for (const key of Object.keys(value)) {
-      const tag = value[key];
-      if (tag !== null && tag !== undefined && !(TAGS as readonly unknown[]).includes(tag)) return `has a tag for "${key}" that is not one of ${TAGS.join(', ')}`;
-    }
-    return undefined;
-  }, (value: Record<string, unknown>) => new Map(Object.keys(value).flatMap((key) => (value[key] === null || value[key] === undefined ? [] : [[key, value[key] as Tag]])))),
+  /** A name the figure's key shows, which gives the element its colour. */
+  group: (): Field<string, false> => leaf('group', (value) => groupProblem(value) === undefined, 'must be a name of at most 60 characters'),
+  /** A map from ids in the step to group names; a null or undefined name is left out. */
+  groups: (): Field<ReadonlyMap<string, string>, false> => keyed('groups', 'group', groupProblem),
+  state: (): Field<State, false> => leaf('state', (value) => stateProblem(value) === undefined, `must be one of ${STATES.join(', ')}`),
+  /** A map from ids in the step to states; a null or undefined state is left out. */
+  states: (): Field<ReadonlyMap<string, State>, false> => keyed('states', 'state', stateProblem),
 
   /** An id that another element must hold in this step. */
   target: (): Field<string, false> => leaf('target', (value) => typeof value === 'string', 'must be an id'),

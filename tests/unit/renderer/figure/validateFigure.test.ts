@@ -1,5 +1,6 @@
 import { type FigureNode, LIMITS } from '@/renderer/figure/FigureData';
 import type { Plot3Model } from '@/renderer/figure/packages/plot3/Plot3Model';
+import type { Color } from '@/renderer/figure/marks';
 import { plot3Model, plotModel } from '@/renderer/figure/plotModels';
 import { validateFigure } from '@/renderer/figure/validateFigure';
 
@@ -19,12 +20,12 @@ function expectOk(raw: unknown): void {
   expect(result.ok ? 'ok' : result.error).toBe('ok');
 }
 
-const table = (rows: number, columns: number, tags: Record<string, string> = {}): El => el('Table', {
+const table = (rows: number, columns: number, groups: Record<string, string> = {}): El => el('Table', {
   id: 't',
   columns: Array.from({ length: columns }, (_, c) => `c${c}`),
   rows: Array.from({ length: rows }, () => Array.from({ length: columns }, () => 1)),
   rowIds: Array.from({ length: rows }, (_, r) => `r${r}`),
-  tags,
+  groups,
 });
 
 const nested = (depth: number): El => (depth === 1 ? node() : el('Row', {}, nested(depth - 1)));
@@ -82,7 +83,7 @@ describe('validateFigure on adversarial clones', () => {
     ['a Map', figure(el('Node', { label: new Map() })), 'a Map cannot be drawn'],
     ['a Date', figure(el('Node', { label: new Date(0) })), 'a Date cannot be drawn'],
     ['a function', figure(el('Node', { label: () => 1 })), 'a function cannot be drawn'],
-    ['a tag key inherited from Object.prototype', figure(el('Table', { id: 't', columns: ['a'], rows: [], rowIds: [], tags: { constructor: 'good' } })), 'tags "constructor" names no element, row, item or node in this step'],
+    ['a group key inherited from Object.prototype', figure(el('Table', { id: 't', columns: ['a'], rows: [], rowIds: [], groups: { constructor: 'good' } })), 'groups "constructor" names no element, row, item or node in this step'],
     ['an unknown element', figure(el('Matrix', {})), 'unknown element <Matrix>'],
     ['a nested Figure', figure(el('Row', {}, el('Figure', {}))), 'Figure is returned once, outermost'],
   ])('rejects %s', (_, raw, message) => {
@@ -90,7 +91,7 @@ describe('validateFigure on adversarial clones', () => {
   });
 
   it('names the path to the failing element', () => {
-    expect(errorOf(figure(el('Row', {}, table(1, 1, { 't-X': 'good' }))))).toBe('Step 1 > Row > Table#t: tags "t-X" names no element, row, item or node in this step');
+    expect(errorOf(figure(el('Row', {}, table(1, 1, { 't-X': 'good' }))))).toBe('Step 1 > Row > Table#t: groups "t-X" names no element, row, item or node in this step');
     expect(errorOf(figure(plot(el('Region', { top: 'g', from: 0, to: 1 }))))).toBe('Step 1 > Plot#p: Region "top" names no Fn of this Plot: "g"');
   });
 });
@@ -98,7 +99,7 @@ describe('validateFigure on adversarial clones', () => {
 describe('validateFigure ids', () => {
   it('accepts a Table without rowIds', () => {
     expectOk(figure(el('Table', { columns: ['a', 'b'], rows: [[1, 2]] })));
-    expectOk(figure(el('Table', { id: 't', columns: ['a'], rows: [[1]], tags: { t: 'active' } })));
+    expectOk(figure(el('Table', { id: 't', columns: ['a'], rows: [[1]], states: { t: 'active' } })));
   });
 
   it('rejects an id used by a Seq item and a Node', () => {
@@ -134,13 +135,13 @@ describe('validateFigure ids', () => {
 });
 
 describe('validateFigure output', () => {
-  it('reads tags into a Map and text children into text', () => {
+  it('reads groups into a Map and text children into text', () => {
     const result = validateFigure(figure(el('Row', {}, el('Text', {}, 'Total: ', 0.1 + 0.2), table(1, 1, { r0: 'good' }))));
     if (!result.ok) throw new Error(result.error);
     const root = result.figure.steps[0].root;
     if (root.type !== 'Row') throw new Error('expected a Row');
     expect(root.children[0]).toEqual({ type: 'Text', text: 'Total: 0.3' });
-    expect(root.children[1]).toMatchObject({ type: 'Table', tags: new Map([['r0', 'good']]) });
+    expect(root.children[1]).toMatchObject({ type: 'Table', groups: new Map([['r0', 'good']]) });
     expect(result.figure.steps[0].ids).toEqual(new Set(['t', 'r0', 'r0.0']));
   });
 
@@ -296,5 +297,67 @@ describe('validateFigure fitting z to a surface', () => {
     const [, top] = zOf((x, y) => 1 / (x * x + y * y));
     expect(top).toBeLessThan(10);
     expect(top).toBeGreaterThan(1);
+  });
+});
+
+describe('groups and the legend', () => {
+  const colors = (raw: unknown): Record<string, string> => {
+    const result = validateFigure(raw);
+    if (!result.ok) throw new Error(result.error);
+    return Object.fromEntries(result.figure.colors);
+  };
+  const steps = (...groups: string[]): Record<string, unknown> => ({ params: {}, frames: groups.map((group) => ({ caption: 'x', root: el('Node', { label: 'x', group }) })) });
+
+  it('gives each name one colour for the figure, in first-seen order across steps', () => {
+    expect(colors(steps('b', 'a', 'b'))).toEqual({ b: 'blue', a: 'orange' });
+  });
+
+  it('keeps pinned colours out of what the host hands out', () => {
+    expect(colors({ ...steps('a', 'miss'), legend: { miss: 'blue' } })).toEqual({ miss: 'blue', a: 'orange' });
+  });
+
+  it('keeps a name\'s earlier colour on a rerun, unless a pin took it', () => {
+    const shown = (raw: unknown, earlier: Map<string, Color>): Record<string, string> => {
+      const result = validateFigure(raw, earlier);
+      if (!result.ok) throw new Error(result.error);
+      return Object.fromEntries(result.figure.colors);
+    };
+    const earlier = new Map<string, Color>([['failed', 'blue'], ['passed', 'orange']]);
+    expect(shown(steps('passed'), earlier)).toEqual({ passed: 'orange' });
+    expect(shown(steps('new', 'passed'), earlier)).toEqual({ passed: 'orange', new: 'blue' });
+    expect(shown({ ...steps('passed'), legend: { other: 'orange' } }, earlier)).toEqual({ other: 'orange', passed: 'blue' });
+  });
+
+  it('keys only the groups in use, while an unused pin still names a colour for a Plot label', () => {
+    const result = validateFigure({ ...steps('a'), legend: { missed: 'red' } });
+    expect(result.ok && result.figure.key).toEqual(['a']);
+    expect(result.ok && result.figure.colors.get('missed')).toBe('red');
+  });
+
+  it.each([
+    ['a colour outside the eight', { a: 'teal' }, 'Figure > legend: "a" must be one of'],
+    ['two names on one colour', { a: 'red', b: 'red' }, 'Figure > legend: "a" and "b" are both red; a colour has one meaning'],
+    ['a name over the limit', { ['x'.repeat(61)]: 'red' }, 'Figure > legend: a name is 61 characters; the limit is 60'],
+    ['a legend that is not an object', 'red', 'Figure > legend: must be an object of name: colour'],
+  ])('rejects %s', (_, legend, message) => {
+    expect(errorOf({ ...steps('a'), legend })).toContain(message);
+  });
+
+  it('rejects a ninth name, counting pins', () => {
+    const names = Array.from({ length: 8 }, (_, i) => `g${i}`);
+    expectOk(steps(...names));
+    expect(errorOf({ ...steps(...names), legend: { extra: 'red' } })).toContain('groups');
+  });
+
+  it('rejects a name over 60 characters', () => {
+    expect(errorOf(steps('x'.repeat(61)))).toContain('group');
+  });
+
+  it('does not ask for a key entry for a TeX colour', () => {
+    expectOk(figure(el('Text', { text: '$\\color{red}{x}$' })));
+  });
+
+  it('rejects the old tags', () => {
+    expect(errorOf(figure(el('Node', { label: 'x', tag: 'good' })))).toContain('tag');
   });
 });

@@ -30,7 +30,7 @@ export const PlotView: ElementView<NodeOf<'Plot'>> = {
     const chart = new PlotChart(plot);
     chart.height = (width) => Math.min(360, (width * 2) / 3);
     chart.writeLabel = ctx.markdown;
-    chart.render(plotModel(node));
+    chart.render(plotModel(node, ctx.colorOf));
     return drawn(plot, chart, ctx);
   },
 };
@@ -43,7 +43,7 @@ export const Plot3View: ElementView<NodeOf<'Plot3'>> = {
     // Taller than a 2D Plot: the box must fit every angle it turns to.
     chart.height = (width) => Math.min(420, width * 0.75);
     chart.writeLabel = ctx.markdown;
-    chart.render(plot3Model(node));
+    chart.render(plot3Model(node, ctx.colorOf));
     return drawn(plot, chart, ctx);
   },
 };

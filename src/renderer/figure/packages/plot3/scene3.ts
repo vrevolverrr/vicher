@@ -1,12 +1,12 @@
 import type { Plot3Model, Point3, View } from '@/renderer/figure/packages/plot3/Plot3Model';
-import type { Tag } from '@/renderer/figure/Tag';
 import { niceTicks, tickText } from '@/renderer/figure/packages/plot/plotMath';
 
 export type Xy = [number, number];
 export type Rgb = readonly [number, number, number];
 export interface Size { width: number; height: number }
 /** The height colour map, low to high; read from the theme by the chart. */
-export interface Colours { ramp: readonly Rgb[] }
+/** `tints` are the figure's colours by name, for a surface in a group. */
+export interface Colours { ramp: readonly Rgb[]; tints?: ReadonlyMap<string, Rgb> }
 
 export interface Face { pts: Xy[]; fill: string; dim: boolean }
 /** A text's estimated box in pixels, top left and size. */
@@ -14,7 +14,7 @@ export interface TextBox { x: number; y: number; w: number; h: number }
 /** `text` is empty when the label would collide with another and only the tick mark is drawn. */
 export interface Tick { at: Xy; to: Xy; text: string; textAt: Xy; anchor: Anchor; box: TextBox }
 export type Anchor = 'start' | 'middle' | 'end';
-export type Overlay = { tag?: Tag; label?: string } & (
+export type Overlay = { color?: string; state?: string; label?: string } & (
   | { kind: 'line'; points: Xy[] }
   | { kind: 'arrow'; points: [Xy, Xy] }
   | { kind: 'dot'; at: Xy }
@@ -86,6 +86,12 @@ export function projection(model: Plot3Model, view: View, size: Size): (p: Point
   return ([x, y, z]) => [cx + scale * (x * ca - y * sa), cy - scale * (z * ce + (x * sa + y * ca) * se)];
 }
 
+/** One hue from dark to light, so a surface in a group keeps its height shading. */
+function tintRamp(tint: Rgb): readonly Rgb[] {
+  const toward = (target: number, share: number): Rgb => tint.map((c) => c + (target - c) * share) as unknown as Rgb;
+  return [toward(0, 0.55), tint, toward(255, 0.6)];
+}
+
 function colourAt(ramp: readonly Rgb[], t: number): string {
   if (!ramp.length) return 'rgb(128, 128, 128)';
   const at = Math.max(0, Math.min(1, t)) * (ramp.length - 1);
@@ -146,7 +152,9 @@ export function meshOf(model: Plot3Model, colours: Colours): Mesh {
       const p = surface.pts[at];
       return p === null ? null : box(p);
     });
-    const dim = surface.tag === 'dim';
+    const dim = surface.state === 'dim';
+    const tint = surface.color ? colours.tints?.get(surface.color) : undefined;
+    const ramp = tint ? tintRamp(tint) : colours.ramp;
     for (let j = 0; j < n; j += 1) {
       for (let i = 0; i < n; i += 1) {
         const at = j * side + i;
@@ -158,7 +166,7 @@ export function meshOf(model: Plot3Model, colours: Colours): Mesh {
         if (v.length < 3) continue;
         const centroid = [0, 1, 2].map((k) => v.reduce((sum, p) => sum + p[k], 0) / v.length) as unknown as Point3;
         if (graph) cells[j * n + i] = faces.length;
-        faces.push({ v, centroid, fill: colourAt(colours.ramp, centroid[2] / L[2] + 0.5), dim });
+        faces.push({ v, centroid, fill: colourAt(ramp, centroid[2] / L[2] + 0.5), dim });
       }
     }
   }
@@ -273,7 +281,7 @@ export function scene3(model: Plot3Model, view: View, size: Size, colours: Colou
   layoutText(titles, ticks, size, measure, canCut);
 
   const overlays = model.children.flatMap((layer): Overlay[] => {
-    const marks = layer.tag ? { tag: layer.tag } : {};
+    const marks = { ...(layer.color ? { color: layer.color } : {}), ...(layer.state ? { state: layer.state } : {}) };
     const label = 'label' in layer ? layer.label : undefined;
     const lines = (points: readonly Point3[]): Overlay[] => clipLine(points.map(box), L).map((run, i) => ({ kind: 'line', points: run.map(toScreen), ...marks, ...(i === 0 && label ? { label } : {}) }));
     switch (layer.type) {

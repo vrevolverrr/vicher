@@ -101,9 +101,11 @@ function run(source: string, sent: Record<string, unknown>): unknown {
   }
   const frames: { caption: unknown; heading?: unknown; root: unknown }[] = [];
   let title: unknown;
+  let legend: unknown;
   if (isWire(result) && result.type === 'Figure') {
     const { steps, caption, heading, render } = result.props;
     title = result.props.title;
+    legend = result.props.legend;
     if (!Array.isArray(steps)) throw new FigureError('Figure steps must be an array, one value per step');
     if (steps.length > LIMITS.steps) throw new FigureError(`Figure: ${steps.length} steps; the limit is ${LIMITS.steps}`);
     if (typeof render !== 'function') throw new FigureError('Figure render must be a function of the step');
@@ -126,7 +128,7 @@ function run(source: string, sent: Record<string, unknown>): unknown {
       throw located(error, url, '');
     }
   }
-  return { params: declared, ...(title === undefined ? {} : { title }), frames };
+  return { params: declared, ...(title === undefined ? {} : { title }), ...(legend === undefined ? {} : { legend }), frames };
 }
 
 function defineGlobals(): void {

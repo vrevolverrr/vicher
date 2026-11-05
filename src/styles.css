@@ -684,21 +684,21 @@ body {
   stroke-width: 2;
 }
 
-.vicher-network-node[data-tag='active'] {
+.vicher-network-node[data-state='active'] {
   border: 2px solid var(--interactive-accent);
 }
 
-.vicher-network-edge[data-tag='active'] {
+.vicher-network-edge[data-state='active'] {
   stroke: var(--interactive-accent);
   stroke-width: 4;
 }
 
-.vicher-network-edge[data-tag='done'] {
+.vicher-network-edge[data-state='done'] {
   stroke-dasharray: 7 4;
 }
 
 /* Fade only the text, so the label still covers the dot grid. */
-.vicher-network-edge-label[data-tag='dim'] {
+.vicher-network-edge-label[data-state='dim'] {
   opacity: 1;
   color: var(--text-faint);
 }
@@ -1279,24 +1279,29 @@ body {
   font-size: var(--font-ui-smaller);
 }
 
-/* Figures: model-written programs drawn with the host's own layout. Tag colours are per surface, never one rule for every [data-tag]. */
+/* Figures: model-written programs drawn with the host's own layout. Marks are per surface, never one rule for every [data-color] or [data-state]. */
 .vicher-figure {
   --vicher-figure-tex-size: 1.3em;
   --vicher-figure-ink: color-mix(in srgb, var(--text-normal) 80%, var(--background-primary));
-  --vicher-figure-tag-active: var(--interactive-accent);
-  --vicher-figure-tag-done: var(--text-muted);
-  --vicher-figure-tag-match: var(--color-cyan);
-  --vicher-figure-tag-new: var(--color-yellow);
-  --vicher-figure-tag-dim: var(--text-faint);
-  --vicher-figure-tag-good: var(--color-green);
-  --vicher-figure-tag-bad: var(--color-red);
-  --vicher-figure-fill-active: color-mix(in srgb, var(--interactive-accent) 22%, var(--background-primary));
-  --vicher-figure-fill-done: var(--background-secondary);
-  --vicher-figure-fill-match: color-mix(in srgb, var(--color-cyan) 24%, var(--background-primary));
-  --vicher-figure-fill-new: color-mix(in srgb, var(--color-yellow) 30%, var(--background-primary));
-  --vicher-figure-fill-dim: var(--background-secondary);
-  --vicher-figure-fill-good: color-mix(in srgb, var(--color-green) 22%, var(--background-primary));
-  --vicher-figure-fill-bad: color-mix(in srgb, var(--color-red) 22%, var(--background-primary));
+  --vicher-figure-state-active: var(--interactive-accent);
+  --vicher-figure-state-done: var(--text-muted);
+  --vicher-figure-state-dim: var(--text-faint);
+  --vicher-figure-color-red: var(--color-red);
+  --vicher-figure-color-orange: var(--color-orange);
+  --vicher-figure-color-yellow: var(--color-yellow);
+  --vicher-figure-color-green: var(--color-green);
+  --vicher-figure-color-cyan: var(--color-cyan);
+  --vicher-figure-color-blue: var(--color-blue);
+  --vicher-figure-color-purple: var(--color-purple);
+  --vicher-figure-color-pink: var(--color-pink);
+  --vicher-figure-fill-red: color-mix(in srgb, var(--color-red) 24%, var(--background-primary));
+  --vicher-figure-fill-orange: color-mix(in srgb, var(--color-orange) 24%, var(--background-primary));
+  --vicher-figure-fill-yellow: color-mix(in srgb, var(--color-yellow) 30%, var(--background-primary));
+  --vicher-figure-fill-green: color-mix(in srgb, var(--color-green) 24%, var(--background-primary));
+  --vicher-figure-fill-cyan: color-mix(in srgb, var(--color-cyan) 24%, var(--background-primary));
+  --vicher-figure-fill-blue: color-mix(in srgb, var(--color-blue) 24%, var(--background-primary));
+  --vicher-figure-fill-purple: color-mix(in srgb, var(--color-purple) 24%, var(--background-primary));
+  --vicher-figure-fill-pink: color-mix(in srgb, var(--color-pink) 24%, var(--background-primary));
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1363,7 +1368,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--size-4-2) var(--size-4-6);
+  gap: var(--size-4-4) var(--size-4-6);
 }
 
 /* The side column takes nearly all the spare width on a shared line, so the drawing stays its own size there; alone on its line after a wrap, the drawing takes the full width. */
@@ -1384,6 +1389,7 @@ body {
   flex-basis: 100%;
   min-width: 0;
   align-items: center;
+  gap: var(--size-4-4);
 }
 
 /* A vertical stepper, for a figure's steps and a tour's stops: numbered dots joined by a line that fills in as the steps pass. */
@@ -1498,6 +1504,15 @@ body {
 /* A root Row wide enough to wrap fills the step, so its own lines are centred as well. */
 .vicher-figure-step > .vicher-figure-row {
   justify-content: safe center;
+}
+
+/* Cards have no size of their own to keep, so a root Row of them shares the pane; each still wraps at its content's width. */
+.vicher-figure-step > .vicher-figure-row:not(:has(> :not(.vicher-figure-panel, .vicher-figure-node))) {
+  align-self: stretch;
+}
+.vicher-figure-step > .vicher-figure-row:not(:has(> :not(.vicher-figure-panel, .vicher-figure-node))) > * {
+  flex: 1 1 0;
+  min-width: fit-content;
 }
 
 /* A formula in a column is centred too; auto margins fall back to the left edge when it overflows. */
@@ -1772,7 +1787,7 @@ body {
 }
 
 .vicher-figure-pointer {
-  --vicher-figure-pointer-ink: var(--vicher-figure-tag-active);
+  --vicher-figure-pointer-ink: var(--vicher-figure-state-active);
   position: absolute;
   display: inline-flex;
   align-items: center;
@@ -1809,6 +1824,7 @@ body {
   justify-content: center;
   contain: inline-size;
   gap: 4px 14px;
+  margin-top: var(--size-4-3);
   color: var(--text-muted);
   font-size: 12px;
 }
@@ -1837,126 +1853,140 @@ body {
 }
 
 
-/* Tags, one rule per surface: boxes (nodes, cells, key marks), lines (edges, links) and text (edge labels, pointers). A table cell's rule outranks Obsidian's striped columns. */
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='active'] {
-  outline: 2px solid var(--vicher-figure-tag-active);
-  outline-offset: -2px;
-  font-weight: var(--font-semibold);
+/* Marks, one rule per surface: boxes (nodes, cells, key marks), lines (edges, links) and text (edge labels, pointers). A table cell's rule outranks Obsidian's striped columns. States come after colours, and leave a colour's fill and stroke in place, so the two combine. */
+[data-color='red'] {
+  --vicher-figure-mark-ink: var(--vicher-figure-color-red);
+  --vicher-figure-mark-fill: var(--vicher-figure-fill-red);
 }
-.vicher-figure-table tr[data-tag='active'] > td.vicher-figure-cell,
-.vicher-figure-table td.vicher-figure-cell[data-tag='active'] {
-  font-weight: var(--font-semibold);
-  background: var(--vicher-figure-fill-active);
+[data-color='orange'] {
+  --vicher-figure-mark-ink: var(--vicher-figure-color-orange);
+  --vicher-figure-mark-fill: var(--vicher-figure-fill-orange);
 }
-:is(.vicher-network-edge, .vicher-figure-link)[data-tag='active'] {
-  stroke: var(--vicher-figure-tag-active);
+[data-color='yellow'] {
+  --vicher-figure-mark-ink: var(--vicher-figure-color-yellow);
+  --vicher-figure-mark-fill: var(--vicher-figure-fill-yellow);
+}
+[data-color='green'] {
+  --vicher-figure-mark-ink: var(--vicher-figure-color-green);
+  --vicher-figure-mark-fill: var(--vicher-figure-fill-green);
+}
+[data-color='cyan'] {
+  --vicher-figure-mark-ink: var(--vicher-figure-color-cyan);
+  --vicher-figure-mark-fill: var(--vicher-figure-fill-cyan);
+}
+[data-color='blue'] {
+  --vicher-figure-mark-ink: var(--vicher-figure-color-blue);
+  --vicher-figure-mark-fill: var(--vicher-figure-fill-blue);
+}
+[data-color='purple'] {
+  --vicher-figure-mark-ink: var(--vicher-figure-color-purple);
+  --vicher-figure-mark-fill: var(--vicher-figure-fill-purple);
+}
+[data-color='pink'] {
+  --vicher-figure-mark-ink: var(--vicher-figure-color-pink);
+  --vicher-figure-mark-fill: var(--vicher-figure-fill-pink);
+}
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-color],
+.vicher-figure-table tr[data-color] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-color] {
+  background: var(--vicher-figure-mark-fill);
+}
+:is(.vicher-network-edge, .vicher-figure-link)[data-color] {
+  stroke: var(--vicher-figure-mark-ink);
   stroke-width: 3;
 }
-.vicher-network-edge-label[data-tag='active'] {
-  color: var(--vicher-figure-tag-active);
+.vicher-network-edge-label[data-color] {
+  color: var(--vicher-figure-mark-ink);
 }
-.vicher-figure-pointer[data-tag='active'] {
-  --vicher-figure-pointer-ink: var(--vicher-figure-tag-active);
-}
-
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='done'],
-.vicher-figure-table tr[data-tag='done'] > td.vicher-figure-cell,
-.vicher-figure-table td.vicher-figure-cell[data-tag='done'] {
-  color: var(--vicher-figure-tag-done);
-  background: var(--vicher-figure-fill-done);
-}
-:is(.vicher-network-edge, .vicher-figure-link)[data-tag='done'] {
-  stroke: var(--vicher-figure-tag-done);
-  stroke-dasharray: 7 4;
-}
-.vicher-network-edge-label[data-tag='done'] {
-  color: var(--vicher-figure-tag-done);
-}
-.vicher-figure-pointer[data-tag='done'] {
-  --vicher-figure-pointer-ink: var(--vicher-figure-tag-done);
-}
-
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='match'],
-.vicher-figure-table tr[data-tag='match'] > td.vicher-figure-cell,
-.vicher-figure-table td.vicher-figure-cell[data-tag='match'] {
-  background: var(--vicher-figure-fill-match);
-}
-:is(.vicher-network-edge, .vicher-figure-link)[data-tag='match'] {
-  stroke: var(--vicher-figure-tag-match);
-  stroke-width: 3;
-}
-.vicher-network-edge-label[data-tag='match'] {
-  color: var(--vicher-figure-tag-match);
-}
-.vicher-figure-pointer[data-tag='match'] {
-  --vicher-figure-pointer-ink: var(--vicher-figure-tag-match);
-}
-
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='new'],
-.vicher-figure-table tr[data-tag='new'] > td.vicher-figure-cell,
-.vicher-figure-table td.vicher-figure-cell[data-tag='new'] {
-  background: var(--vicher-figure-fill-new);
-}
-:is(.vicher-network-edge, .vicher-figure-link)[data-tag='new'] {
-  stroke: var(--vicher-figure-tag-new);
-  stroke-width: 3;
-}
-.vicher-network-edge-label[data-tag='new'] {
+.vicher-network-edge-label[data-color='yellow'] {
   color: var(--text-normal);
 }
-.vicher-figure-pointer[data-tag='new'] {
-  --vicher-figure-pointer-ink: var(--vicher-figure-tag-new);
+.vicher-figure-pointer[data-color] {
+  --vicher-figure-pointer-ink: var(--vicher-figure-mark-ink);
 }
 
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='dim'],
-.vicher-figure-table tr[data-tag='dim'] > td.vicher-figure-cell,
-.vicher-figure-table td.vicher-figure-cell[data-tag='dim'] {
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-state='active'] {
+  outline: 2px solid var(--vicher-figure-state-active);
+  outline-offset: -2px;
+  font-weight: var(--font-semibold);
+}
+.vicher-figure-table tr[data-state='active'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-state='active'] {
+  font-weight: var(--font-semibold);
+}
+.vicher-figure-table tr[data-state='active']:not([data-color]) > td.vicher-figure-cell:not([data-color]),
+.vicher-figure-table td.vicher-figure-cell[data-state='active']:not([data-color]) {
+  background: color-mix(in srgb, var(--interactive-accent) 22%, var(--background-primary));
+}
+:is(.vicher-network-edge, .vicher-figure-link)[data-state='active']:not([data-color]) {
+  stroke: var(--vicher-figure-state-active);
+  stroke-width: 3;
+}
+.vicher-network-edge-label[data-state='active']:not([data-color]) {
+  color: var(--vicher-figure-state-active);
+}
+.vicher-figure-pointer[data-state='active']:not([data-color]) {
+  --vicher-figure-pointer-ink: var(--vicher-figure-state-active);
+}
+
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-state='done'],
+.vicher-figure-table tr[data-state='done'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-state='done'] {
+  color: var(--vicher-figure-state-done);
+}
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-state='done']:not([data-color]),
+.vicher-figure-table tr[data-state='done']:not([data-color]) > td.vicher-figure-cell:not([data-color]),
+.vicher-figure-table td.vicher-figure-cell[data-state='done']:not([data-color]) {
+  background: var(--background-secondary);
+}
+:is(.vicher-network-edge, .vicher-figure-link)[data-state='done'] {
+  stroke-dasharray: 7 4;
+}
+:is(.vicher-network-edge, .vicher-figure-link)[data-state='done']:not([data-color]) {
+  stroke: var(--vicher-figure-state-done);
+}
+.vicher-network-edge-label[data-state='done']:not([data-color]) {
+  color: var(--vicher-figure-state-done);
+}
+.vicher-figure-pointer[data-state='done']:not([data-color]) {
+  --vicher-figure-pointer-ink: var(--vicher-figure-state-done);
+}
+
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-state='dim'],
+.vicher-figure-table tr[data-state='dim'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-state='dim'] {
   opacity: 0.45;
 }
-:is(.vicher-network-edge, .vicher-figure-link)[data-tag='dim'] {
+:is(.vicher-network-edge, .vicher-figure-link)[data-state='dim'] {
   opacity: 0.35;
 }
-.vicher-network-edge-label[data-tag='dim'] {
-  color: var(--vicher-figure-tag-dim);
+.vicher-network-edge-label[data-state='dim']:not([data-color]) {
+  color: var(--vicher-figure-state-dim);
 }
-.vicher-figure-pointer[data-tag='dim'] {
-  --vicher-figure-pointer-ink: var(--vicher-figure-tag-dim);
-}
-
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='good'],
-.vicher-figure-table tr[data-tag='good'] > td.vicher-figure-cell,
-.vicher-figure-table td.vicher-figure-cell[data-tag='good'] {
-  color: var(--vicher-figure-tag-good);
-  outline: 1.5px solid var(--vicher-figure-tag-good);
-  outline-offset: -2px;
-}
-:is(.vicher-network-edge, .vicher-figure-link)[data-tag='good'] {
-  stroke: var(--vicher-figure-tag-good);
-  stroke-width: 3;
-}
-.vicher-network-edge-label[data-tag='good'] {
-  color: var(--vicher-figure-tag-good);
-}
-.vicher-figure-pointer[data-tag='good'] {
-  --vicher-figure-pointer-ink: var(--vicher-figure-tag-good);
+.vicher-figure-pointer[data-state='dim']:not([data-color]) {
+  --vicher-figure-pointer-ink: var(--vicher-figure-state-dim);
 }
 
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-tag='bad'],
-.vicher-figure-table tr[data-tag='bad'] > td.vicher-figure-cell,
-.vicher-figure-table td.vicher-figure-cell[data-tag='bad'] {
-  color: var(--vicher-figure-tag-bad);
-  outline: 1.5px solid var(--vicher-figure-tag-bad);
-  outline-offset: -2px;
+/* A drawn line has only its ink, which a group takes, so its state shows in how it is drawn. With no group the state's ink also dims it, so the fade is for a coloured line. */
+:is(.vicher-plot-line, .vicher-figure-mark)[data-state='active'] {
+  stroke-width: 3.5;
 }
-:is(.vicher-network-edge, .vicher-figure-link)[data-tag='bad'] {
-  stroke: var(--vicher-figure-tag-bad);
-  stroke-width: 3;
+:is(.vicher-plot-line, .vicher-figure-mark)[data-state='done'] {
+  stroke-dasharray: 7 4;
 }
-.vicher-network-edge-label[data-tag='bad'] {
-  color: var(--vicher-figure-tag-bad);
+:is(.vicher-plot-line, .vicher-plot-area, .vicher-plot-dot, .vicher-figure-mark, .vicher-figure-diagram-label)[data-color][data-state='dim'] {
+  opacity: 0.4;
 }
-.vicher-figure-pointer[data-tag='bad'] {
-  --vicher-figure-pointer-ink: var(--vicher-figure-tag-bad);
+.vicher-plot-dot[data-state='active'] {
+  stroke: var(--text-normal);
+}
+.vicher-plot-dot[data-state='done'] {
+  fill-opacity: 0.4;
+}
+
+/* A cell's own state keeps its row's group. */
+.vicher-figure-table tr[data-color] > td.vicher-figure-cell[data-state] {
+  background: var(--vicher-figure-mark-fill);
 }
 
 .vicher-user-label {
