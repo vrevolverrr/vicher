@@ -33,7 +33,7 @@ process.stdin.setEncoding('utf8').on('data', (chunk) => { input += chunk; }).on(
 }).outputFiles[0].text;
 
 /**
- * Runs one request in the figure worker in a child process. `node:vm` is no sandbox, and a reply in `fixtures/generated`
+ * Runs one request in the figure worker in a child process. `node:vm` is no sandbox, and a reply in `eval/figure/generated`
  * is a program a model wrote, so the child gets no environment and Node's permission model: it cannot read or write
  * files or start processes. It can still reach the network, which Node 22 does not restrict.
  */

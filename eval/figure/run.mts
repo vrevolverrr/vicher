@@ -1,5 +1,5 @@
-// Bench B: asks each model for every case in cases.ts as a real Vicher chat turn, checks which visual it chose and that
-// each figure runs, and saves every reply to fixtures/generated/<model>/<case>.md for Bench A to draw.
+// Figure eval: asks each model for every case in cases.ts as a real Vicher chat turn, checks which visual it chose and that
+// each figure runs, and saves every reply to generated/<model>/<case>.md for the figure bench to draw.
 // npm run eval:figures -- [--only=text] [--repeat=1] [--models=haiku,luna]
 import '../../tests/setupWindow';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -8,10 +8,10 @@ import { parseArgs } from 'node:util';
 import { type Assertion, evaluate, type TestCase } from 'promptfoo';
 
 import { splitReply } from '@/chat/splitReply';
-import { vicherProvider, type TurnVars } from '../../eval/VicherProvider';
+import { vicherProvider, type TurnVars } from '../VicherProvider';
 import { CASES, type FigureCase } from './cases';
 import type { FigureNode } from '@/renderer/figure/FigureData';
-import { figureError, runFigure } from './runProgram';
+import { figureError, runFigure } from '../../bench/figure/runProgram';
 
 // Obsidian is never launched from a Claude Code session; drop that session's markers, as the tutoring eval does.
 for (const key of Object.keys(process.env)) {
@@ -114,9 +114,9 @@ try {
     const model = label(row.provider.id ?? '');
     const id = row.testCase.description ?? 'case';
     const output = typeof row.response?.output === 'string' ? row.response.output : '';
-    const dir = path.join(HERE, 'fixtures', 'generated', model);
+    const dir = path.join(HERE, 'generated', model);
     await mkdir(dir, { recursive: true });
-    // shortcut: with --repeat above 1 the last repeat's reply wins; key the file by repeat when Bench A should draw them all.
+    // shortcut: with --repeat above 1 the last repeat's reply wins; key the file by repeat when the figure bench should draw them all.
     await writeFile(path.join(dir, `${id}.md`), output);
     const failed = row.gradingResult?.componentResults?.filter(({ pass }) => !pass).map(({ assertion, reason }) => `${assertion?.metric}: ${reason}`) ?? [];
     print(`${row.success ? 'PASS' : 'FAIL'}  ${model}  ${id}${row.error ? `  error: ${row.error}` : ''}`);

@@ -1,4 +1,4 @@
-// Bench A: draws figure and Mermaid fixtures in a real Obsidian window and checks the layout of every state.
+// Figure bench: draws figure and Mermaid fixtures in a real Obsidian window and checks the layout of every state.
 // Reports to promptfoo (`npx promptfoo view`) and to out/<time>/contact.html.
 // npm run bench:figures -- [--only=text] [--source=stress,demo,generated] [--widths=320,480,720] [--themes=light,dark] [--update] [--keep]
 // Needs Obsidian running with its CLI on. Opens a throwaway vault in a second window and removes it afterwards.
@@ -12,7 +12,7 @@ import { type ApiProvider, type Assertion, evaluate } from 'promptfoo';
 
 import { splitReply } from '@/chat/splitReply';
 import { setup, teardown } from './benchVault';
-import { CASES } from './cases';
+import { CASES } from '../../eval/figure/cases';
 import { check, compare, type Finding, heightJumps, snapshot, type Snapshot } from './checks';
 import type { StateGeometry, VisualInfo } from './geometry';
 import { cdp, evalIn, evalJson } from './obsidianCli';
@@ -21,7 +21,7 @@ import { checkPlots3 } from './scene3Checks';
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const GOLDEN = path.join(HERE, 'golden');
 const STRESS = path.join(HERE, 'fixtures', 'stress');
-const GENERATED = path.join(HERE, 'fixtures', 'generated');
+const GENERATED = path.join(HERE, '..', '..', 'eval', 'figure', 'generated');
 const MAX_STEPS = 6;
 
 const { values: args } = parseArgs({

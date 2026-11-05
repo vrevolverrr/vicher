@@ -4,15 +4,9 @@ Measurement scripts for Vicher. Nothing here is bundled into the plugin. Every r
 
 ## Figure bench (`figure/`)
 
-Two parts that stress-test figures from both ends: what models write, and how the renderer draws it.
+Stress-tests how the renderer draws figures. It plays hand-written stress fixtures, the demo figures and the model replies the figure eval saves in `eval/figure/generated/`.
 
-**Bench B, the figure eval** asks each case in `cases.ts` as a real Vicher chat turn (about fifty visuals across maths, physics, statistics, business, accounting and engineering). It checks which visual the reply chose, that each figure runs and validates, and that a 3D case draws a 3D `Plot`. Every reply is saved to `fixtures/generated/<model>/<case>.md`, where Bench A picks it up.
-
-```bash
-npm run eval:figures -- --models=haiku,luna [--only=text] [--repeat=1]
-```
-
-**Bench A, the layout bench** builds the plugin into a throwaway vault, opens it in a second Obsidian window through the Obsidian CLI, and plays each fixture through the chat. At each pane width and theme it measures every sampled step and both ends of every slider, then checks for overlapping, clipped and overflowing text, tiny text, low contrast, `NaN` in SVG, error cards and height jumps between steps. 3D `Plot`s are also checked from their geometry without a window (paint order, ticks and overlays in the frame), and for frame times while turning, at full speed and on a CPU slowed 4×.
+The bench builds the plugin into a throwaway vault, opens it in a second Obsidian window through the Obsidian CLI, and plays each fixture through the chat. At each pane width and theme it measures every sampled step and both ends of every slider, then checks for overlapping, clipped and overflowing text, tiny text, low contrast, `NaN` in SVG, error cards and height jumps between steps. 3D `Plot`s are also checked from their geometry without a window (paint order, ticks and overlays in the frame), and for frame times while turning, at full speed and on a CPU slowed 4×.
 
 ```bash
 npm run bench:figures -- [--source=stress,demo,generated] [--only=text] [--widths=320,480,720] [--themes=light,dark] [--update] [--keep]
@@ -23,11 +17,9 @@ It needs Obsidian running with its command line interface on (Settings → Gener
 | Path | Contents |
 | --- | --- |
 | `fixtures/stress/*.jsx` | Hand-written figure programs at the edges of the contract, one per file |
-| `fixtures/generated/<model>/*.md` | Model replies saved by Bench B |
 | `golden/<source>/*.json` | Text geometry of every state that passed, rounded to 2 px; a later run reports what moved. `--update` rewrites them |
-| `cases.ts` | Bench B cases |
 | `checks.ts`, `scene3Checks.ts` | Layout checks in the window, and 3D geometry checks without one |
-| `runProgram.ts` | Runs a figure program outside the window, for Bench B and the 3D geometry checks |
+| `runProgram.ts` | Runs a figure program outside the window, for the 3D geometry checks and the figure eval |
 | `page.ts` | Runs inside the bench window: plays a fixture, measures it, turns its 3D plots |
 | `benchVault.ts`, `obsidianCli.ts` | The throwaway vault and the Obsidian CLI calls |
 
