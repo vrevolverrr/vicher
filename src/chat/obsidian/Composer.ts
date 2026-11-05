@@ -1,10 +1,10 @@
 import type { App, Component } from 'obsidian';
 import { Notice, setIcon } from 'obsidian';
-import { mount, unmount } from 'svelte';
+import { flushSync, mount, unmount } from 'svelte';
 
 import type { AgentId, SkillOption, SkillSyntax } from '@/agents/types';
-import { ContextChips } from '@/chat/view/ContextChips';
-import { type ContextMeter, contextMeter } from '@/chat/view/ContextMeter';
+import ContextChips from '@/chat/view/ContextChips.svelte';
+import ContextMeter from '@/chat/view/ContextMeter.svelte';
 import type { ModelPickerHost, PermissionMenuHost } from '@/chat/view/ModelPickerHost';
 import PickerBar from '@/chat/view/PickerBar.svelte';
 import SkillMenu, { filterSkills } from '@/chat/view/SkillMenu.svelte';
@@ -41,11 +41,12 @@ export interface ComposerHost {
 export class Composer {
   /** What the next turn carries from the open document. */
   readonly document: OpenDocument;
-  readonly meter: ContextMeter;
+  readonly meter: ReturnType<typeof ContextMeter>;
   private readonly el: HTMLElement;
   private readonly inputEl: HTMLTextAreaElement;
   private readonly mirrorEl: HTMLElement;
   private readonly sendEl: HTMLButtonElement;
+  private readonly contextChips: ReturnType<typeof ContextChips>;
   private readonly pickers: ReturnType<typeof PickerBar>;
   private readonly chips: AttachmentChips;
   private attachments: ChatAttachment[] = [];
@@ -66,12 +67,19 @@ export class Composer {
   ) {
     const composer = (this.el = parent.createDiv({ cls: 'vicher-composer' }));
     // The chips come first: the document reports its state as soon as it starts following the editor.
-    const contextChips = new ContextChips(composer, {
-      toggleNote: () => this.document.toggleNote(),
-      removeSelection: () => this.document.removeSelection(),
+    this.contextChips = mount(ContextChips, {
+      target: composer,
+      props: {
+        host: {
+          toggleNote: () => this.document.toggleNote(),
+          removeSelection: () => this.document.removeSelection(),
+        },
+      },
     });
-    this.document = new OpenDocument(owner, (state, sent, animate) => contextChips.set(state, sent ? 'sent' : 'dropped', animate));
-    this.chips = new AttachmentChips(contextChips.tray, (key) => this.removeChip(key));
+    this.document = new OpenDocument(owner, (state, sent, animate) => this.contextChips.set(state, sent ? 'sent' : 'dropped', animate));
+    // The tray binds in an effect, and the attachment chips need it now.
+    flushSync();
+    this.chips = new AttachmentChips(this.contextChips.trayEl(), (key) => this.removeChip(key));
     // The textarea's own text is transparent; the mirror behind it draws the same text with skill names and picked files colored.
     const inputWrap = composer.createDiv({ cls: 'vicher-input-wrap' });
     this.mirrorEl = inputWrap.createDiv({ cls: 'vicher-input-mirror', attr: { 'aria-hidden': 'true' } });
@@ -128,7 +136,7 @@ export class Composer {
 
     const bar = composer.createDiv({ cls: 'vicher-composer-bar' });
     this.pickers = mount(PickerBar, { target: bar, props: { host: chat, container: composer } });
-    this.meter = contextMeter(bar);
+    this.meter = mount(ContextMeter, { target: bar });
 
     bar.createDiv({ cls: 'vicher-composer-spacer' });
     this.sendEl = bar.createEl('button', { cls: 'vicher-send' });
@@ -220,7 +228,7 @@ export class Composer {
   dispose(): void {
     this.disposed = true;
     this.discardAttachments();
-    for (const component of [this.pickers, this.skillMenu, this.mentionMenu]) if (component) void unmount(component);
+    for (const component of [this.contextChips, this.meter, this.pickers, this.skillMenu, this.mentionMenu]) if (component) void unmount(component);
   }
 
   private closeSkillMenu(): void {

@@ -5,7 +5,7 @@
   import { appendAgentIcon } from '@/chat/view/agentIcons';
   import Card from '@/chat/view/Card.svelte';
   import { ms } from '@/chat/view/motion';
-  import { formatElapsed } from '@/chat/view/ToolGroup';
+  import { formatElapsed } from '@/chat/view/formatElapsed';
   import { icon, setIcon } from '@/shared/view/icon';
 
   /**

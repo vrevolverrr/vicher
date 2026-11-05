@@ -6,7 +6,8 @@ import type { AgentSession } from '@/agents/types';
 import { PROVIDERS } from '@/agents/providers';
 import { Composer } from '@/chat/obsidian/Composer';
 import { openQuote } from '@/chat/obsidian/openQuote';
-import { ReplyView, type ReplyFeedback } from '@/chat/view/ReplyView';
+import ReplyView from '@/chat/view/ReplyView.svelte';
+import type { ReplyFeedback } from '@/chat/view/ReplyFeedback';
 import type { MarkdownTarget } from '@/chat/view/TextBlock';
 import { appendMessageText } from '@/chat/view/appendMessageText';
 import type { ChatContext } from '@/context/ChatContext';
@@ -15,7 +16,7 @@ import type { Chat, ChatEvents, ChatView } from '@/chat/Chat';
 import type { AgentTurn, Rating, UserTurn } from '@/chat/ChatRecord';
 import { usesStoredFile } from '@/chat/ChatRecord';
 import TaskRow from '@/chat/view/TaskRow.svelte';
-import { ToolGroup } from '@/chat/view/ToolGroup';
+import ToolGroup from '@/chat/view/ToolGroup.svelte';
 import { type ChatAttachment, isMention, mentionPaths, type StoredAttachment } from '@/context/ChatAttachment';
 import type { VaultAttachments } from '@/attachments/obsidian/VaultAttachments';
 import type { VaultFileIndex } from '@/attachments/obsidian/VaultFileIndex';
@@ -52,11 +53,11 @@ export class ChatPane extends Component {
    * A working line at the end of the chat while the agent has work and no reply is open, such as between a send and
    * the agent taking the message in, which Claude reports only as it starts writing.
    */
-  private waiting: { el: HTMLElement; group: ToolGroup } | null = null;
+  private waiting: { el: HTMLElement; group: ReturnType<typeof ToolGroup> } | null = null;
   /** The element of the message the agent took in last; its replies go in it. */
   private turnEl: HTMLElement | null = null;
   /** The reply being written. */
-  private reply: { el: HTMLElement; view: ReplyView } | null = null;
+  private reply: { el: HTMLElement; view: ReturnType<typeof ReplyView> } | null = null;
   private detach: (() => void) | null = null;
   private markdown!: MarkdownContentRenderer;
   /** What replies draw through: Markdown, plus Mermaid diagrams where a reply asks for them. */
@@ -69,7 +70,7 @@ export class ChatPane extends Component {
   private sourcePath = '';
   /** The walkthroughs in the pane, told which stop is on screen; emptied when the pane's turns are. */
   private readonly walkers = new Set<(event: TourEvent) => void>();
-  private readonly replies = new Map<HTMLElement, ReplyView>();
+  private readonly replies = new Map<HTMLElement, ReturnType<typeof ReplyView>>();
   private stopTour: (() => void) | null = null;
   readonly chat: Chat;
   private readonly walkthrough: WalkthroughHost = {
@@ -209,9 +210,9 @@ export class ChatPane extends Component {
     void unmount(this.tasks);
     void unmount(this.approvals);
     await closing;
-    for (const reply of this.replies.values()) reply.destroy();
+    for (const reply of this.replies.values()) void unmount(reply);
     this.replies.clear();
-    this.waiting?.group.remove();
+    if (this.waiting) void unmount(this.waiting.group);
     this.waiting = null;
     this.markdown.dispose();
   }
@@ -241,7 +242,7 @@ export class ChatPane extends Component {
 
   /** What the chat draws on: bubbles, the reply being written, the tour, the context meter, the task row. */
   private chatView(): ChatView {
-    const reply = (): ReplyView => {
+    const reply = (): ReturnType<typeof ReplyView> => {
       if (!this.reply) this.openReply();
       return this.reply!.view;
     };
@@ -316,11 +317,9 @@ export class ChatPane extends Component {
       this.messagesEl.insertBefore(turnEl, this.firstQueued() ?? null);
     }
     // The reply's own working line takes over from the one at the end of the chat in place, without easing in again.
-    const handover = this.waiting !== null;
-    const { replyEl, reply } = this.addReply(turnEl, true);
+    const { replyEl, reply } = this.addReply(turnEl, true, this.waiting !== null);
     this.reply = { el: replyEl, view: reply };
     this.syncWaiting();
-    if (handover) replyEl.querySelector('.vicher-tools')?.removeClass('is-entering');
     return replyEl;
   }
 
@@ -329,11 +328,10 @@ export class ChatPane extends Component {
     const show = this.chat.running && !this.reply;
     if (show && !this.waiting) {
       const el = this.messagesEl.createDiv({ cls: 'vicher-turn is-waiting' });
-      const line = el.createDiv({ cls: 'vicher-reply markdown-rendered' }).createDiv({ cls: 'vicher-tools is-entering' });
-      line.addEventListener('animationend', () => line.removeClass('is-entering'), { once: true });
-      this.waiting = { el, group: new ToolGroup(line) };
+      const target = el.createDiv({ cls: 'vicher-reply markdown-rendered' });
+      this.waiting = { el, group: mount(ToolGroup, { target, props: { rows: [], entering: true, startedAt: Date.now() } }) };
     } else if (!show && this.waiting) {
-      this.waiting.group.remove();
+      void unmount(this.waiting.group);
       this.waiting.el.remove();
       this.waiting = null;
     }
@@ -395,15 +393,18 @@ export class ChatPane extends Component {
     this.turnEl = this.drawUser(turn.message, turn.quote, turn.attachments);
   }
 
-  /** `live` is true for a reply being written, false for a saved one drawn again. */
   /**
    * Adds a reply last under a message. An agent turn right after another, as Claude writes when a background task ends,
-   * continues the same reply: only the last one keeps its time, copy and thumbs.
+   * continues the same reply: only the last one keeps its time, copy and thumbs. `live` is true for a reply being
+   * written, false for a saved one drawn again; `handover` is true when its working line replaces one already on screen.
    */
-  private addReply(turnEl: HTMLElement, live: boolean): { replyEl: HTMLElement; reply: ReplyView } {
+  private addReply(turnEl: HTMLElement, live: boolean, handover = false): { replyEl: HTMLElement; reply: ReturnType<typeof ReplyView> } {
     for (const earlier of turnEl.querySelectorAll(':scope > .vicher-reply')) earlier.addClass('is-continued');
     const replyEl = turnEl.createDiv({ cls: 'vicher-reply markdown-rendered' });
-    const reply = new ReplyView(replyEl, this.replyMarkdown, this.walkthrough, (message) => this.ask(message), live);
+    const reply = mount(ReplyView, {
+      target: replyEl,
+      props: { markdown: this.replyMarkdown, walkthrough: this.walkthrough, ask: (message: string) => this.ask(message), live, handover },
+    });
     this.replies.set(replyEl, reply);
     return { replyEl, reply };
   }
