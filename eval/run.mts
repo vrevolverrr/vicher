@@ -1,5 +1,5 @@
 // Tutoring alignment eval: each case runs as a real Vicher chat turn on the developer's own CLIs and subscriptions.
-// npm run eval -- [--repeat=3] [--agent=claude|codex] [--claude-model=haiku] [--codex-model=...] [--judge=opus]
+// npm run eval -- [--repeat=3] [--only=text] [--agent=claude|codex] [--claude-model=haiku] [--codex-model=...] [--judge=opus]
 // Results go to promptfoo's local store: `npx promptfoo view` opens them.
 import '../tests/setupWindow';
 import { parseArgs } from 'node:util';
@@ -23,6 +23,7 @@ for (const key of Object.keys(process.env)) {
 const { values: args } = parseArgs({
   options: {
     repeat: { type: 'string', default: '1' },
+    only: { type: 'string' },
     agent: { type: 'string' },
     'claude-model': { type: 'string' },
     'codex-model': { type: 'string' },
@@ -76,6 +77,7 @@ const figures = (count: number) => code('figure', async (output) => {
   }
   return true;
 });
+const noHighlights = code('highlight', (_, highlights) => !highlights.length || 'highlights in an explanation');
 const bolds = code('format', (output) => /\*\*[^*\n]+\*\*/.test(output) || 'no bold key term');
 const skimmable = judge('skimmable', 'Pass only if a student who reads just the reply\'s headings and bold terms gets a rough idea of what it says, and the reply is not a wall of unbroken text. A reply of one idea may have no heading.');
 const voice = code('voice', (output) => {
@@ -156,6 +158,7 @@ const CASES: TestCase[] = [
       figures(0),
       bolds,
       skimmable,
+      noHighlights,
     ],
   },
   {
@@ -168,6 +171,7 @@ const CASES: TestCase[] = [
       figures(1),
       bolds,
       skimmable,
+      noHighlights,
       judge('teaching', 'The reply explains what σ does in a normal distribution. Pass only if (1) every variable and parameter in its displayed formula (such as x, μ and σ; not constants like π or e) is explained in words and (2) it works one example with real numbers.'),
     ],
   },
@@ -217,7 +221,7 @@ try {
     description: `Tutoring eval: ${providers.map((provider) => provider.id()).join(', ')}`,
     prompts: ['{{ chat.messages[chat.turn - 1] }}'],
     providers,
-    tests: CASES,
+    tests: CASES.filter(({ description }) => !args.only || description?.includes(args.only)),
     defaultTest: { options: { provider: { id: 'anthropic:claude-agent-sdk', config: { model: args.judge, apiKeyRequired: false } } } },
     writeLatestResults: true,
   }, { maxConcurrency: 4, repeat, cache: false });
