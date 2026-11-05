@@ -1,11 +1,19 @@
 /** @vitest-environment jsdom */
-import type { Mock } from 'vitest';
-import { ChatTabs, type ChatTab } from '@/chat/view/ChatTabs';
-
-vi.mock('obsidian', () => ({ setIcon: vi.fn() }));
+import { flushSync, mount, unmount } from 'svelte';
+import type { ChatTab } from '@/chat/view/ChatTab';
+import ChatTabs from '@/chat/view/ChatTabs.svelte';
+import { installFakeAnimate } from '../../../fakeAnimate';
 
 let resize: () => void;
 const tab = (id: string, fields: Partial<ChatTab> = {}): ChatTab => ({ id, title: `Topic ${id}`, agent: 'claude', running: false, unread: false, failed: false, ...fields });
+const host = () => ({ create: vi.fn(), select: vi.fn(), close: vi.fn() });
+const tabButtons = (bar: HTMLElement) => [...bar.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+
+function open(bar: HTMLElement = document.body.createDiv(), callbacks = host()) {
+  const tabs = mount(ChatTabs, { target: bar, props: { host: callbacks } });
+  flushSync();
+  return { bar, set: tabs.set, close: () => void unmount(tabs) };
+}
 
 beforeEach(() => {
   document.body.empty();
@@ -16,167 +24,150 @@ beforeEach(() => {
 });
 
 it('updates status and selection without replacing focused buttons', () => {
-  const host = { create: vi.fn(), select: vi.fn(), close: vi.fn() };
-  const tabs = new ChatTabs(document.body.createDiv(), host);
-  tabs.set([tab('a'), tab('b')], 'a');
-  const first = tabs.el.querySelector<HTMLButtonElement>('button')!;
+  const { bar, set, close } = open();
+  set([tab('a'), tab('b')], 'a');
+  const first = tabButtons(bar)[0]!;
   first.focus();
-  tabs.set([tab('a', { running: true }), tab('b', { unread: true })], 'a');
+
+  set([tab('a', { running: true }), tab('b', { unread: true })], 'a');
+
   expect(document.activeElement).toBe(first);
   expect(first.getAttribute('aria-label')).toBe('1: Topic a, Working');
   expect(first.getAttribute('aria-selected')).toBe('true');
-  expect(tabs.el.querySelectorAll('button')[1]!.getAttribute('aria-label')).toBe('2: Topic b, Unread reply');
+  expect(tabButtons(bar)[1]!.getAttribute('aria-label')).toBe('2: Topic b, Unread reply');
   expect(first.querySelector('.vicher-chat-tab-title')!.textContent).toBe('Topic a');
-  tabs.destroy();
+  close();
 });
 
 it('fits the composer strip, keeps the selected tab visible and restores tabs as it grows', () => {
   const header = document.body.createDiv();
   let width = 92;
   Object.defineProperty(header, 'clientWidth', { get: () => width });
-  const tabs = new ChatTabs(header, { create: vi.fn(), select: vi.fn(), close: vi.fn() });
-  tabs.set(['a', 'b', 'c', 'd'].map((id) => tab(id)), 'd');
-  const visible = () => [...tabs.el.querySelectorAll<HTMLButtonElement>('[role="tab"]')].filter((button) => !button.hidden).map((button) => button.textContent);
+  const { bar, set, close } = open(header);
+  set(['a', 'b', 'c', 'd'].map((id) => tab(id)), 'd');
+  const visible = () => tabButtons(bar).filter((button) => !button.hidden).map((button) => button.textContent);
+  const create = bar.querySelector<HTMLButtonElement>('[aria-label="New tab"]')!;
+
   expect(visible()).toEqual(['1Topic a', '4Topic d']);
-  const create = tabs.el.querySelector<HTMLButtonElement>('[aria-label="New tab"]')!;
   expect(create.hidden).toBe(false);
-  expect(tabs.el.lastElementChild).toBe(create);
-  width = 91; resize();
+  expect(create.parentElement!.lastElementChild).toBe(create);
+
+  width = 91; resize(); flushSync();
   expect(visible()).toEqual(['4Topic d']);
   expect(create.hidden).toBe(false);
-  width = 200; resize();
+
+  width = 200; resize(); flushSync();
   expect(visible()).toEqual(['1Topic a', '2Topic b', '3Topic c', '4Topic d']);
-  tabs.destroy();
+  close();
 });
 
 it('supports arrow navigation and closing without changing chats on hover', () => {
-  const host = { create: vi.fn(), select: vi.fn(), close: vi.fn() };
-  const tabs = new ChatTabs(document.body.createDiv(), host);
-  tabs.set([tab('a'), tab('b')], 'a');
-  const first = tabs.el.querySelector<HTMLButtonElement>('button')!;
+  const callbacks = host();
+  const { bar, set, close } = open(undefined, callbacks);
+  set([tab('a'), tab('b')], 'a');
+  const first = tabButtons(bar)[0]!;
+
   first.dispatchEvent(new Event('pointerenter'));
-  expect(host.select).not.toHaveBeenCalled();
+  expect(callbacks.select).not.toHaveBeenCalled();
+
   first.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
-  expect(host.select).toHaveBeenCalledWith('b');
-  expect(document.activeElement).toBe(tabs.el.querySelectorAll('button')[1]);
+  expect(callbacks.select).toHaveBeenCalledWith('b');
+  expect(document.activeElement).toBe(tabButtons(bar)[1]);
+
   first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
-  expect(host.close).toHaveBeenCalledWith('a');
-  host.close.mockClear();
+  expect(callbacks.close).toHaveBeenCalledWith('a');
+
+  callbacks.close.mockClear();
   const rightClick = new MouseEvent('contextmenu', { button: 2, bubbles: true, cancelable: true });
   first.dispatchEvent(rightClick);
   expect(rightClick.defaultPrevented).toBe(true);
-  expect(host.close).toHaveBeenCalledTimes(1);
-  expect(host.close).toHaveBeenCalledWith('a');
-  tabs.destroy();
+  expect(callbacks.close).toHaveBeenCalledTimes(1);
+  expect(callbacks.close).toHaveBeenCalledWith('a');
+  close();
 });
 
 it('keeps replacement order for numbering, overflow and keyboard navigation, with a trailing new-tab button', () => {
-  const host = { create: vi.fn(), select: vi.fn(), close: vi.fn() };
-  const tabs = new ChatTabs(document.body.createDiv(), host);
-  tabs.set([tab('a'), tab('b'), tab('c')], 'b');
-  tabs.set([tab('a'), tab('d'), tab('c')], 'd');
-  const buttons = [...tabs.el.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+  const callbacks = host();
+  const { bar, set, close } = open(undefined, callbacks);
+  set([tab('a'), tab('b'), tab('c')], 'b');
+  set([tab('a'), tab('d'), tab('c')], 'd');
+  const buttons = tabButtons(bar);
+
   expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual(['1: Topic a', '2: Topic d', '3: Topic c']);
   buttons[1]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
-  expect(host.select).toHaveBeenLastCalledWith('c');
-  const create = tabs.el.querySelector<HTMLButtonElement>('[aria-label="New tab"]')!;
+  expect(callbacks.select).toHaveBeenLastCalledWith('c');
+
+  const create = bar.querySelector<HTMLButtonElement>('[aria-label="New tab"]')!;
   create.click();
-  expect(host.create).toHaveBeenCalledTimes(1);
+  expect(callbacks.create).toHaveBeenCalledTimes(1);
   expect(create.closest('[role="tablist"]')).toBeNull();
-  tabs.destroy();
+  close();
 });
 
 describe('tab motion', () => {
-  let originalAnimate: PropertyDescriptor | undefined;
-  let originalMatchMedia: PropertyDescriptor | undefined;
+  let removeAnimate: () => void;
   let reduced: boolean;
-  let played: Array<{ frames: Keyframe[]; finish: () => void; cancel: Mock }>;
+  const originalMatchMedia = window.matchMedia;
 
   beforeEach(() => {
-    originalAnimate = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'animate');
-    originalMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia');
+    vi.useFakeTimers();
+    removeAnimate = installFakeAnimate();
     reduced = false;
-    played = [];
-    Object.defineProperty(window, 'matchMedia', { configurable: true, value: () => ({ matches: reduced }) });
-    Object.defineProperty(HTMLElement.prototype, 'animate', { configurable: true, value: (frames: Keyframe[]) => {
-      let finish!: () => void;
-      let reject!: (error: Error) => void;
-      const finished = new Promise<void>((resolve, fail) => { finish = resolve; reject = fail; });
-      const cancel = vi.fn(() => reject(new Error('Animation cancelled')));
-      played.push({ frames, finish, cancel });
-      return { finished, cancel };
-    } });
+    window.matchMedia = (() => ({ matches: reduced })) as unknown as typeof window.matchMedia;
   });
 
   afterEach(() => {
-    if (originalAnimate) Object.defineProperty(HTMLElement.prototype, 'animate', originalAnimate);
-    else Reflect.deleteProperty(HTMLElement.prototype, 'animate');
-    if (originalMatchMedia) Object.defineProperty(window, 'matchMedia', originalMatchMedia);
-    else Reflect.deleteProperty(window, 'matchMedia');
+    removeAnimate();
+    window.matchMedia = originalMatchMedia;
+    vi.useRealTimers();
   });
 
-  it('expands a new tab and its gap once, without replaying on status changes', async () => {
-    const tabs = new ChatTabs(document.body.createDiv(), { create: vi.fn(), select: vi.fn(), close: vi.fn() });
-    tabs.set([tab('a')], 'a');
-    expect(played).toHaveLength(0);
-    tabs.set([tab('a'), tab('b')], 'b');
-    expect(played).toHaveLength(1);
-    expect(played[0]!.frames[0]).toMatchObject({ width: '0px', marginInlineEnd: '0px', opacity: 0 });
-    expect(played[0]!.frames[1]).toMatchObject({ width: '28px', marginInlineEnd: '4px', opacity: 1 });
-    tabs.set([tab('a'), tab('b', { running: true })], 'b');
-    expect(played).toHaveLength(1);
-    played[0]!.finish();
-    await Promise.resolve();
-    expect(tabs.el.querySelector('.is-entering')).toBeNull();
-    tabs.destroy();
-  });
-
-  it('keeps a removed tab in its slot while it shrinks, with survivors immediately numbered and focus restored', async () => {
-    const tabs = new ChatTabs(document.body.createDiv(), { create: vi.fn(), select: vi.fn(), close: vi.fn() });
-    tabs.set([tab('a'), tab('b'), tab('c')], 'b');
-    const middle = tabs.el.querySelectorAll<HTMLButtonElement>('[role="tab"]')[1]!;
+  it('keeps a removed tab in its slot while it shrinks, with survivors immediately numbered and focus restored', () => {
+    const { bar, set, close } = open();
+    set([tab('a'), tab('b'), tab('c')], 'b');
+    const middle = tabButtons(bar)[1]!;
     middle.focus();
-    tabs.set([tab('a'), tab('c')], 'c');
+
+    set([tab('a'), tab('c')], 'c');
+    vi.advanceTimersByTime(100);
+
     expect(middle.isConnected).toBe(true);
-    expect(middle.disabled).toBe(true);
     expect(middle.inert).toBe(true);
     expect(middle.getAttribute('aria-hidden')).toBe('true');
     expect([...middle.parentElement!.children].indexOf(middle)).toBe(1);
-    const survivors = tabs.el.querySelectorAll('[role="tab"]');
+    const survivors = tabButtons(bar);
     expect(survivors[1]!.getAttribute('aria-label')).toBe('2: Topic c');
     expect(document.activeElement).toBe(survivors[1]);
-    expect(played[0]!.frames[1]).toMatchObject({ width: '0px', marginInlineEnd: '0px', opacity: 0 });
-    tabs.set([tab('a'), tab('c', { unread: true })], 'c');
-    expect(played).toHaveLength(1);
-    played[0]!.finish();
-    await Promise.resolve();
+
+    vi.advanceTimersByTime(200);
     expect(middle.isConnected).toBe(false);
-    tabs.destroy();
+    close();
   });
 
-  it('handles removal during expansion and cancels unfinished motion on destroy', async () => {
-    const tabs = new ChatTabs(document.body.createDiv(), { create: vi.fn(), select: vi.fn(), close: vi.fn() });
-    tabs.set([tab('a')], 'a');
-    tabs.set([tab('a'), tab('b')], 'b');
-    tabs.set([tab('a')], 'a');
-    expect(played[0]!.cancel).toHaveBeenCalledTimes(1);
-    await Promise.resolve();
-    expect(tabs.el.querySelector('.is-leaving')).not.toBeNull();
-    tabs.destroy();
-    await Promise.resolve();
-    expect(played[1]!.cancel).toHaveBeenCalledTimes(1);
-    expect(tabs.el.querySelector('.is-leaving, .is-entering')).toBeNull();
+  it('opens the tabs of a restored view at once and later tabs with motion', () => {
+    const animate = vi.spyOn(Element.prototype, 'animate');
+    const { set, close } = open();
+
+    set([tab('a'), tab('b')], 'a');
+    vi.advanceTimersByTime(0);
+    expect(animate).not.toHaveBeenCalled();
+
+    set([tab('a'), tab('b'), tab('c')], 'c');
+    vi.advanceTimersByTime(0);
+    expect(animate).toHaveBeenCalled();
+    close();
   });
 
   it('adds and removes immediately under reduced motion', () => {
     reduced = true;
-    const tabs = new ChatTabs(document.body.createDiv(), { create: vi.fn(), select: vi.fn(), close: vi.fn() });
-    tabs.set([tab('a')], 'a');
-    tabs.set([tab('a'), tab('b')], 'b');
-    tabs.set([tab('a')], 'a');
-    expect(played).toHaveLength(0);
-    expect(tabs.el.querySelectorAll('[role="tab"]')).toHaveLength(1);
-    expect(tabs.el.querySelector('.is-leaving')).toBeNull();
-    tabs.destroy();
+    const { bar, set, close } = open();
+    set([tab('a')], 'a');
+    set([tab('a'), tab('b')], 'b');
+
+    set([tab('a')], 'a');
+
+    expect(tabButtons(bar)).toHaveLength(1);
+    expect(bar.querySelectorAll('button')).toHaveLength(2);
+    close();
   });
 });

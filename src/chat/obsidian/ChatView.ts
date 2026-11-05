@@ -1,9 +1,10 @@
 import { ItemView, Notice, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
-import { mount, unmount } from 'svelte';
+import { flushSync, mount, unmount } from 'svelte';
 
 import type { AgentSession } from '@/agents/types';
 import { ChatPane, type ChatHost } from '@/chat/obsidian/ChatPane';
-import { ChatTabs, type ChatTab } from '@/chat/view/ChatTabs';
+import type { ChatTab } from '@/chat/view/ChatTab';
+import ChatTabs from '@/chat/view/ChatTabs.svelte';
 import HistoryMenu from '@/chat/view/HistoryMenu.svelte';
 import type { Chat, ChatEvents } from '@/chat/Chat';
 import type { ChatRecord } from '@/chat/ChatRecord';
@@ -27,7 +28,7 @@ export class ChatView extends ItemView {
   private readonly closing = new Map<string, Promise<void>>();
   private selectionRequest = 0;
   private selected: string | undefined;
-  private tabs!: ChatTabs;
+  private tabs!: ReturnType<typeof ChatTabs>;
   private tabBar!: HTMLElement;
   private history!: ReturnType<typeof HistoryMenu>;
   private panels!: HTMLElement;
@@ -65,12 +66,14 @@ export class ChatView extends ItemView {
     const header = this.contentEl.createDiv({ cls: 'vicher-chat-header' });
     this.panels = this.contentEl.createDiv({ cls: 'vicher-chat-panels' });
     this.tabBar = this.panels.createDiv({ cls: 'vicher-chat-tab-bar' });
-    this.tabs = new ChatTabs(this.tabBar, {
+    const tabs = mount(ChatTabs, { target: this.tabBar, props: { host: {
       create: () => void this.openChat({ fresh: true }),
       select: (id) => this.select(id),
       close: (id) => void this.closeChat(id),
-    });
-    this.register(() => this.tabs.destroy());
+    } } });
+    flushSync();
+    this.tabs = tabs;
+    this.register(() => void unmount(tabs));
     const create = createIconButton(header, 'square-pen', 'New chat') as HTMLButtonElement;
     this.registerDomEvent(create, 'click', () => {
       create.disabled = true;
