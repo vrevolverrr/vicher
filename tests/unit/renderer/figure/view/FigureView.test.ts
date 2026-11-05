@@ -204,7 +204,7 @@ describe('FigureView', () => {
     const slider = view.el.querySelector<HTMLInputElement>('input[type="range"]')!;
     for (const value of ['9', '1']) {
       slider.value = value;
-      slider.dispatchEvent(new Event('input'));
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
       for (let i = 0; i < 4; i += 1) await flush();
       expect(height()).toBe(first);
     }
@@ -252,7 +252,7 @@ describe('FigureView', () => {
     const slider = view.el.querySelector<HTMLInputElement>('input[type="range"]')!;
     for (const value of ['4', '5', '6']) {
       slider.value = value;
-      slider.dispatchEvent(new Event('input'));
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
     }
     runs.release();
     await flush();
@@ -314,7 +314,7 @@ describe('FigureView', () => {
 
       const slider = view.el.querySelector<HTMLInputElement>('.vicher-slider input')!;
       slider.value = '5';
-      slider.dispatchEvent(new Event('input'));
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
       await flush();
       await flush();
 
@@ -332,7 +332,7 @@ describe('FigureView', () => {
 
       const slider = view.el.querySelector<HTMLInputElement>('.vicher-slider input')!;
       slider.value = '5';
-      slider.dispatchEvent(new Event('input'));
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
       await flush();
       await flush();
 
@@ -366,7 +366,7 @@ describe('FigureView', () => {
 
     const slider = view.el.querySelector<HTMLInputElement>('.vicher-slider input')!;
     slider.value = '5';
-    slider.dispatchEvent(new Event('input'));
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
     await flush();
     expect(view.el.querySelectorAll('.vicher-figure-body')).toHaveLength(2);
 
@@ -571,7 +571,7 @@ describe('a 3D Plot in a figure', () => {
     expect(angle(view)).toBe('50/15');
     const slider = view.el.querySelector<HTMLInputElement>('input[type="range"]')!;
     slider.value = '2';
-    slider.dispatchEvent(new Event('input'));
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
     await flush();
     await flush();
     expect(twoSteps.calls.at(-1)).toEqual({ k: 2 });

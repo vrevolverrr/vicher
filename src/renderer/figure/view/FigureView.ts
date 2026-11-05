@@ -4,13 +4,13 @@ import { computedColour, div, parseColour } from '@/renderer/figure/view/dom';
 import type { DrawContext, Drawn, ElementView, Lane } from '@/renderer/figure/view/components/ElementView';
 import { type DrawnType, VIEWS } from '@/renderer/figure/view/components/registry';
 import { drawLinks, type Link } from '@/renderer/figure/view/drawLinks';
-import { drawParams } from '@/renderer/figure/view/drawParams';
 import type { FigureData, FigureNode, Param } from '@/renderer/figure/FigureData';
 import { TAGS, type Tag } from '@/renderer/figure/Tag';
 import { figureSandbox, type FigureSandbox } from '@/renderer/figure/view/FigureSandbox';
 import { drawTex, drawTexIn, mapMath, type Rgb, type TagColour, texTags, TYPESET_MATH } from '@/renderer/figure/figureTex';
 import { figureText, isPlain } from '@/renderer/figure/figureText';
 import { formatFigure } from '@/renderer/figure/formatFigure';
+import ParamControls from '@/renderer/figure/view/ParamControls.svelte';
 import Playback from '@/renderer/figure/view/Playback.svelte';
 import StepList from '@/renderer/figure/view/StepList.svelte';
 import { validateFigure } from '@/renderer/figure/validateFigure';
@@ -144,6 +144,7 @@ export class FigureView {
   private placeSide?: () => void;
   private settle?: number;
   private params?: HTMLElement;
+  private paramControls?: ReturnType<typeof ParamControls>;
   private paramError?: HTMLElement;
   private body?: HTMLElement;
   private rerunning = false;
@@ -313,10 +314,16 @@ export class FigureView {
     this.keeps.clear();
     this.release?.();
     this.release = this.playback = undefined;
+    this.releaseParams();
     destroy(this.steps);
     this.steps = [];
     this.body = undefined;
     this.el.replaceChildren();
+  }
+
+  private releaseParams(): void {
+    if (this.paramControls) void unmount(this.paramControls);
+    this.paramControls = undefined;
   }
 
   /**
@@ -354,11 +361,22 @@ export class FigureView {
     };
 
     if (figure.params.length && !this.params?.isConnected) {
+      this.releaseParams();
       this.params = this.el.appendChild(div('vicher-figure-params'));
-      drawParams(this.params, figure.params, this.values, drawing.markdown, (key, value) => {
-        this.values.set(key, value);
-        void this.rerun();
+      this.paramControls = mount(ParamControls, {
+        target: this.params,
+        props: {
+          params: figure.params,
+          values: this.values,
+          label: drawing.markdown,
+          change: (key, value) => {
+            this.values.set(key, value);
+            void this.rerun();
+          },
+        },
       });
+      // The labels render through effects, which must run now for `renders` to hold them.
+      flushSync();
       this.paramError = this.el.appendChild(div('vicher-figure-param-error'));
     }
     const body = this.el.appendChild(div('vicher-figure-body'));
