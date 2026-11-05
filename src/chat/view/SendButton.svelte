@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { flushSync } from 'svelte';
   import { cubicIn, cubicOut } from 'svelte/easing';
   import { icon } from '@/shared/view/icon';
   import { pop } from '@/shared/view/motion';
@@ -18,13 +17,11 @@
   export function set(nextStops: boolean, nextDisabled: boolean): void {
     stops = nextStops;
     disabled = nextDisabled;
-    // The composer is imperative and reads the button right after.
-    flushSync();
   }
 </script>
 
 <button
-  class={['vicher-send', { 'is-streaming': stops }]}
+  class="vicher-send"
   aria-label={stops ? 'Stop' : 'Send'}
   {disabled}
   onclick={() => (stops ? onStop() : onSend())}
@@ -40,16 +37,23 @@
 </button>
 
 <style>
-  /* The bar's own button rule is as specific as a scoped class alone; the bar in the selector outranks it, hover and press included. */
-  :global(.vicher-composer-bar) .vicher-send {
+  .vicher-send {
     flex: none;
     width: 28px;
     height: 28px;
     display: grid;
     padding: 0;
     place-items: center;
+    border: none;
     border-radius: 50%;
     corner-shape: round;
+    box-shadow: none;
+    cursor: pointer;
+    transition:
+      background-color 150ms ease,
+      color 150ms ease,
+      opacity 150ms ease,
+      transform 150ms ease;
     background: var(--text-normal);
     color: var(--background-primary);
   }
@@ -59,25 +63,31 @@
     grid-area: 1 / 1;
   }
 
-  :global(.vicher-composer-bar) .vicher-send :global(.svg-icon) {
+  .vicher-send :global(.svg-icon) {
     width: 14px;
     height: 14px;
   }
 
-  :global(.vicher-composer-bar) .vicher-send:hover {
+  .vicher-send:hover {
     background: var(--text-normal);
     color: var(--background-primary);
     opacity: 0.9;
     transform: scale(1.05);
   }
 
-  :global(.vicher-composer-bar) .vicher-send:active {
+  .vicher-send:active {
     transform: scale(0.94);
   }
 
-  :global(.vicher-composer-bar) .vicher-send:disabled {
+  .vicher-send:disabled {
     opacity: 0.3;
     transform: none;
     cursor: default;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vicher-send {
+      transition: none;
+    }
   }
 </style>

@@ -51,6 +51,12 @@
   }
 </script>
 
+{#snippet text(value: string)}
+  {#key value}
+    <span class="vicher-context-label" in:fly={{ y: 3, opacity: 0.3, duration: animate ? ms(180) : 0, easing: quartOut }}>{value}</span>
+  {/key}
+{/snippet}
+
 <div class="vicher-context-tray" bind:this={tray}>
   {#each notes as note (note.key)}
     <div
@@ -65,9 +71,7 @@
       out:leave={{ exit }}
     >
       <span class="vicher-context-icon" {@attach icon(note.icon)}></span>
-      {#key note.label}
-        <span class="vicher-context-label" in:fly={{ y: 3, opacity: 0.3, duration: animate ? ms(180) : 0, easing: quartOut }}>{note.label}</span>
-      {/key}
+      {@render text(note.label)}
     </div>
   {/each}{#each selections as selection (selection.key)}
     {@const chat = selection.source === 'chat'}
@@ -79,9 +83,7 @@
       out:leave={{ exit }}
     >
       <span class="vicher-context-icon" {@attach icon(chat ? 'messages-square' : 'text-select')}></span>
-      {#key label}
-        <span class="vicher-context-label" in:fly={{ y: 3, opacity: 0.3, duration: animate ? ms(180) : 0, easing: quartOut }}>{label}</span>
-      {/key}
+      {@render text(label)}
       <button
         type="button"
         class="vicher-icon-action clickable-icon vicher-context-remove"

@@ -65,8 +65,34 @@
     white-space: nowrap;
   }
 
-  :global(.vicher-composer) .vicher-picker {
+  .vicher-picker {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 28px;
+    padding: 6px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    box-shadow: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition:
+      background-color 150ms ease,
+      color 150ms ease,
+      opacity 150ms ease,
+      transform 150ms ease;
     min-width: 0;
+  }
+
+  .vicher-picker:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+  }
+
+  .vicher-picker:active {
+    transform: scale(0.96);
   }
 
   :global(.vicher-picker-menu) {
@@ -83,6 +109,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .vicher-picker,
     .vicher-picker-chevron :global(.svg-icon) {
       transition: none;
     }

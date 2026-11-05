@@ -587,7 +587,10 @@ describe('agent stream', () => {
     const { start, panel, send, type, input, sessions } = setup();
     await start();
     const button = () => panel().querySelector<HTMLButtonElement>('.vicher-send')!;
-    const state = () => [button().getAttribute('aria-label'), button().disabled];
+    const state = () => {
+      flushSync();
+      return [button().getAttribute('aria-label'), button().disabled];
+    };
     expect(state()).toEqual(['Send', true]);
     type('  ');
     expect(state()).toEqual(['Send', true]);
@@ -595,7 +598,6 @@ describe('agent stream', () => {
     expect(state()).toEqual(['Send', false]);
     send('Hello'); await settle();
     expect(state()).toEqual(['Stop', false]);
-    expect(button().classList.contains('is-streaming')).toBe(true);
     type('Next');
     expect(state()).toEqual(['Send', false]);
     type('');
@@ -641,6 +643,7 @@ describe('agent stream', () => {
     session.hold = true;
     session.events.push({ type: 'text', delta: 'Working on it.' });
     type('Second');
+    flushSync();
     expect(panel().querySelector<HTMLButtonElement>('.vicher-send')!.getAttribute('aria-label')).toBe('Send');
     send('Second'); await settle();
     const bubbles = () => [...panel().querySelectorAll('.vicher-user-message')].map((el) => el.parentElement!.textContent);

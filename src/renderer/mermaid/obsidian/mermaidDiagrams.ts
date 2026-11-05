@@ -6,7 +6,7 @@ import { mount, unmount } from 'svelte';
 import { copyRefused } from '@/shared/obsidian/copyRefused';
 import CopyButton from '@/shared/view/CopyButton.svelte';
 import { createIconButton } from '@/shared/view/iconButtons';
-import { canAnimate } from '@/shared/view/motion';
+import { canAnimate, ease } from '@/shared/view/motion';
 
 import { diagramMath } from './diagramMath';
 
@@ -128,8 +128,8 @@ class DiagramModal extends Modal {
     const open = { transform: 'none', opacity: 1 };
     // Only the way back holds its last frame, until the modal is removed.
     const timing: KeyframeAnimationOptions = back
-      ? { duration: CLOSE_MS, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' }
-      : { duration: 320, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' };
+      ? { duration: CLOSE_MS, easing: ease('in'), fill: 'forwards' }
+      : { duration: 320, easing: ease('out') };
     const backdrop = this.containerEl.querySelector<HTMLElement>('.modal-bg');
     const dim = backdrop && getComputedStyle(backdrop).opacity;
     backdrop?.animate([{ opacity: 0 }, { opacity: dim }], { ...timing, direction: back ? 'reverse' : 'normal' });

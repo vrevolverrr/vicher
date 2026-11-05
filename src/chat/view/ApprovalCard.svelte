@@ -91,7 +91,7 @@
     min-width: 0;
     overflow: auto;
     scrollbar-width: thin;
-    animation: reveal 180ms ease-out;
+    animation: vicher-fade-in 180ms ease-out;
   }
   .vicher-approval-header { display: flex; align-items: center; gap: 8px; padding: 12px 14px 10px; }
   .vicher-approval-header.has-label { align-items: flex-start; padding-bottom: 12px; }
@@ -167,10 +167,10 @@
   .vicher-approval-disclosure > summary::-webkit-details-marker { display: none; }
   .vicher-approval-disclosure > summary:hover { color: var(--text-normal); background: var(--background-modifier-hover); }
   .vicher-approval-chevron { display: flex; flex: 0 0 auto; }
-  .vicher-approval-chevron :global(.svg-icon) { width: 14px; height: 14px; transform: rotate(0deg); transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .vicher-approval-chevron :global(.svg-icon) { width: 14px; height: 14px; transform: rotate(0deg); transition: transform 180ms var(--vicher-ease-out); }
   .vicher-approval-chevron:dir(rtl) :global(.svg-icon) { transform: rotate(180deg); }
   .vicher-approval-disclosure[open] .vicher-approval-chevron :global(.svg-icon) { transform: rotate(90deg); }
-  .vicher-approval-disclosure[open] > pre { animation: reveal 180ms ease-out; }
+  .vicher-approval-disclosure[open] > pre { animation: vicher-fade-in 180ms ease-out; }
   .vicher-approval-actions {
     display: grid;
     grid-template-columns: 1fr 1.3fr;
@@ -201,10 +201,6 @@
   .vicher-approval-actions button:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
   .vicher-approval-actions button:focus-visible,
   .vicher-approval-disclosure > summary:focus-visible { outline: var(--vicher-focus-ring); outline-offset: 2px; }
-  @keyframes reveal {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
   @media (prefers-reduced-motion: reduce) {
     .vicher-approval-body,
     .vicher-approval-disclosure[open] > pre { animation: none; }

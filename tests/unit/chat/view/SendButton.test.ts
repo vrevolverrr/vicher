@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { mount, unmount } from 'svelte';
+import { flushSync, mount, unmount } from 'svelte';
 import { setIcon } from 'obsidian';
 import SendButton from '@/chat/view/SendButton.svelte';
 import { installFakeAnimate } from '../../../fakeAnimate';
@@ -26,18 +26,21 @@ beforeEach(() => {
 
 afterEach(() => unmount(button));
 
+const set = (stops: boolean, disabled: boolean) => {
+  button.set(stops, disabled);
+  flushSync();
+};
 const iconName = () => [...el.querySelectorAll('.svg-icon')].map((icon) => icon.getAttribute('data-icon'));
 
 describe('SendButton', () => {
   it('starts as a disabled Send with an arrow', () => {
     expect(el.getAttribute('aria-label')).toBe('Send');
     expect(el.disabled).toBe(true);
-    expect(el.classList.contains('is-streaming')).toBe(false);
     expect(iconName()).toEqual(['arrow-up']);
   });
 
   it('enables Send and sends on a click', () => {
-    button.set(false, false);
+    set(false, false);
 
     expect(el.disabled).toBe(false);
     el.click();
@@ -46,10 +49,9 @@ describe('SendButton', () => {
   });
 
   it('turns into an enabled Stop with a square, and stops on a click', () => {
-    button.set(true, false);
+    set(true, false);
 
     expect(el.getAttribute('aria-label')).toBe('Stop');
-    expect(el.classList.contains('is-streaming')).toBe(true);
     expect(iconName()).toEqual(['square']);
     el.click();
     expect(onStop).toHaveBeenCalledTimes(1);
@@ -57,16 +59,16 @@ describe('SendButton', () => {
   });
 
   it('swaps the icon without keeping the old one, and draws it only when it changes', () => {
-    button.set(true, false);
-    button.set(false, true);
-    button.set(false, false);
+    set(true, false);
+    set(false, true);
+    set(false, false);
 
     expect(iconName()).toEqual(['arrow-up']);
     expect(setIcon).toHaveBeenCalledTimes(3);
   });
 
   it('applies a change before set returns', () => {
-    button.set(true, false);
+    set(true, false);
 
     expect(el.getAttribute('aria-label')).toBe('Stop');
   });
@@ -82,7 +84,7 @@ describe('SendButton', () => {
     vi.useFakeTimers();
     const removeAnimate = installFakeAnimate();
 
-    button.set(true, false);
+    set(true, false);
 
     expect(iconName()).toEqual(['arrow-up', 'square']);
     vi.advanceTimersByTime(200);

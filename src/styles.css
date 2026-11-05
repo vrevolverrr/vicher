@@ -3,6 +3,9 @@ body {
   --vicher-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --vicher-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
   --vicher-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --vicher-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --vicher-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --vicher-ease-overshoot: cubic-bezier(0.2, 1.4, 0.4, 1);
   --vicher-focus-ring: 2px solid var(--interactive-accent);
 }
 
@@ -366,31 +369,6 @@ body {
   flex: 1;
 }
 
-.vicher-composer .vicher-composer-bar > button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 28px;
-  padding: 6px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  box-shadow: none;
-  color: var(--text-muted);
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 150ms ease;
-}
-
-.vicher-composer .vicher-composer-bar > button:hover {
-  background: var(--background-modifier-hover);
-  color: var(--text-normal);
-}
-
-.vicher-composer .vicher-composer-bar > button:active {
-  transform: scale(0.96);
-}
-
 .vicher-composer-bar .svg-icon {
   width: 16px;
   height: 16px;
@@ -427,7 +405,6 @@ body {
     animation: none;
   }
 
-  .vicher-composer .vicher-composer-bar > button,
   .vicher-context-chip,
   .vicher-context-label::after,
   .vicher-context-chip .vicher-context-remove {
@@ -542,7 +519,7 @@ body {
   height: 900px;
   margin: -450px 0 0 -450px;
   background: radial-gradient(circle closest-side, transparent 58%, var(--interactive-accent) 68%, transparent 78%);
-  animation: vicher-ripple 2.8s cubic-bezier(0.25, 0.6, 0.35, 1) infinite;
+  animation: vicher-ripple 2.8s var(--vicher-ease-emphasized) infinite;
 }
 
 .vicher-diagram-rings::after {
@@ -1266,7 +1243,7 @@ body {
 
 .vicher-tour.is-gliding > .vicher-tour-cursor,
 .vicher-tour.is-gliding > .vicher-tour-card {
-  transition: opacity 120ms ease, transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 120ms ease, transform 450ms var(--vicher-ease-out);
 }
 
 .vicher-tour-cursor svg {

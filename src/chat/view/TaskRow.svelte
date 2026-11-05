@@ -358,8 +358,6 @@
     /* Clears the floating chat tabs, as the approval card does; with the card below it, the card clears them. */
     margin-bottom: 38px;
     color: var(--text-muted);
-    /* One curve for the card's motion: quick to start, long soft landing, no overshoot. */
-    --vicher-task-ease: cubic-bezier(0.32, 0.72, 0, 1);
     --vicher-task-duration: 280ms;
     /* Every row keeps this much free at its end, under the card's controls, so no row moves when they change. */
     --vicher-task-controls: 100px;
@@ -466,7 +464,7 @@
   .vicher-task-mark.is-drawing :global(svg > *) {
     stroke-dasharray: 1;
     stroke-dashoffset: 1;
-    animation: vicher-task-draw 420ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+    animation: vicher-task-draw 420ms var(--vicher-ease-in-out) forwards;
   }
 
   .vicher-task-mark.is-drawing :global(svg > :last-child) {
@@ -617,7 +615,7 @@
   }
 
   .vicher-task-toggle :global(.svg-icon) {
-    transition: transform var(--vicher-task-duration) var(--vicher-task-ease);
+    transition: transform var(--vicher-task-duration) var(--vicher-ease-out);
   }
 
   :global(.vicher-task-row.is-expanded) .vicher-task-toggle :global(.svg-icon) {

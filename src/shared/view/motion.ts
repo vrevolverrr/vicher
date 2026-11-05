@@ -7,7 +7,7 @@ export function canAnimate(el: Element = HTMLElement.prototype): boolean {
 }
 
 /** A `--vicher-ease-*` curve from `styles.css`, for the Web Animations API, which cannot read CSS variables. */
-export function ease(name: 'out' | 'emphasized' | 'standard', el: Element = document.body): string {
+export function ease(name: 'out' | 'emphasized' | 'standard' | 'in', el: Element = document.body): string {
   return getComputedStyle(el).getPropertyValue(`--vicher-ease-${name}`).trim() || 'ease';
 }
 
@@ -18,12 +18,14 @@ export function ms(duration: number): number {
 
 /** Fades a card and shrinks it, gap included, so the chat above grows smoothly instead of jumping. */
 export function collapse(node: HTMLElement) {
+  const duration = ms(280);
+  if (!duration) return { duration };
   const style = getComputedStyle(node);
   const height = node.offsetHeight;
   const margin = parseFloat(style.marginBottom) || 0;
   const border = parseFloat(style.borderTopWidth) || 0;
   return {
-    duration: ms(280),
+    duration,
     easing: quartOut,
     css: (t: number) => `height: ${t * height}px; margin-bottom: ${t * margin}px; border-width: ${t * border}px; opacity: ${t}`,
   };

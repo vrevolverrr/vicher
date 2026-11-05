@@ -206,7 +206,7 @@
     font-weight: var(--font-bold);
     line-height: 1;
     text-align: center;
-    animation: vicher-check-in 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
+    animation: vicher-check-in 0.25s var(--vicher-ease-overshoot);
   }
 
   .vicher-quiz .vicher-quiz-option.is-correct {

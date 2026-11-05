@@ -11,12 +11,14 @@ export type ChipExit = 'dropped' | 'sent';
  * next to it slide into place.
  */
 function squeeze(chip: HTMLElement, { duration, easing, y = 0, scale = 1 }: { duration: number; easing: EasingFunction; y?: number; scale?: number }) {
+  const time = ms(duration);
+  if (!time) return { duration: time };
   const style = getComputedStyle(chip);
   const gap = parseFloat(getComputedStyle(chip.parentElement!).columnGap) || 0;
   const { offsetWidth, offsetHeight } = chip;
   const [top, right, bottom, left] = [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft].map((side) => parseFloat(side) || 0);
   return {
-    duration: ms(duration),
+    duration: time,
     easing,
     css: (t: number, u: number) =>
       `width: ${t * offsetWidth}px; height: ${t * offsetHeight}px; padding: ${t * top}px ${t * right}px ${t * bottom}px ${t * left}px; margin-right: ${-u * gap}px; opacity: ${t}; transform: translateY(${u * y}px) scale(${1 - u * (1 - scale)})`,

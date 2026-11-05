@@ -62,55 +62,38 @@
 
 <script lang="ts">
   import type { ToolApprovalRequest } from '@/agents/types';
-  import ApprovalCard from '@/chat/view/ApprovalCard.svelte';
   import { icon } from '@/shared/view/icon';
 
   /** A tool request that changes files: each file's edits inline, removals struck through and additions underlined. */
   interface Props {
     request: ToolApprovalRequest;
-    id: string;
-    answer: (approved: boolean) => void;
   }
 
-  const { request, id, answer }: Props = $props();
+  const { request }: Props = $props();
 
   const KINDS = { add: 'Added', delete: 'Deleted', update: 'Modified', write: 'Contents' } as const;
 </script>
 
-<ApprovalCard
-  icon="shield-question"
-  heading={`Allow ${request.description}?`}
-  {id}
-  reason={request.decisionReason}
-  {request}
-  decline="Deny"
-  accept="Allow once"
-  onDecline={() => answer(false)}
-  onAccept={() => answer(true)}
->
-  {#snippet body()}
-    <div class="vicher-approval-changes">
-      {#each request.changes as file, f (f)}
-        <div class="vicher-approval-diff">
-          <div class="vicher-approval-diff-header">
-            <span class="vicher-approval-diff-icon" aria-hidden="true" {@attach icon('file-text')}></span>
-            <span class="vicher-approval-diff-path">{file.path}</span>
-            <span class="vicher-approval-diff-kind">{file.target ? 'Renamed' : KINDS[file.kind]}</span>
-          </div>
-          {#if file.target}<div class="vicher-approval-diff-note">Move to {file.target}</div>{/if}
-          {#if file.note}<div class="vicher-approval-diff-note">{file.note}</div>{/if}
-          {#each file.blocks as block, b (b)}
-            {#if block.label}<div class="vicher-approval-diff-note">{block.label}</div>{/if}
-            {@const parts: readonly ApprovalDiffPart[] = 'text' in block ? [{ kind: 'same', text: block.text }] : inlineDiff(block.before, block.after)}
-            <div class="vicher-approval-diff-text" dir="auto">
-              {#each parts as part, p (p)}{#if part.kind === 'removed'}<del>{part.text}</del>{:else if part.kind === 'added'}<ins>{part.text}</ins>{:else}<span>{part.text}</span>{/if}{/each}
-            </div>
-          {/each}
+<div class="vicher-approval-changes">
+  {#each request.changes as file, f (f)}
+    <div class="vicher-approval-diff">
+      <div class="vicher-approval-diff-header">
+        <span class="vicher-approval-diff-icon" aria-hidden="true" {@attach icon('file-text')}></span>
+        <span class="vicher-approval-diff-path">{file.path}</span>
+        <span class="vicher-approval-diff-kind">{file.target ? 'Renamed' : KINDS[file.kind]}</span>
+      </div>
+      {#if file.target}<div class="vicher-approval-diff-note">Move to {file.target}</div>{/if}
+      {#if file.note}<div class="vicher-approval-diff-note">{file.note}</div>{/if}
+      {#each file.blocks as block, b (b)}
+        {#if block.label}<div class="vicher-approval-diff-note">{block.label}</div>{/if}
+        {@const parts: readonly ApprovalDiffPart[] = 'text' in block ? [{ kind: 'same', text: block.text }] : inlineDiff(block.before, block.after)}
+        <div class="vicher-approval-diff-text" dir="auto">
+          {#each parts as part, p (p)}{#if part.kind === 'removed'}<del>{part.text}</del>{:else if part.kind === 'added'}<ins>{part.text}</ins>{:else}<span>{part.text}</span>{/if}{/each}
         </div>
       {/each}
     </div>
-  {/snippet}
-</ApprovalCard>
+  {/each}
+</div>
 
 <style>
   .vicher-approval-changes { padding: 0 14px 10px; }

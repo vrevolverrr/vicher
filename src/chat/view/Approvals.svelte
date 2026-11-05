@@ -64,8 +64,6 @@
   {#each current ? [current] : [] as entry (entry)}
     {#if 'questions' in entry}
       <QuestionCard questions={entry.questions} id={entry.id} answer={entry.answer} />
-    {:else if entry.request.changes.length}
-      <InlineDiff request={entry.request} id={entry.id} answer={entry.answer} />
     {:else}
       <ApprovalCard
         icon="shield-question"
@@ -77,7 +75,11 @@
         accept="Allow once"
         onDecline={() => entry.answer(false)}
         onAccept={() => entry.answer(true)}
-      />
+      >
+        {#snippet body()}
+          {#if entry.request.changes.length}<InlineDiff request={entry.request} />{/if}
+        {/snippet}
+      </ApprovalCard>
     {/if}
   {/each}
 </Card>

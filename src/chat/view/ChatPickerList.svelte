@@ -7,7 +7,7 @@
   const NEAR_BOTTOM_PX = 200;
   const INSTRUCTIONS = [['↑↓', 'to navigate'], ['↵', 'to open'], ['esc', 'to dismiss']];
 
-  export interface ChatPickerListHost {
+  interface ChatPickerListHost {
     /** Closes the picker and opens the chat. */
     open(chatId: string): void;
     /** Whether the chat was deleted; the host reports a failure itself. */
@@ -17,12 +17,14 @@
 
   /** Folds a row, or a day heading, to nothing. */
   function fold(node: HTMLElement, { animate }: { animate: boolean }) {
+    const duration = animate ? ms(200) : 0;
+    if (!duration) return { duration };
     const { paddingTop, paddingBottom } = getComputedStyle(node);
     const height = node.offsetHeight;
     const top = parseFloat(paddingTop) || 0;
     const bottom = parseFloat(paddingBottom) || 0;
     return {
-      duration: animate ? ms(200) : 0,
+      duration,
       easing: cubicInOut,
       css: (t: number) => `overflow: hidden; height: ${t * height}px; padding-top: ${t * top}px; padding-bottom: ${t * bottom}px; opacity: ${t}`,
     };
@@ -52,7 +54,7 @@
   let input: HTMLInputElement;
   let list: HTMLElement;
 
-  type Item = { key: string; heading: string } | { key: string; chat: ChatMatch; index: number; now: number };
+  type Item = { key: string; heading: string } | { key: string; chat: ChatMatch; index: number };
 
   /** Every match in display order with the day heading it sits under; a search is one run with none. */
   const entries = $derived.by(() => {
@@ -62,8 +64,8 @@
   });
   const rows = $derived(entries.slice(0, drawn));
   const current = $derived(Math.min(active, rows.length - 1));
+  const now = Date.now();
   const items = $derived.by(() => {
-    const now = Date.now();
     const result: Item[] = [];
     let last = '';
     rows.forEach(({ chat, label }, index) => {
@@ -71,7 +73,7 @@
         result.push({ key: `group:${label}`, heading: label });
         last = label;
       }
-      result.push({ key: chat.id, chat, index, now });
+      result.push({ key: chat.id, chat, index });
     });
     return result;
   });
@@ -187,7 +189,7 @@
               <div class="vicher-chat-title">{title}</div>
               {#if chat.snippet}<div class="vicher-chat-snippet">{chat.snippet}</div>{/if}
             </div>
-            <span class="vicher-chat-when">{formatWhen(chat.updatedAt, item.now)}</span>
+            <span class="vicher-chat-when">{formatWhen(chat.updatedAt, now)}</span>
           </button>
           <button type="button" class="clickable-icon vicher-chat-delete" aria-label="Delete chat" onclick={() => (confirming = chat.id)} {@attach icon('trash-2')}></button>
         {/if}
