@@ -85,6 +85,6 @@ export function drawLinks(step: HTMLElement, links: readonly Link[], markdown: M
       pointer.style.left = `${(target.l + target.r) / 2}px`;
       pointer.style.top = `${top}px`;
     }
-    markData(pointer, link.color || link.state ? link : { state: 'active' });
+    markData(pointer, link);
   }
 }

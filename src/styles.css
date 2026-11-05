@@ -684,25 +684,6 @@ body {
   stroke-width: 2;
 }
 
-.vicher-network-node[data-state='active'] {
-  border: 2px solid var(--interactive-accent);
-}
-
-.vicher-network-edge[data-state='active'] {
-  stroke: var(--interactive-accent);
-  stroke-width: 4;
-}
-
-.vicher-network-edge[data-state='done'] {
-  stroke-dasharray: 7 4;
-}
-
-/* Fade only the text, so the label still covers the dot grid. */
-.vicher-network-edge-label[data-state='dim'] {
-  opacity: 1;
-  color: var(--text-faint);
-}
-
 /* Markdown tables share one presentation in prose and OpenUI text. */
 .vicher-reply.markdown-rendered .table-wrapper {
   width: 100%;
@@ -1283,9 +1264,8 @@ body {
 .vicher-figure {
   --vicher-figure-tex-size: 1.3em;
   --vicher-figure-ink: color-mix(in srgb, var(--text-normal) 80%, var(--background-primary));
-  --vicher-figure-state-active: var(--interactive-accent);
+  --vicher-figure-state-active: var(--text-normal);
   --vicher-figure-state-done: var(--text-muted);
-  --vicher-figure-state-dim: var(--text-faint);
   --vicher-figure-color-red: var(--color-red);
   --vicher-figure-color-orange: var(--color-orange);
   --vicher-figure-color-yellow: var(--color-yellow);
@@ -1853,7 +1833,7 @@ body {
 }
 
 
-/* Marks, one rule per surface: boxes (nodes, cells, key marks), lines (edges, links) and text (edge labels, pointers). A table cell's rule outranks Obsidian's striped columns. States come after colours, and leave a colour's fill and stroke in place, so the two combine. */
+/* Marks, one rule per surface: boxes (nodes, cells, key marks, pointers), lines (edges, links, drawn lines) and text. A table cell's rule outranks Obsidian's striped columns. A state changes how a mark is drawn and adds no hue, so it never reads as a group: group colours come after a state's neutral fill and replace it by order. */
 [data-color='red'] {
   --vicher-figure-mark-ink: var(--vicher-figure-color-red);
   --vicher-figure-mark-fill: var(--vicher-figure-fill-red);
@@ -1886,6 +1866,36 @@ body {
   --vicher-figure-mark-ink: var(--vicher-figure-color-pink);
   --vicher-figure-mark-fill: var(--vicher-figure-fill-pink);
 }
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark, .vicher-figure-pointer)[data-state='active'] {
+  outline: 2px solid var(--vicher-figure-state-active);
+  outline-offset: -2px;
+  font-weight: var(--font-semibold);
+}
+.vicher-figure-table tr[data-state='active'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-state='active'] {
+  font-weight: var(--font-semibold);
+}
+.vicher-figure-table tr[data-state='active'] > td.vicher-figure-cell:not([data-color]),
+.vicher-figure-table td.vicher-figure-cell[data-state='active'] {
+  background: color-mix(in srgb, var(--text-normal) 10%, var(--background-primary));
+}
+.vicher-network-edge-label[data-state='active'],
+.vicher-figure-diagram-label[data-state='active'] {
+  font-weight: var(--font-semibold);
+}
+
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark, .vicher-figure-pointer)[data-state='done'],
+.vicher-figure-table tr[data-state='done'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-state='done'] {
+  outline: 1.5px dashed var(--vicher-figure-state-done);
+  outline-offset: -2px;
+}
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-state='done'],
+.vicher-figure-table tr[data-state='done'] > td.vicher-figure-cell:not([data-color]),
+.vicher-figure-table td.vicher-figure-cell[data-state='done'] {
+  background: var(--background-secondary);
+}
+
 :is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-color],
 .vicher-figure-table tr[data-color] > td.vicher-figure-cell,
 .vicher-figure-table td.vicher-figure-cell[data-color] {
@@ -1896,97 +1906,49 @@ body {
   stroke-width: 3;
 }
 .vicher-network-edge-label[data-color] {
-  color: var(--vicher-figure-mark-ink);
-}
-.vicher-network-edge-label[data-color='yellow'] {
-  color: var(--text-normal);
+  color: color-mix(in srgb, var(--vicher-figure-mark-ink) 55%, var(--text-normal));
 }
 .vicher-figure-pointer[data-color] {
   --vicher-figure-pointer-ink: var(--vicher-figure-mark-ink);
 }
 
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-state='active'] {
-  outline: 2px solid var(--vicher-figure-state-active);
-  outline-offset: -2px;
-  font-weight: var(--font-semibold);
+:is(.vicher-network-edge, .vicher-figure-link)[data-state='active'] {
+  stroke-width: 4.5;
 }
-.vicher-figure-table tr[data-state='active'] > td.vicher-figure-cell,
-.vicher-figure-table td.vicher-figure-cell[data-state='active'] {
-  font-weight: var(--font-semibold);
-}
-.vicher-figure-table tr[data-state='active']:not([data-color]) > td.vicher-figure-cell:not([data-color]),
-.vicher-figure-table td.vicher-figure-cell[data-state='active']:not([data-color]) {
-  background: color-mix(in srgb, var(--interactive-accent) 22%, var(--background-primary));
-}
-:is(.vicher-network-edge, .vicher-figure-link)[data-state='active']:not([data-color]) {
-  stroke: var(--vicher-figure-state-active);
-  stroke-width: 3;
-}
-.vicher-network-edge-label[data-state='active']:not([data-color]) {
-  color: var(--vicher-figure-state-active);
-}
-.vicher-figure-pointer[data-state='active']:not([data-color]) {
-  --vicher-figure-pointer-ink: var(--vicher-figure-state-active);
-}
-
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-state='done'],
-.vicher-figure-table tr[data-state='done'] > td.vicher-figure-cell,
-.vicher-figure-table td.vicher-figure-cell[data-state='done'] {
-  color: var(--vicher-figure-state-done);
-}
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-state='done']:not([data-color]),
-.vicher-figure-table tr[data-state='done']:not([data-color]) > td.vicher-figure-cell:not([data-color]),
-.vicher-figure-table td.vicher-figure-cell[data-state='done']:not([data-color]) {
-  background: var(--background-secondary);
-}
-:is(.vicher-network-edge, .vicher-figure-link)[data-state='done'] {
-  stroke-dasharray: 7 4;
-}
-:is(.vicher-network-edge, .vicher-figure-link)[data-state='done']:not([data-color]) {
-  stroke: var(--vicher-figure-state-done);
-}
-.vicher-network-edge-label[data-state='done']:not([data-color]) {
-  color: var(--vicher-figure-state-done);
-}
-.vicher-figure-pointer[data-state='done']:not([data-color]) {
-  --vicher-figure-pointer-ink: var(--vicher-figure-state-done);
-}
-
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-state='dim'],
-.vicher-figure-table tr[data-state='dim'] > td.vicher-figure-cell,
-.vicher-figure-table td.vicher-figure-cell[data-state='dim'] {
-  opacity: 0.45;
-}
-:is(.vicher-network-edge, .vicher-figure-link)[data-state='dim'] {
-  opacity: 0.35;
-}
-.vicher-network-edge-label[data-state='dim']:not([data-color]) {
-  color: var(--vicher-figure-state-dim);
-}
-.vicher-figure-pointer[data-state='dim']:not([data-color]) {
-  --vicher-figure-pointer-ink: var(--vicher-figure-state-dim);
-}
-
-/* A drawn line has only its ink, which a group takes, so its state shows in how it is drawn. With no group the state's ink also dims it, so the fade is for a coloured line. */
 :is(.vicher-plot-line, .vicher-figure-mark)[data-state='active'] {
   stroke-width: 3.5;
 }
-:is(.vicher-plot-line, .vicher-figure-mark)[data-state='done'] {
+.vicher-plot-area[data-state='active'] {
+  stroke-width: 3;
+}
+:is(.vicher-network-edge, .vicher-figure-link, .vicher-plot-line, .vicher-figure-mark)[data-state='done'] {
   stroke-dasharray: 7 4;
 }
-:is(.vicher-plot-line, .vicher-plot-area, .vicher-plot-dot, .vicher-figure-mark, .vicher-figure-diagram-label)[data-color][data-state='dim'] {
-  opacity: 0.4;
+.vicher-plot-area[data-state='done'] {
+  stroke-width: 1.5;
+  stroke-dasharray: 7 4;
 }
-.vicher-plot-dot[data-state='active'] {
+:is(.vicher-plot-dot, .vicher-figure-mark.is-point)[data-state='active'] {
   stroke: var(--text-normal);
+  stroke-width: 2;
 }
-.vicher-plot-dot[data-state='done'] {
-  fill-opacity: 0.4;
+:is(.vicher-plot-dot, .vicher-figure-mark.is-point)[data-state='done'] {
+  fill: var(--background-primary);
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-dasharray: none;
 }
 
-/* A cell's own state keeps its row's group. */
-.vicher-figure-table tr[data-color] > td.vicher-figure-cell[data-state] {
-  background: var(--vicher-figure-mark-fill);
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark, .vicher-figure-pointer)[data-state='dim'],
+.vicher-figure-table tr[data-state='dim'] > td.vicher-figure-cell,
+.vicher-figure-table td.vicher-figure-cell[data-state='dim'],
+.vicher-network-edge-label[data-state='dim'] {
+  opacity: 0.45;
+}
+:is(.vicher-network-edge, .vicher-figure-link)[data-state='dim'],
+:is(.vicher-plot-line, .vicher-plot-area, .vicher-plot-dot, .vicher-figure-mark, .vicher-figure-diagram-label)[data-state='dim'],
+.vicher-figure-plot .is-dim {
+  opacity: 0.4;
 }
 
 .vicher-user-label {

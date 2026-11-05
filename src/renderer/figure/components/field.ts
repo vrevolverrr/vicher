@@ -4,7 +4,7 @@ import { ID, LIMITS, type Point, type Range } from '@/renderer/figure/FigureData
 import { texProblems } from '@/renderer/figure/figureTex';
 import { formatFigure } from '@/renderer/figure/formatFigure';
 import { type State, STATES } from '@/renderer/figure/marks';
-import { count, isObject } from '@/renderer/figure/plain';
+import { count, isObject, over } from '@/renderer/figure/plain';
 
 export type Kind =
   | 'id' | 'text' | 'tex' | 'group' | 'groups' | 'state' | 'states' | 'target' | 'ref' | 'point' | 'range' | 'number' | 'boolean' | 'literal' | 'choice'
@@ -82,19 +82,22 @@ export function textProblem(value: string, whole = false): string | undefined {
 const isPoint = (value: unknown): boolean => Array.isArray(value) && (value.length === 2 || value.length === 3) && value.every(isNumber);
 
 export const groupProblem = (name: unknown): string | undefined => {
+  if (isNumber(name)) return undefined;
   if (typeof name !== 'string' || !name.trim()) return 'must be a name';
-  if (name.length > LIMITS.groupName) return `is ${name.length} characters; the limit is ${LIMITS.groupName}`;
+  if (name.length > LIMITS.groupName) return `is ${over(name.length, 'characters', LIMITS.groupName)}`;
   return textProblem(name);
 };
 
-const keyed = <T extends string>(kind: Kind, word: string, problem: (name: unknown) => string | undefined): Field<ReadonlyMap<string, T>, false> =>
+const groupName = (name: string | number): string => (typeof name === 'number' ? formatFigure(name) : name);
+
+const keyed = <T extends string>(kind: Kind, word: string, problem: (name: unknown) => string | undefined, read: (name: never) => T = (name) => name): Field<ReadonlyMap<string, T>, false> =>
   leaf(kind, isObject, `must be an object of id: ${word}`, (value: Record<string, unknown>) => {
     for (const key of Object.keys(value)) {
       const wrong = value[key] === null || value[key] === undefined ? undefined : problem(value[key]);
       if (wrong) return `has a ${word} for "${key}" that ${wrong}`;
     }
     return undefined;
-  }, (value: Record<string, unknown>) => new Map(Object.keys(value).flatMap((key) => (value[key] === null || value[key] === undefined ? [] : [[key, value[key] as T]]))));
+  }, (value: Record<string, unknown>) => new Map(Object.entries(dropAbsent(value)).map(([key, name]) => [key, read(name as never)])));
 
 const stateProblem = (name: unknown): string | undefined => ((STATES as readonly unknown[]).includes(name) ? undefined : `is not one of ${STATES.join(', ')}`);
 
@@ -112,10 +115,10 @@ export const field = {
     leaf('tex', (value) => typeof value === 'string' && value.trim() !== '', 'must be TeX', (value: string) => textProblem(value, true)),
 
   /** A name the figure's key shows, which gives the element its colour. */
-  group: (): Field<string, false> => leaf('group', (value) => groupProblem(value) === undefined, 'must be a name of at most 60 characters'),
+  group: (): Field<string, false> => leaf('group', (value) => typeof value === 'string' || isNumber(value), 'must be a name', groupProblem, groupName),
   /** A map from ids in the step to group names; a null or undefined name is left out. */
-  groups: (): Field<ReadonlyMap<string, string>, false> => keyed('groups', 'group', groupProblem),
-  state: (): Field<State, false> => leaf('state', (value) => stateProblem(value) === undefined, `must be one of ${STATES.join(', ')}`),
+  groups: (): Field<ReadonlyMap<string, string>, false> => keyed('groups', 'group', groupProblem, groupName),
+  state: (allowed: readonly State[] = STATES): Field<State, false> => leaf('state', (value) => (allowed as readonly unknown[]).includes(value), `must be one of ${allowed.join(', ')}`),
   /** A map from ids in the step to states; a null or undefined state is left out. */
   states: (): Field<ReadonlyMap<string, State>, false> => keyed('states', 'state', stateProblem),
 
@@ -181,6 +184,11 @@ export const field = {
   /** Data the worker samples from a function the program gave; the prompt never names it. */
   sampled: <T>(guard: (value: unknown) => boolean, wrong: string): Field<T, false> => leaf<T>('sampled', guard, wrong),
 };
+
+/** The group and state an element takes. */
+export const marks = { group: field.optional(field.group()), state: field.optional(field.state()) };
+/** The groups and states a container gives the ids in it. */
+export const keyedMarks = { groups: field.optional(field.groups()), states: field.optional(field.states()) };
 
 /** An object read by zod keeps a key given as null; the validator reads null as absent. */
 function dropAbsent(value: Record<string, unknown>): Record<string, unknown> {

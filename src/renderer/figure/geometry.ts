@@ -17,4 +17,3 @@ export function fittedSize(labels: readonly string[], min: number, max: number):
   return { width: Math.max(min, widest), height: Math.max(30, 12 + 18 * Math.max(1, ...lines.map(l => l.length))) };
 }
 
-export function status(tag: string): string { return tag === 'active' ? '▶ ' : tag === 'done' ? '✓ ' : ''; }

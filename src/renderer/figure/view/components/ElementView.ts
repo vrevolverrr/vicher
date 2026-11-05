@@ -1,6 +1,6 @@
 import type { FigureNode } from '@/renderer/figure/FigureData';
-import type { Marks } from '@/renderer/figure/view/dom';
-import type { Markdown } from '@/renderer/figure/view/dom';
+import type { ColorOf } from '@/renderer/figure/marks';
+import type { Markdown, Marks } from '@/renderer/figure/view/dom';
 
 /** The pointers one Seq, Table or Tex holds in its busiest step, the longest name's length, and every step's names. */
 export type Lane = { count: number; name: number; names: string[] };
@@ -22,7 +22,7 @@ export interface DrawContext<P = unknown> {
   /** The marks the step's `groups` and `states` give an id. */
   marksOf(id: string): Marks;
   /** A name's colour in this figure. */
-  colorOf: (name: string | undefined) => string | undefined;
+  colorOf: ColorOf;
   child(className: string, parent: HTMLElement): HTMLElement;
   /** Draws the blocks a container holds into `parent`. */
   blocks(nodes: readonly FigureNode[], parent: HTMLElement): void;

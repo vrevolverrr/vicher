@@ -46,6 +46,13 @@ describe('drawDiagram', () => {
     expect(fills).toEqual(['var(--vicher-figure-color-green)', 'var(--vicher-figure-ink)']);
   });
 
+  it('names a label\'s group in its title', () => {
+    const node = diagram({ type: 'Segment', from: [0, 0], to: [4, 0], label: 'x', group: 'good' });
+    const el = document.createElement('div');
+    drawDiagram(el, node, diagramExtent(node), 480, (box, text) => void (box.textContent = String(text)));
+    expect(el.querySelector('.vicher-figure-diagram-label')!.getAttribute('title')).toBe('good');
+  });
+
   it('grows above a line along its top edge to hold the line\'s label', () => {
     const node = diagram({ type: 'Segment', from: [0, 3], to: [4, 3], label: 'ceiling' }, { type: 'Segment', from: [2, 0], to: [2, 3] });
     const el = document.createElement('div');

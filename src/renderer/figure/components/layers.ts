@@ -1,9 +1,8 @@
-import { component, field } from '@/renderer/figure/components/component';
+import { component, field, marks } from '@/renderer/figure/components/component';
 import { LIMITS } from '@/renderer/figure/FigureData';
 
 const id = field.optional(field.id());
 const label = field.optional(field.text());
-const marks = { group: field.optional(field.group()), state: field.optional(field.state()) };
 
 export const Shape = component({
   name: 'Shape',

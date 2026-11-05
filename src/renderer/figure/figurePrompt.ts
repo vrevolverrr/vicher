@@ -1,5 +1,7 @@
 import type { Field } from '@/renderer/figure/components/field';
 import { type AnyDefinition, COMPONENTS } from '@/renderer/figure/components/registry';
+import { LIMITS } from '@/renderer/figure/FigureData';
+import { COLORS } from '@/renderer/figure/marks';
 
 /** A prop as a signature shows it: its name, and the form of its value where the name alone does not say it. */
 function propForm(name: string, field: Field): string {
@@ -91,8 +93,8 @@ Do not draw electrical circuits or logic gates; say a figure cannot show them an
 
 A group says what kind of thing an object is, and you name it. A state says where it stands, and the host names it. An element can take both.
 
-- \`group="pivot"\`, or \`groups={{ id: 'pivot' }}\` on \`Graph\`, \`Seq\` and \`Table\`: the name is what the key under the figure shows, at most 60 characters and at most 8 names in a figure. Every element with one name shares a colour. Use a group for real categories; for "look here", use a state.
-- \`state="active"\`, or \`states={{ id: 'active' }}\`: \`active\` being worked on now (outlined, ▶), \`done\` finished (✓, muted), \`dim\` out of play (faded).
+- \`group="pivot"\`, or \`groups={{ id: 'pivot' }}\` on \`Graph\`, \`Seq\` and \`Table\`: the name is what the key under the figure shows, at most ${LIMITS.groupName} characters and at most ${LIMITS.groups} names in a figure. Every element with one name shares a colour. Use a group for real categories; for "look here", use a state.
+- \`state="active"\`, or \`states={{ id: 'active' }}\`: \`active\` being worked on now (thick, bold), \`done\` finished (dashed, or a hollow dot), \`dim\` out of play (faded). A state keeps an element's colour. The key explains each one used.
 - A \`Plot\` line or area's \`label\` is its name, so it needs no group.
 - \`legend={{ wrong: 'red' }}\` on \`<Figure>\` is optional and pins a name to a colour, when the colour carries meaning or a formula must match it; each colour holds one name. The host picks every other colour.
 
@@ -106,7 +108,7 @@ Backslashes: in a quoted JSX attribute, write TeX as it is: \`label="$A \\cap B$
 
 Two things are the host's:
 
-- Colour. In \`\\rowcolor{c}\`, \`\\cellcolor{c}\`, \`\\colorbox{c}{...}\`, \`\\bbox[c]{...}\` and \`\\color{c}{...}\`, the colour \`c\` is one of \`blue\`, \`orange\`, \`purple\`, \`cyan\`, \`pink\`, \`yellow\`, \`green\`, \`red\`. It is a highlight, so it needs no group and no key. The host replaces it with the current theme's colour and redraws on a theme change. Any other colour (\`teal\`, \`#d0453a\`, \`rgb(...)\`) and \`\\definecolor\` fail validation with the allowed names listed.
+- Colour. In \`\\rowcolor{c}\`, \`\\cellcolor{c}\`, \`\\colorbox{c}{...}\`, \`\\bbox[c]{...}\` and \`\\color{c}{...}\`, the colour \`c\` is one of ${COLORS.map((color) => `\`${color}\``).join(', ')}. It is a highlight, so it needs no group and no key. The host replaces it with the current theme's colour and redraws on a theme change. Any other colour (\`teal\`, \`#d0453a\`, \`rgb(...)\`) and \`\\definecolor\` fail validation with the allowed names listed.
 - Anchors. \`\\cssId{name}{...}\` marks a part of a formula as an anchor: \`name\` joins the step's ids, follows the id rules, and an \`Arrow\` or \`Pointer\` can target it. \`\\class\` and \`\\data\` are the host's and fail validation.
 
 Everything else in MathJax stays allowed, including \`\\cancel\`, \`\\underbrace\`, \`\\overbrace\` and \`array\` with a \`|\` for an augmented matrix. A row reduction step:
@@ -147,7 +149,7 @@ export default function () {
     <Figure steps={steps} caption={step => step.text} render={(step, i) => (
       <Row gap="lg" align="center">
         <Seq id="shelf" title="Shelf" index items={step.shelf.map(b => ({ id: \`b\${b}\`, label: b }))}
-          groups={step.placed === undefined ? {} : { [\`b\${step.placed}\`]: 'just placed' }} />
+          states={step.placed === undefined ? {} : { [\`b\${step.placed}\`]: 'active' }} />
         {step.placed !== undefined && <Pointer to={\`b\${step.placed}\`} name="placed" />}
         <Panel title="Returned">
           <Text>{\`\${i} of \${returns.length} placed\`}</Text>

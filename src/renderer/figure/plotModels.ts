@@ -1,4 +1,5 @@
 import type { Point as DataPoint, FigureNode, Plot3Layer, PlotLayer, Point3 } from '@/renderer/figure/FigureData';
+import type { ColorOf } from '@/renderer/figure/marks';
 import { breakJumps, type Layer, type PlotModel, type Point } from '@/renderer/figure/packages/plot/PlotModel';
 import { fitRange } from '@/renderer/figure/packages/plot/range';
 import { clampElevation, DEFAULT_VIEW, type Layer3, type Plot3Model, type Range } from '@/renderer/figure/packages/plot3/Plot3Model';
@@ -10,12 +11,11 @@ type Plot = Extract<FigureNode, { type: 'Plot' }>;
 
 const CIRCLE_POINTS = 96;
 
-/** A name's colour in this figure. */
-type ColorOf = (name: string | undefined) => string | undefined;
+/** Layers whose `label` names them; any other only writes its label on the plot. */
+const NAMED = new Set(['Fn', 'Region', 'Shape', 'Circle', 'Segment']);
 
-function marksOf({ group, state }: { group?: string; state?: string }, colorOf: ColorOf): { color?: string; state?: string } {
-  const color = colorOf(group);
-  return { ...(color ? { color } : {}), ...(state ? { state } : {}) };
+function marksOf(layer: { type: string; group?: string; state?: string; label?: string }, colorOf: ColorOf): { color: string | undefined; state: string | undefined } {
+  return { color: colorOf(layer.group ?? (NAMED.has(layer.type) ? layer.label : undefined)), state: layer.state };
 }
 
 /** The `PlotChart` model of a figure's Plot, with x fitted to the layers when the Plot gives none. */
@@ -26,9 +26,7 @@ export function plotModel(plot: Plot, colorOf: ColorOf = () => undefined): PlotM
   const curve = (id: string): Point[] => breakJumps(fns.get(id)!.pts.map(([x, y]): Point => [x, y]), box);
   const layers = plot.children.flatMap((layer): Layer[] => {
     const label = 'label' in layer ? layer.label : undefined;
-    // A dot, an arrow or a note writes its label on the plot, so only a line or an area's label names it.
-    const color = colorOf(layer.group ?? (layer.type === 'Points' || layer.type === 'Vector' ? undefined : label));
-    const marks = { ...(color ? { color } : {}), ...(layer.state ? { state: layer.state } : {}) };
+    const marks = marksOf(layer, colorOf);
     switch (layer.type) {
       case 'Fn':
         return [{ kind: 'line', points: breakJumps(layer.pts.map(([x, y]): Point => [x, y]), box), label, ...marks }];
@@ -98,9 +96,7 @@ export function plot3Model(plot: Plot3, colorOf: ColorOf = () => undefined): Plo
   const solid = plot.x === undefined && plot.y === undefined && plot.z === undefined && Math.max(...spans) <= 10 * Math.min(...spans);
   const children = plot.children.map((layer): Layer3 => {
     if (layer.type === 'Label') return { type: 'Label', at: layer.at, text: layer.text, ...marksOf(layer, colorOf) };
-    // As in 2D, a line's label is its name; a surface, a dot or an arrow only writes its label.
-    const line = layer.type === 'Shape' || layer.type === 'Circle' || layer.type === 'Segment';
-    const marks = { ...(layer.id ? { id: layer.id } : {}), ...marksOf({ ...layer, ...(line && !layer.group && layer.label ? { group: layer.label } : {}) }, colorOf), ...(layer.label === undefined ? {} : { label: layer.label }) };
+    const marks = { ...(layer.id ? { id: layer.id } : {}), ...marksOf(layer, colorOf), ...(layer.label === undefined ? {} : { label: layer.label }) };
     switch (layer.type) {
       case 'Surface':
         return layer.zs ? { type: 'Fn', zs: layer.zs, x: [layer.from ?? x[0], layer.to ?? x[1]], y, ...marks } : { type: 'Fn', pts: layer.pts!, ...marks };

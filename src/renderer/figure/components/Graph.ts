@@ -1,4 +1,4 @@
-import { component, field } from '@/renderer/figure/components/component';
+import { component, field, keyedMarks } from '@/renderer/figure/components/component';
 import { LIMITS } from '@/renderer/figure/FigureData';
 
 export const Graph = component({
@@ -12,8 +12,7 @@ export const Graph = component({
     id: field.optional(field.id()),
     nodes: field.list(field.object({ id: field.id(), label: field.optional(field.text()), sub: field.optional(field.text()) }), { min: 1, max: LIMITS.graphNodes }),
     edges: field.list(field.object({ id: field.optional(field.id()), from: field.ref(), to: field.ref(), label: field.optional(field.text()), directed: field.optional(field.boolean()) }), { max: LIMITS.graphEdges }),
-    groups: field.optional(field.groups()),
-    states: field.optional(field.states()),
+    ...keyedMarks,
   },
   check(graph, { fail }) {
     const known = new Set(graph.nodes.map((node) => node.id));

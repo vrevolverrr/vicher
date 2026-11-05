@@ -4,8 +4,7 @@ import { niceTicks, tickText } from '@/renderer/figure/packages/plot/plotMath';
 export type Xy = [number, number];
 export type Rgb = readonly [number, number, number];
 export interface Size { width: number; height: number }
-/** The height colour map, low to high; read from the theme by the chart. */
-/** `tints` are the figure's colours by name, for a surface in a group. */
+/** `ramp` is the height colour map, low to high, and `tints` the figure's colours by name, for a surface in a group; the chart reads both from the theme. */
 export interface Colours { ramp: readonly Rgb[]; tints?: ReadonlyMap<string, Rgb> }
 
 export interface Face { pts: Xy[]; fill: string; dim: boolean }
@@ -281,7 +280,7 @@ export function scene3(model: Plot3Model, view: View, size: Size, colours: Colou
   layoutText(titles, ticks, size, measure, canCut);
 
   const overlays = model.children.flatMap((layer): Overlay[] => {
-    const marks = { ...(layer.color ? { color: layer.color } : {}), ...(layer.state ? { state: layer.state } : {}) };
+    const marks = { color: layer.color, state: layer.state };
     const label = 'label' in layer ? layer.label : undefined;
     const lines = (points: readonly Point3[]): Overlay[] => clipLine(points.map(box), L).map((run, i) => ({ kind: 'line', points: run.map(toScreen), ...marks, ...(i === 0 && label ? { label } : {}) }));
     switch (layer.type) {

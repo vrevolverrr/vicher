@@ -5,7 +5,7 @@ import { type AnyDefinition, DEFINITIONS } from '@/renderer/figure/components/re
 import { type FigureData, type FigureNode, ID, LIMITS, type Param, type Step } from '@/renderer/figure/FigureData';
 import { texAnchors, texIn, texProblems } from '@/renderer/figure/figureTex';
 import { formatFigure } from '@/renderer/figure/formatFigure';
-import { type Color, COLORS } from '@/renderer/figure/marks';
+import { type Color, COLORS, isColor, type State } from '@/renderer/figure/marks';
 import { count as n, isObject, over, own, type Plain } from '@/renderer/figure/plain';
 
 class Invalid extends Error {}
@@ -95,15 +95,15 @@ function readLegend(raw: unknown): ReadonlyMap<string, Color> {
     const problem = groupProblem(name);
     if (problem) fail(path, `a name ${problem}`);
     const color = own(raw, name);
-    if (!(COLORS as readonly unknown[]).includes(color)) fail(path, `"${name}" must be one of ${COLORS.join(', ')}`);
+    if (!isColor(color)) fail(path, `"${name}" must be one of ${COLORS.join(', ')}`);
     const taken = [...legend].find(([, other]) => other === color);
-    if (taken) fail(path, `"${taken[0]}" and "${name}" are both ${String(color)}; a colour has one meaning`);
-    legend.set(name, color as Color);
+    if (taken) fail(path, `"${taken[0]}" and "${name}" are both ${color}; a colour has one meaning`);
+    legend.set(name, color);
   }
   return legend;
 }
 
-/** Every name's colour for the whole figure: the legend's, then the one `earlier` gave it if still free, then the free colours in first-seen order. */
+/** Every name's colour for the whole figure: the legend's, then the one `earlier` gave it if still free, then the free colours in first-seen order, those never shown first. */
 function colorsOf(legend: ReadonlyMap<string, Color>, groups: ReadonlySet<string>, earlier: ReadonlyMap<string, Color>): ReadonlyMap<string, Color> {
   const names = new Set([...legend.keys(), ...groups]);
   if (names.size > LIMITS.groups) fail('Figure', `${over(names.size, 'groups', LIMITS.groups)}: ${[...names].join(', ')}`);
@@ -113,7 +113,9 @@ function colorsOf(legend: ReadonlyMap<string, Color>, groups: ReadonlySet<string
     const color = earlier.get(name);
     if (color && ![...colors.values()].includes(color)) colors.set(name, color);
   }
-  const free = COLORS.filter((color) => ![...colors.values()].includes(color));
+  // A colour an absent name showed stays its own while any other is left, so the name keeps it when it comes back.
+  const shown = new Set(earlier.values());
+  const free = COLORS.filter((color) => ![...colors.values()].includes(color)).sort((a, b) => Number(shown.has(a)) - Number(shown.has(b)));
   for (const name of unpinned) if (!colors.has(name)) colors.set(name, free.shift()!);
   return colors;
 }
@@ -125,12 +127,13 @@ function readFigure(raw: unknown, earlier: ReadonlyMap<string, Color>): FigureDa
   if (!Array.isArray(frames) || frames.length === 0) fail('Figure', 'no steps');
   if (frames.length > LIMITS.steps) fail('Figure', over(frames.length, 'steps', LIMITS.steps));
   const title = own(raw, 'title');
-  const figure: FigureScope = { elements: 0, groups: new Set() };
+  const figure: FigureScope = { elements: 0, groups: new Set(), states: new Set() };
   const steps = frames.map((frame, i) => readStep(frame, i, frames.length, figure));
   return {
     ...(title === undefined || title === null || title === '' ? {} : { title: plainString(title, 'Figure', 'title') }),
     colors: colorsOf(readLegend(own(raw, 'legend')), figure.groups, earlier),
     key: [...figure.groups],
+    states: figure.states,
     params: readParams(own(raw, 'params')),
     steps,
   };
@@ -199,19 +202,20 @@ interface StepScope {
   targets: { path: string; id: string; what: string }[];
   anchors: number;
   elements: number;
-  groups: Set<string>;
+  figure: FigureScope;
 }
 
 interface FigureScope {
   elements: number;
   groups: Set<string>;
+  states: Set<State>;
 }
 
 function readStep(frame: unknown, index: number, count: number, figure: FigureScope): Step {
   const path = `Step ${index + 1}`;
   if (!isObject(frame)) fail(path, 'a step must be an object');
   onlyKeys(frame, ['caption', 'heading', 'root'], path, 'a step');
-  const scope: StepScope = { ids: new Map(), targets: [], anchors: 0, elements: 0, groups: figure.groups };
+  const scope: StepScope = { ids: new Map(), targets: [], anchors: 0, elements: 0, figure };
   const text = (key: 'caption' | 'heading'): string => {
     const value = own(frame, key) ?? '';
     if (typeof value !== 'string' && typeof value !== 'number') fail(path, `the ${key} must be text`);
@@ -333,18 +337,26 @@ function walk(field: Field, value: unknown, key: string, path: string, context: 
       if (typeof value === 'string') scope.targets.push({ path, id: value, what: key });
       return;
     case 'group':
-      scope.groups.add(value as string);
+      scope.figure.groups.add(value as string);
       return;
     case 'groups':
       if (value instanceof Map) {
         for (const [id, name] of value as ReadonlyMap<string, string>) {
           scope.targets.push({ path, id, what: 'groups' });
-          scope.groups.add(name);
+          scope.figure.groups.add(name);
         }
       }
       return;
+    case 'state':
+      scope.figure.states.add(value as State);
+      return;
     case 'states':
-      if (value instanceof Map) for (const id of value.keys() as Iterable<string>) scope.targets.push({ path, id, what: 'states' });
+      if (value instanceof Map) {
+        for (const [id, state] of value as ReadonlyMap<string, State>) {
+          scope.targets.push({ path, id, what: 'states' });
+          scope.figure.states.add(state);
+        }
+      }
       return;
     case 'point': {
       const size = context.dimension === 3 ? 3 : 2;

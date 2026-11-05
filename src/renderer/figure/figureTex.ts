@@ -1,4 +1,4 @@
-import { type Color, COLORS } from '@/renderer/figure/marks';
+import { type Color, COLORS, isColor } from '@/renderer/figure/marks';
 
 export type Rgb = readonly [number, number, number];
 
@@ -14,8 +14,6 @@ const BBOX = /\\bbox\s*\[([^\]]*)\]/g;
 const ANCHOR = /\\cssId\s*\{([^}]*)\}/g;
 const DIMENSION = /^\s*-?[\d.]+\s*(?:px|em|ex|pt|mu|cm|mm|in|pc)?\s*$/;
 const COLOR_LIST = COLORS.join(', ');
-
-const isColor = (name: string): name is Color => (COLORS as readonly string[]).includes(name);
 
 /** Applies `inMath` to each `$…$` and `$$…$$` of Markdown, delimiters included, and `outside` to the text between. */
 export function mapMath(markdown: string, inMath: (math: string) => string, outside: (text: string) => string = (text) => text, pattern = MATH): string {

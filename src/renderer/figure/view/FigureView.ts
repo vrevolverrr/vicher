@@ -6,7 +6,7 @@ import { type DrawnType, VIEWS } from '@/renderer/figure/view/components/registr
 import { drawLinks, type Link } from '@/renderer/figure/view/drawLinks';
 import type { FigureData, FigureNode, Param } from '@/renderer/figure/FigureData';
 import { figureSandbox, type FigureSandbox } from '@/renderer/figure/view/FigureSandbox';
-import type { Color } from '@/renderer/figure/marks';
+import { type Color, type ColorOf, type State, STATES } from '@/renderer/figure/marks';
 import { drawTex, drawTexIn, mapMath, type Rgb, type TexColour, TYPESET_MATH } from '@/renderer/figure/figureTex';
 import { figureText, isPlain } from '@/renderer/figure/figureText';
 import { formatFigure } from '@/renderer/figure/formatFigure';
@@ -36,8 +36,8 @@ const SETTLE_MS = 150;
 /** The most steps listed beside a figure; more show one caption at a time. */
 const MAX_LISTED = 6;
 
-/** What the key says of `dim`; ▶ and ✓ say what they mean. */
-const DIM_MEANING = 'out of play';
+/** What the key says of each state. */
+const MEANING: Record<State, string> = { active: 'being worked on', done: 'finished', dim: 'out of play' };
 const FALLBACK_WIDTH = 480;
 const RENDERED_LIMIT = 500;
 /** Plain text and `$…$` maths only, which MathJax draws at once with no Markdown render to wait for; else undefined. */
@@ -85,8 +85,7 @@ interface Drawing {
   tex: (el: HTMLElement, tex: string) => void;
   prepared: Map<string, unknown>;
   lanes: Map<string, Lane>;
-  dimmed: { used: boolean };
-  colorOf: (name: string | undefined) => string | undefined;
+  colorOf: ColorOf;
   /** Every element drawn, by key, so one can have its other steps repaint. */
   instances: Map<string, Instance[]>;
 }
@@ -339,7 +338,6 @@ export class FigureView {
     const typed = (): void => {
       typeset = true;
     };
-    const dimmed = { used: false };
     const colour: TexColour = (color, fill) => this.colour(color, fill);
     const drawing: Drawing = {
       markdown: (el, text) => {
@@ -354,7 +352,6 @@ export class FigureView {
       },
       prepared: this.prepare(figure, false),
       lanes: pointerLanes(figure),
-      dimmed,
       colorOf: (name) => (name ? figure.colors.get(name) : undefined),
       instances: new Map(),
     };
@@ -394,18 +391,10 @@ export class FigureView {
         keys.set(node, key);
         if ('groups' in node && node.groups) for (const [id, name] of node.groups) groups.set(id, name);
         if ('states' in node && node.states) for (const [id, state] of node.states) states.set(id, state);
-        // A drawing's layers ink themselves, so only their fade reaches the key.
-        if ('children' in node && !BLOCK_CONTAINERS.has(node.type) && node.children.some((layer) => 'state' in layer && layer.state === 'dim')) dimmed.used = true;
-      });
-      walk(step.root, (node) => {
-        if ('id' in node && node.id && 'group' in node && node.group) groups.set(node.id, node.group);
-        if ('id' in node && node.id && 'state' in node && node.state) states.set(node.id, node.state);
       });
       const marksOf = (id: string): Marks => {
         const group = groups.get(id);
-        const state = states.get(id);
-        if (state === 'dim') dimmed.used = true;
-        return { group, color: group ? figure.colors.get(group) : undefined, state };
+        return { group, color: drawing.colorOf(group), state: states.get(id) };
       };
       this.drawBlocks([step.root], view.el, view, drawing, marksOf, keys);
       return view;
@@ -448,7 +437,7 @@ export class FigureView {
         };
       }
     }
-    if (figure.key.length || dimmed.used) {
+    if (figure.key.length || figure.states.size) {
       const key = scroll.appendChild(div('vicher-figure-key'));
       const entry = (marks: Marks, meaning: string): void => {
         const item = key.appendChild(div('vicher-figure-key-item'));
@@ -458,8 +447,8 @@ export class FigureView {
         mark.textContent = ' ';
         drawing.markdown(item.appendChild(createSpan()), meaning);
       };
-      for (const name of figure.key) entry({ color: figure.colors.get(name) }, name);
-      if (dimmed.used) entry({ state: 'dim' }, `dim: ${DIM_MEANING}`);
+      for (const name of figure.key) entry({ color: drawing.colorOf(name) }, name);
+      for (const state of STATES) if (figure.states.has(state)) entry({ state }, `${state}: ${MEANING[state]}`);
     }
     if (figure.steps.length > 1) {
       playback = mount(Playback, { target: side, props: { change: (index) => this.show(index) } });
@@ -663,7 +652,6 @@ export class FigureView {
           const group = own.group ?? given.group;
           const shown = { group, color: drawing.colorOf(group), state: own.state ?? given.state };
           markData(el, shown);
-          if (shown.state === 'dim') drawing.dimmed.used = true;
           return el;
         },
         marksOf,

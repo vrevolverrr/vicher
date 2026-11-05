@@ -1,5 +1,5 @@
 import type { BlockNode, NodeOf } from '@/renderer/figure/components/registry';
-import type { Color } from '@/renderer/figure/marks';
+import type { Color, State } from '@/renderer/figure/marks';
 
 export const ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;
 export const LIMITS = {
@@ -28,6 +28,8 @@ export interface FigureData {
   colors: ReadonlyMap<string, Color>;
   /** The groups the key lists, as first seen. */
   key: readonly string[];
+  /** The states in use, which the key explains. */
+  states: ReadonlySet<State>;
   params: readonly Param[];
   steps: readonly Step[];
 }

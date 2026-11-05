@@ -36,23 +36,25 @@ export function arrowHeads(drawing: SVGElement, size: Record<string, string | nu
 }
 
 /** What a surface carries: a group's name and colour for identity, a state for where it stands. */
-export type Marks = { group?: string | undefined; color?: string | undefined; state?: string | undefined };
+export type Marks = { group?: string; color?: string; state?: string };
 
 /** Writes marks where `styles.css` reads them. */
 export function markData(el: HTMLElement | SVGElement, { group, color, state }: Marks): void {
-  // A group is colour alone, so the name is what reaches a reader who cannot see it.
-  if (group) el.setAttribute('title', group);
+  // The marks are visual, so the words are what reach a reader who cannot see them.
+  const title = [group, state].filter(Boolean).join(', ');
+  if (title) el.setAttribute('title', title);
   if (color) el.dataset.color = color;
   if (state) el.dataset.state = state;
 }
 
-/** A mark's ink, as `styles.css` defines it on `.vicher-figure`: its colour, else its state's; undefined with neither. */
-export const markInk = ({ color, state }: Marks): string | undefined =>
-  color ? `var(--vicher-figure-color-${color})` : state ? `var(--vicher-figure-state-${state})` : undefined;
+/** A mark's ink, as `styles.css` defines it on `.vicher-figure`: its group's colour, as a state adds none. */
+export const markInk = ({ color }: Marks): string | undefined => (color ? `var(--vicher-figure-color-${color})` : undefined);
 
-/** An arrowhead's fill: the colour its line strokes it in (`styles.css`); a dimmed line only fades. */
-export const lineInk = ({ color, state }: Marks): string =>
-  markInk({ color, state: state === 'dim' ? undefined : state }) ?? 'var(--text-muted)';
+/** The ink of text on the page: several theme colours are too pale to read as text, so it leans toward the text colour. */
+export const textInk = ({ color }: Marks): string | undefined => (color ? `color-mix(in srgb, var(--vicher-figure-color-${color}) 55%, var(--text-normal))` : undefined);
+
+/** An arrowhead's fill: the colour its line strokes it in (`styles.css`). */
+export const lineInk = (marks: Marks): string => markInk(marks) ?? 'var(--text-muted)';
 
 export function div(className: string, role?: string): HTMLElement {
   const el = createDiv();

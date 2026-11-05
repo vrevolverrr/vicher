@@ -63,7 +63,7 @@ describe('a layer\'s colour', () => {
     const plot = { type: 'Plot3', children: [{ type: 'Segment', from: [0, 0, 0], to: [1, 1, 1], label: 'missed' }, { type: 'Points', pts: [[0, 0, 0]], label: 'missed' }] } as unknown as Extract<FigureNode, { type: 'Plot3' }>;
     const [line, dot] = plot3Model(plot, colorOf).children;
     expect(line).toMatchObject({ color: 'red' });
-    expect(dot).not.toHaveProperty('color');
+    expect(dot).toMatchObject({ color: undefined });
   });
 
   it('prefers a group to a label', () => {
@@ -71,6 +71,6 @@ describe('a layer\'s colour', () => {
   });
 
   it('does not read a dot\'s label as a name', () => {
-    expect(layers({ type: 'Points', pts: [[0, 0]], label: 'missed' })[0]).not.toHaveProperty('color');
+    expect(layers({ type: 'Points', pts: [[0, 0]], label: 'missed' })[0]).toMatchObject({ color: undefined });
   });
 });

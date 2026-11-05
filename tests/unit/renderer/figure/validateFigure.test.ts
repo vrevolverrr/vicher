@@ -324,8 +324,18 @@ describe('groups and the legend', () => {
     };
     const earlier = new Map<string, Color>([['failed', 'blue'], ['passed', 'orange']]);
     expect(shown(steps('passed'), earlier)).toEqual({ passed: 'orange' });
-    expect(shown(steps('new', 'passed'), earlier)).toEqual({ passed: 'orange', new: 'blue' });
-    expect(shown({ ...steps('passed'), legend: { other: 'orange' } }, earlier)).toEqual({ other: 'orange', passed: 'blue' });
+    expect(shown(steps('new', 'passed'), earlier)).toEqual({ passed: 'orange', new: 'purple' });
+    expect(shown({ ...steps('passed'), legend: { other: 'orange' } }, earlier)).toEqual({ other: 'orange', passed: 'purple' });
+  });
+
+  it('holds an absent name\'s colour for it, until no other colour is left', () => {
+    const first = validateFigure(steps('too far'));
+    if (!first.ok) throw new Error(first.error);
+    const second = validateFigure(steps('close enough'), first.figure.colors);
+    expect(second.ok && second.figure.colors.get('close enough')).toBe('orange');
+    const earlier = new Map(Array.from({ length: 8 }, (_, i): [string, Color] => [`g${i}`, (['blue', 'orange', 'purple', 'cyan', 'pink', 'yellow', 'green', 'red'] as const)[i]]));
+    const full = validateFigure(steps('new'), earlier);
+    expect(full.ok && full.figure.colors.get('new')).toBe('blue');
   });
 
   it('keys only the groups in use, while an unused pin still names a colour for a Plot label', () => {
@@ -349,8 +359,23 @@ describe('groups and the legend', () => {
     expect(errorOf({ ...steps(...names), legend: { extra: 'red' } })).toContain('groups');
   });
 
+  it('reads a numeric group as its text', () => {
+    const result = validateFigure({ params: {}, frames: [{ caption: '', root: el('Row', {}, el('Node', { label: 'x', group: 1 }), el('Seq', { items: [{ id: 'a', label: 'a' }], groups: { a: 2 } })) }] });
+    expect(result.ok ? result.figure.key : result.error).toEqual(['1', '2']);
+  });
+
+  it('allows only dim on a 3D surface', () => {
+    const plot = (state: string): unknown => figure(el('Plot', { x: [0, 1], y: [0, 1], z: [0, 1] }, el('Fn', { zs: new Array(2401).fill(0), state })));
+    expectOk(plot('dim'));
+    expect(errorOf(plot('active'))).toContain('must be one of dim');
+  });
+
   it('rejects a name over 60 characters', () => {
     expect(errorOf(steps('x'.repeat(61)))).toContain('group');
+  });
+
+  it('says why a name breaks the TeX rule', () => {
+    expect(errorOf(steps('$\\color{teal}{x}$'))).toContain('breaks the TeX rule');
   });
 
   it('does not ask for a key entry for a TeX colour', () => {

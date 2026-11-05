@@ -26,6 +26,14 @@ const CARDS = `export default function () {
   return <Figure steps={steps} caption={(step) => step.text} render={() => <Row gap="lg">{card('a', 'Alice', 'a = 5', 'K = 16')}{card('e', 'Public channel (Eve)', 'p = 29, g = 2', 'A = 3, B = 7')}{card('b', 'Bob', 'b = 12', 'K = 16')}</Row>} />;
 }`;
 
+const MARKS = `export default function () {
+  return <Figure steps={[0]} render={() => <Column>
+    <Table id="t" columns={['a', 'b']} rows={[[1, 2], [3, 4]]} rowIds={['r0', 'r1']} groups={{ r0: 'a row', 'r1.1': 'a cell' }} states={{ 'r0.0': 'done', r1: 'active' }} />
+    <Node id="n" label="n" group="a row" state="active" />
+    <Graph id="g" nodes={[{ id: 'x' }, { id: 'y' }]} edges={[{ id: 'e', from: 'x', to: 'y', label: 'e' }]} groups={{ e: 'a row' }} states={{ e: 'active' }} />
+  </Column>} />;
+}`;
+
 const OPEN = `(async () => {
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const leaf = app.workspace.openPopoutLeaf({ size: { width: 520, height: 760 } });
@@ -42,7 +50,7 @@ const OPEN = `(async () => {
   const press = () => doc.body.dispatchEvent(new win.PointerEvent('pointerdown', { bubbles: true }));
   const step = (quote, comment) => ({ type: 'highlight', step: { path: 'note.md', quote, comment } });
   view.panes.get(view.selected).replayReply({ at: Date.now(), parts: [
-    { type: 'text', text: 'Figure.\\n\\n\`\`\`figure\\n' + ${JSON.stringify(FIGURE)} + '\\n\`\`\`\\n\\n\`\`\`figure\\n' + ${JSON.stringify(CARDS)} + '\\n\`\`\`\\n' },
+    { type: 'text', text: 'Figure.\\n\\n\`\`\`figure\\n' + ${JSON.stringify(FIGURE)} + '\\n\`\`\`\\n\\n\`\`\`figure\\n' + ${JSON.stringify(CARDS)} + '\\n\`\`\`\\n\\n\`\`\`figure\\n' + ${JSON.stringify(MARKS)} + '\\n\`\`\`\\n' },
     step('A quote', 'A comment long enough that it has to wrap in a narrow pane, so it must not run past the card'),
     step('Second stop'),
   ] }, 0);
@@ -117,6 +125,21 @@ test('a root Row of cards fills the pane and wraps once it cannot', async () => 
   const narrow = await at<{ lines: number; over: number }>(320, measure);
   assert.ok(narrow.lines > 1, 'cards should wrap in a narrow pane');
   assert.ok(narrow.over <= 0, `cards overflow by ${narrow.over}`);
+});
+
+test('a group and a state combine on cells, nodes and edges', async () => {
+  const shown = await inPage<Record<string, string>>(`const figure = [...ui.panel().querySelectorAll('.vicher-figure')].at(-1);
+    for (let i = 0; i < 40 && !figure.querySelector('.vicher-network-edge'); i++) await ui.wait(100);
+    const style = (selector) => ui.win.getComputedStyle(figure.querySelector(selector));
+    const cell = (id) => style('[data-figure-id="' + id + '"]').backgroundColor;
+    const node = style('.vicher-figure-node[data-figure-id="n"]');
+    return { doneCell: cell('r0.0'), rowCell: cell('r0.1'), activeRowCell: cell('r1.0'), groupCell: cell('r1.1'), nodeFill: node.backgroundColor, nodeOutline: node.outlineStyle, edge: style('.vicher-network-edge[data-color]').strokeWidth };`);
+
+  assert.equal(shown.doneCell, shown.rowCell, 'a cell state keeps its row group');
+  assert.notEqual(shown.groupCell, shown.activeRowCell, 'a cell group shows in an active row');
+  assert.equal(shown.nodeFill, shown.rowCell, 'an active node keeps its group fill');
+  assert.equal(shown.nodeOutline, 'solid');
+  assert.equal(shown.edge, '4.5px');
 });
 
 test('a menu in a popout window opens on a click and closes on Escape or a press outside', async () => {

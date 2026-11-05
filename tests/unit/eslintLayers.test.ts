@@ -10,7 +10,7 @@ const rules = plugin.rules!;
 
 tester.run('layers', rules.layers as never, {
   valid: [
-    { filename: at('renderer/figure/view/drawGraph.ts'), code: "import { status } from '@/renderer/figure/geometry';" },
+    { filename: at('renderer/figure/view/drawGraph.ts'), code: "import { x } from '@/renderer/figure/geometry';" },
     { filename: at('chat/view/TextBlock.ts'), code: "import { FigureView } from '@/renderer/figure/view/FigureView';" },
     { filename: at('agents/claude/ClaudeAgent.ts'), code: "import { x } from './ClaudeModelAdapter';" },
     { filename: at('shared/view/icon.ts'), code: "export { setIcon } from 'obsidian';" },

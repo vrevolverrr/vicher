@@ -1,6 +1,6 @@
 import type { Fields, Read } from '@/renderer/figure/components/field';
 
-export { field } from '@/renderer/figure/components/field';
+export { field, keyedMarks, marks } from '@/renderer/figure/components/field';
 
 export type Dimension = 2 | 3;
 

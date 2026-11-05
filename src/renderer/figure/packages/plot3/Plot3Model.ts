@@ -1,4 +1,3 @@
-
 export type Point3 = readonly [number, number, number];
 export type Range = readonly [number, number];
 
