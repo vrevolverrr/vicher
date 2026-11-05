@@ -108,6 +108,13 @@
     scrollbar-color: var(--scrollbar-thumb-bg) transparent;
   }
 
+  @container (max-width: 360px) {
+    :global(.vicher-permission-picker) .vicher-picker-chevron,
+    :global(.vicher-permission-picker) .vicher-picker-label > :global(span:last-child) {
+      display: none;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .vicher-picker,
     .vicher-picker-chevron :global(.svg-icon) {

@@ -1173,10 +1173,6 @@ body {
   margin-bottom: 0;
 }
 
-@container (max-width: 360px) {
-  .vicher-permission-picker .vicher-picker-chevron,
-  .vicher-permission-picker .vicher-picker-label > span:last-child { display: none; }
-}
 .vicher-chat-tab-bar {
   position: absolute;
   grid-area: 4 / 1;

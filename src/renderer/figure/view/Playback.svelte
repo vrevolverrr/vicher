@@ -188,11 +188,22 @@
 
   /* The full player is its own card, like the figure's, so its controls and track read as one object. */
   .vicher-player:not(.is-play-only) {
+    container-type: inline-size;
     width: min(100%, 32em);
     padding: var(--size-4-1) var(--size-4-3) var(--size-4-1) var(--size-4-1);
     border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-l);
     background: var(--background-primary);
+  }
+
+  @container (max-width: 250px) {
+    .vicher-player input[type='range'] {
+      display: none;
+    }
+
+    .vicher-player-count {
+      margin-inline-start: auto;
+    }
   }
 
   .vicher-player.is-play-only :is(input[type='range'], .vicher-player-count, .is-back, .is-next) {

@@ -146,6 +146,8 @@
   .vicher-walk-comment {
     font-size: var(--font-ui-small);
     line-height: 1.4;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .vicher-walk-quote {
