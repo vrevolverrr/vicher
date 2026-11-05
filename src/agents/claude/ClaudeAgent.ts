@@ -11,6 +11,7 @@ import { cliEnv, getEnhancedPath } from '@/agents/process/env';
 import { runProcessProbe } from '@/agents/process/processProbe';
 import { type AgentAdapter, type AgentEvent, type AgentMessage, type AgentSession, type AgentSessionOptions, type AuthState, type BackgroundTask, ConversationNotFoundError, type Effort, type ModelOption, type SkillOption, type TurnImage } from '@/agents/types';
 
+import { allowBrowserAbortSignals } from './allowBrowserAbortSignals';
 import { findClaudeBinaryPath } from './ClaudeBinaryLocator';
 import { ClaudeModelAdapter } from './ClaudeModelAdapter';
 import { ClaudePermissionAdapter } from './ClaudePermissionAdapter';
@@ -26,6 +27,7 @@ let sdkModule: Promise<typeof ClaudeSDK> | undefined;
 
 /** The SDK is loaded on first use, so opening Obsidian does not pay for it. */
 function loadClaudeAgentSDK(): Promise<typeof ClaudeSDK> {
+  allowBrowserAbortSignals();
   sdkModule ??= import('@anthropic-ai/claude-agent-sdk/core');
   return sdkModule;
 }
