@@ -1,7 +1,6 @@
 <script lang="ts" module>
   /** How long a run of calls that just ended stays active before a working line takes over. */
   const NEXT_CALL_MS = 600;
-  const COPIED_MS = 1500;
 
   const RATINGS = [
     ['up', 'thumbs-up', 'Good response'],
@@ -17,8 +16,9 @@
   import type { ReplyFeedback } from '@/chat/view/ReplyFeedback';
   import { type MarkdownTarget, ReplyFigures, TextBlock } from '@/chat/view/TextBlock';
   import ToolGroup from '@/chat/view/ToolGroup.svelte';
+  import CopyButton from '@/shared/view/CopyButton.svelte';
   import { icon } from '@/shared/view/icon';
-  import { canAnimate } from '@/shared/view/iconButtons';
+  import { canAnimate, ease } from '@/shared/view/motion';
   import { Walkthrough, type WalkthroughHost } from '@/tour/view/Walkthrough';
 
   /**
@@ -54,15 +54,10 @@
   let held: { block: ToolsBlock; timer: number } | null = null;
   let footer = $state<{ at?: number; feedback?: ReplyFeedback; copy: () => string } | null>(null);
   let rating = $state<Rating | undefined>();
-  let copied = $state(false);
-  let resetCopied: number | undefined;
 
   untrack(() => follow(live && !handover));
 
-  $effect(() => () => {
-    release();
-    window.clearTimeout(resetCopied);
-  });
+  $effect(() => release);
 
   function follow(entering = live): ToolsBlock {
     blocks.push({ id: ++ids, kind: 'tools', startedAt: Date.now(), rows: [], holding: false, finished: false, entering });
@@ -182,14 +177,6 @@
     block.view = new Walkthrough(node, steps, walkthrough);
   };
 
-  function copyReply(): void {
-    void navigator.clipboard.writeText(footer!.copy()).then(() => {
-      copied = true;
-      window.clearTimeout(resetCopied);
-      resetCopied = window.setTimeout(() => (copied = false), COPIED_MS);
-    });
-  }
-
   /** Pressing the lit thumb takes it back. */
   function rate(name: Rating, button: HTMLElement): void {
     rating = rating === name ? undefined : name;
@@ -198,7 +185,7 @@
         { transform: 'scale(0.82)' },
         { transform: 'scale(1.16)', offset: 0.55 },
         { transform: 'scale(1)' },
-      ], { duration: 260, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+      ], { duration: 260, easing: ease('out') });
     }
     footer!.feedback!.rate(rating);
   }
@@ -217,12 +204,7 @@
     {#if footer.at !== undefined}
       <span class="vicher-reply-time">{formatWhen(footer.at, Date.now())}</span>
     {/if}
-    <button
-      class={['vicher-icon-action', 'clickable-icon', 'vicher-reply-copy', { 'is-copied': copied }]}
-      aria-label="Copy response"
-      onclick={copyReply}
-      {@attach icon(copied ? 'check' : 'copy')}
-    ></button>
+    <CopyButton class="vicher-reply-copy" label="Copy response" text={footer.copy} />
     {#if footer.feedback}
       {#each RATINGS as [name, iconName, label] (name)}
         <button

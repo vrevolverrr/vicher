@@ -2,7 +2,7 @@
   import type { Snippet } from 'svelte';
   import type { HTMLAttributes } from 'svelte/elements';
   import { quintOut } from 'svelte/easing';
-  import { collapse, pop } from '@/chat/view/motion';
+  import { collapse, pop } from '@/shared/view/motion';
 
   /**
    * A card above the chat tabs, such as the task card or the approval card. It rises in when `open` turns true, and

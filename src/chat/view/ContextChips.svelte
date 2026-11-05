@@ -1,7 +1,7 @@
 <script module lang="ts">
   import { cubicIn, quartOut } from 'svelte/easing';
   import type { EasingFunction } from 'svelte/transition';
-  import { ms } from '@/chat/view/motion';
+  import { ms } from '@/shared/view/motion';
 
   /**
    * Grows a chip from nothing or folds it back to nothing. Its box and the gap beside it shrink together, so the chips

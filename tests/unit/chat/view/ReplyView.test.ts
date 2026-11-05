@@ -574,33 +574,6 @@ describe('ReplyView', () => {
     expect(buttons[0]!.classList.contains('is-copied')).toBe(true);
   });
 
-  it('shows the check on the copy button for a moment, then the copy icon again', async () => {
-    vi.useFakeTimers();
-    try {
-      Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
-      reply.appendText('Done.');
-      reply.finish();
-      const button = el.querySelector<HTMLElement>('.vicher-reply-copy')!;
-
-      button.click();
-      await vi.advanceTimersByTimeAsync(0);
-      flushSync();
-      expect(button.classList.contains('is-copied')).toBe(true);
-
-      advance(1000);
-      button.click();
-      await vi.advanceTimersByTimeAsync(0);
-      flushSync();
-      // Copying again restarts the moment.
-      advance(1499);
-      expect(button.classList.contains('is-copied')).toBe(true);
-      advance(1);
-      expect(button.classList.contains('is-copied')).toBe(false);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
   it('shows the time the turn ended at, left of the copy button', () => {
     reply.appendText('Done.');
     reply.finish(new Date(2024, 0, 5, 14, 30).getTime());

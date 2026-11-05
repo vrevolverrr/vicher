@@ -130,7 +130,7 @@
   }
 
   .vicher-tools.is-entering {
-    animation: vicher-tools-enter 260ms cubic-bezier(0.2, 0, 0, 1) backwards;
+    animation: vicher-tools-enter 260ms var(--vicher-ease-emphasized) backwards;
   }
 
   /* The working line that opens with a send follows the bubble rather than arriving with it. */
@@ -164,7 +164,7 @@
     background: transparent;
     box-shadow: none;
     color: inherit;
-    transition: color 240ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: color 240ms var(--vicher-ease-standard);
     font-size: inherit;
     text-align: left;
     cursor: pointer;
@@ -200,7 +200,7 @@
   .vicher-tools-time {
     flex-shrink: 0;
     color: var(--text-faint);
-    transition: color 240ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: color 240ms var(--vicher-ease-standard);
     font-variant-numeric: tabular-nums;
   }
 
@@ -215,7 +215,7 @@
   .vicher-tools-chevron {
     display: inline-flex;
     flex-shrink: 0;
-    transition: transform 220ms cubic-bezier(0.2, 0, 0, 1);
+    transition: transform 220ms var(--vicher-ease-emphasized);
   }
 
   .vicher-tools.is-empty .vicher-tools-chevron {
@@ -234,7 +234,7 @@
   .vicher-tools-drawer {
     display: grid;
     grid-template-rows: 0fr;
-    transition: grid-template-rows 220ms cubic-bezier(0.2, 0, 0, 1);
+    transition: grid-template-rows 220ms var(--vicher-ease-emphasized);
   }
 
   .vicher-tools.is-open .vicher-tools-drawer {

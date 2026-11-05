@@ -4,7 +4,7 @@
   import type { AgentId, BackgroundTask, NoticeEvent } from '@/agents/types';
   import { appendAgentIcon } from '@/chat/view/agentIcons';
   import Card from '@/chat/view/Card.svelte';
-  import { ms } from '@/chat/view/motion';
+  import { ms } from '@/shared/view/motion';
   import { formatElapsed } from '@/chat/view/formatElapsed';
   import { icon, setIcon } from '@/shared/view/icon';
 
@@ -390,8 +390,7 @@
   .vicher-task {
     display: grid;
     grid-template-rows: 1fr;
-    --vicher-task-row-ease: cubic-bezier(0.2, 0, 0, 1);
-    transition: grid-template-rows 220ms var(--vicher-task-row-ease);
+    transition: grid-template-rows 220ms var(--vicher-ease-emphasized);
   }
 
   .vicher-task.is-folded {
@@ -409,7 +408,7 @@
     overflow: hidden;
     transition:
       opacity 160ms ease-out 70ms,
-      transform 220ms var(--vicher-task-row-ease) 40ms;
+      transform 220ms var(--vicher-ease-emphasized) 40ms;
   }
 
   .vicher-task.is-folded .vicher-task-inner {
@@ -417,7 +416,7 @@
     transform: translateY(-6px);
     transition:
       opacity 100ms ease-out,
-      transform 220ms var(--vicher-task-row-ease);
+      transform 220ms var(--vicher-ease-emphasized);
   }
 
   /* The running slot changes task in place: the next row opens at once under the one going, which fades over it. */

@@ -1,8 +1,11 @@
 import type { App, Component } from 'obsidian';
 import { loadMathJax, Modal } from 'obsidian';
 import type * as Pele from 'pele';
+import { mount, unmount } from 'svelte';
 
-import { canAnimate, createCopyButton, createIconButton } from '@/shared/view/iconButtons';
+import CopyButton from '@/shared/view/CopyButton.svelte';
+import { createIconButton } from '@/shared/view/iconButtons';
+import { canAnimate } from '@/shared/view/motion';
 
 import { diagramMath } from './diagramMath';
 
@@ -70,7 +73,8 @@ export async function renderMermaidDiagrams(
     scope.register(() => diagram.destroy());
     const title = titleOf(diagram.result.type);
     header.createSpan({ cls: 'vicher-mermaid-title', text: title });
-    createCopyButton(header, 'Copy diagram source', () => source);
+    const copy = mount(CopyButton, { target: header, props: { label: 'Copy diagram source', text: () => source } });
+    scope.register(() => void unmount(copy));
     createIconButton(header, 'maximize-2', 'Expand diagram')
       .addEventListener('click', () => new DiagramModal(app, loaded, source, title, figure).open());
   }

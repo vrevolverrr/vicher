@@ -1,10 +1,19 @@
 import { quartOut } from 'svelte/easing';
 import type { EasingFunction } from 'svelte/transition';
-import { prefersReducedMotion } from 'svelte/motion';
 
-/** A transition's duration, or none where the reader asked for less motion or the Web Animations API is missing. */
+/** Whether to animate: `el` has the Web Animations API and the reader has not asked for less motion. */
+export function canAnimate(el: Element = HTMLElement.prototype): boolean {
+  return typeof el.animate === 'function' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** A `--vicher-ease-*` curve from `styles.css`, for the Web Animations API, which cannot read CSS variables. */
+export function ease(name: 'out' | 'emphasized' | 'standard', el: Element = document.body): string {
+  return getComputedStyle(el).getPropertyValue(`--vicher-ease-${name}`).trim() || 'ease';
+}
+
+/** A transition's duration, or none where `canAnimate` says no. */
 export function ms(duration: number): number {
-  return prefersReducedMotion.current || typeof Element.prototype.animate !== 'function' ? 0 : duration;
+  return canAnimate() ? duration : 0;
 }
 
 /** Fades a card and shrinks it, gap included, so the chat above grows smoothly instead of jumping. */

@@ -5,7 +5,7 @@ import { appendAgentIcon } from '@/chat/view/agentIcons';
 import type { ChatSummary } from '@/chat/ChatRecord';
 import type { ChatMatch } from '@/chat/view/chatList';
 import { formatWhen, groupByDay, searchChats } from '@/chat/view/chatList';
-import { canAnimate } from '@/shared/view/iconButtons';
+import { canAnimate, ease } from '@/shared/view/motion';
 import { messageOf } from '@/shared/messageOf';
 
 /** Rows drawn at first and per scroll to the bottom, so a long history costs a screenful of DOM, not all of it. */
@@ -220,6 +220,6 @@ function fold(el: HTMLElement): Promise<unknown> {
       { height: `${el.offsetHeight}px`, paddingTop, paddingBottom, opacity: 1 },
       { height: '0px', paddingTop: '0px', paddingBottom: '0px', opacity: 0 },
     ],
-    { duration: 200, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
+    { duration: 200, easing: ease('standard'), fill: 'forwards' },
   ).finished;
 }

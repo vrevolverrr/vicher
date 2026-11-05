@@ -5,7 +5,7 @@ import { fenceFor, splitReply } from '@/chat/splitReply';
 import { LIMITS } from '@/renderer/figure/FigureData';
 import { figureSandbox } from '@/renderer/figure/view/FigureSandbox';
 import { type FigureHost, FigureView } from '@/renderer/figure/view/FigureView';
-import { canAnimate } from '@/shared/view/iconButtons';
+import { canAnimate, ease } from '@/shared/view/motion';
 
 /** What a reply needs to draw Markdown and maths; the chat pane provides it. `diagrams` also draws its Mermaid fences. */
 export interface MarkdownTarget {
@@ -28,7 +28,7 @@ function reveal(frame: HTMLElement): void {
     card.remove();
     return;
   }
-  frame.animate([{ height: `${from}px` }, { height: `${frame.offsetHeight}px` }], { duration: 320, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
+  frame.animate([{ height: `${from}px` }, { height: `${frame.offsetHeight}px` }], { duration: 320, easing: ease('emphasized') });
   void card.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, fill: 'forwards' }).finished.then(() => card.remove());
 }
 

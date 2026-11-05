@@ -181,7 +181,7 @@
 
   .vicher-picker-option-label {
     display: inline-block;
-    transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: transform 180ms var(--vicher-ease-out);
   }
 
   .vicher-picker-option:is(:hover, :focus-visible) .vicher-picker-option-label {
@@ -196,7 +196,7 @@
     display: inline-flex;
     margin-left: auto;
     padding-left: 12px;
-    animation: vicher-check-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: vicher-check-in 180ms var(--vicher-ease-out);
   }
 
   .vicher-picker-check :global(.svg-icon) {

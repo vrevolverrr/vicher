@@ -1,11 +1,11 @@
 import { setIcon } from '@/shared/view/icon';
 
-import { canAnimate, createIconButton } from '@/shared/view/iconButtons';
+import { createIconButton } from '@/shared/view/iconButtons';
+import { canAnimate, ease } from '@/shared/view/motion';
 
 /** How a chip leaves: a dropped one shrinks away, a sent one rises toward the message it went with. */
 export type ChipExit = 'dropped' | 'sent';
 
-const EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 
 /** One chip above the input. It lives as long as its subject, so only a chip that arrives or leaves animates. */
 export class Chip {
@@ -45,7 +45,7 @@ export class Chip {
       this.arrived = true;
       if (animate && canAnimate(this.el)) squeeze(this.el, 'in', 'scale(0.9)');
     } else if (animate && changed && canAnimate(this.labelEl)) {
-      this.labelEl.animate([{ opacity: 0.3, transform: 'translateY(3px)' }, { opacity: 1, transform: 'none' }], { duration: 180, easing: EASE });
+      this.labelEl.animate([{ opacity: 0.3, transform: 'translateY(3px)' }, { opacity: 1, transform: 'none' }], { duration: 180, easing: ease('out') });
     }
   }
 
@@ -79,7 +79,7 @@ function squeeze(chip: HTMLElement, direction: 'in' | 'out', transform: string):
   const shut: Keyframe = { width: '0px', height: '0px', paddingTop: '0px', paddingRight: '0px', paddingBottom: '0px', paddingLeft: '0px', marginRight: `${-gap}px`, opacity: 0, transform };
   return chip.animate(direction === 'in' ? [shut, open] : [open, shut], {
     duration: direction === 'in' ? 200 : 160,
-    easing: direction === 'in' ? EASE : 'ease-in',
+    easing: direction === 'in' ? ease('out') : 'ease-in',
     fill: direction === 'out' ? 'forwards' : 'none',
   });
 }

@@ -200,7 +200,7 @@
   .vicher-approval-actions button:active { transform: scale(0.97); box-shadow: none; }
   .vicher-approval-actions button:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
   .vicher-approval-actions button:focus-visible,
-  .vicher-approval-disclosure > summary:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: 2px; }
+  .vicher-approval-disclosure > summary:focus-visible { outline: var(--vicher-focus-ring); outline-offset: 2px; }
   @keyframes reveal {
     from { opacity: 0; }
     to { opacity: 1; }

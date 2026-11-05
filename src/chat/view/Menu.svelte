@@ -2,7 +2,7 @@
   import type { Snippet } from 'svelte';
   import { cubicIn, cubicOut } from 'svelte/easing';
   import type { HTMLAttributes } from 'svelte/elements';
-  import { pop } from '@/chat/view/motion';
+  import { pop } from '@/shared/view/motion';
 
   /**
    * A floating menu that pops in when `open` turns true and out when it turns false. Opened from a button (`anchor`),
@@ -102,7 +102,7 @@
   }
 
   .vicher-menu :global(.vicher-menu-item:focus-visible) {
-    outline: 2px solid var(--interactive-accent);
+    outline: var(--vicher-focus-ring);
     outline-offset: -2px;
   }
 </style>

@@ -1,5 +1,5 @@
 import type { AgentId } from '@/agents/types';
-import { canAnimate } from '@/shared/view/iconButtons';
+import { canAnimate } from '@/shared/view/motion';
 
 export interface ChatTab {
   id: string;
