@@ -9,7 +9,7 @@ import ReplyView from '@/chat/view/ReplyView.svelte';
 import type { MarkdownTarget } from '@/chat/view/TextBlock';
 import { figureSandbox } from '@/renderer/figure/view/FigureSandbox';
 import type { TourEvent } from '@/tour/HighlightTour';
-import type { WalkthroughHost } from '@/tour/view/Walkthrough';
+import type { WalkthroughHost } from '@/tour/view/WalkthroughHost';
 
 vi.mock('obsidian', () => ({ setIcon: vi.fn() }));
 // A figure's fence here holds the payload a program would return, as JSON; `!` starts one that fails.
@@ -681,6 +681,10 @@ describe('ReplyView', () => {
   describe('stops the agent pointed at', () => {
     const stop = (quote: string, extra: Partial<{ comment: string; path: string }> = {}) => ({ path: 'a.md', quote, ...extra });
     const rows = () => Array.from(el.querySelectorAll<HTMLElement>('.vicher-walk-step'));
+    const tell = (event: TourEvent): void => {
+      host.listeners.forEach((listener) => listener(event));
+      flushSync();
+    };
 
     it('draws each stop where it was written, between the prose around it', () => {
       reply.appendText('Look here.');
@@ -723,11 +727,11 @@ describe('ReplyView', () => {
       reply.highlight(first);
       reply.highlight(second);
 
-      host.listeners.forEach((listener) => listener({ step: first, state: 'playing' }));
+      tell({ step: first, state: 'playing' });
       expect(rows().map((row) => row.classList.contains('is-current'))).toEqual([true, false]);
-      host.listeners.forEach((listener) => listener({ step: second, state: 'missed' }));
+      tell({ step: second, state: 'missed' });
       expect(rows().map((row) => [row.classList.contains('is-current'), row.classList.contains('is-missed')])).toEqual([[false, false], [false, true]]);
-      host.listeners.forEach((listener) => listener(null));
+      tell(null);
       expect(rows().some((row) => row.classList.contains('is-current'))).toBe(false);
     });
 
@@ -739,12 +743,57 @@ describe('ReplyView', () => {
       reply.highlight(c);
       const seen = () => rows().map((row) => row.classList.contains('is-done'));
 
-      host.listeners.forEach((listener) => listener({ step: c, state: 'playing' }));
+      tell({ step: c, state: 'playing' });
       expect(seen()).toEqual([true, true, false]);
-      host.listeners.forEach((listener) => listener({ step: b, state: 'playing' }));
+      tell({ step: b, state: 'playing' });
       expect(seen()).toEqual([true, false, false]);
-      host.listeners.forEach((listener) => listener(null));
+      tell(null);
       expect(seen()).toEqual([true, false, false]);
+    });
+
+    it('labels each stop for a screen reader and explains a missed one', () => {
+      const first = stop('first');
+      reply.highlight(first);
+      reply.highlight(stop('second'));
+      const [one, two] = rows();
+
+      expect([one!.getAttribute('aria-label'), two!.getAttribute('aria-label'), one!.getAttribute('type')]).toEqual(['Show stop 1', 'Show stop 2', 'button']);
+      expect(one!.title).toBe('');
+      tell({ step: first, state: 'missed' });
+      expect(one!.title).toBe('The text was not found, so the note may have changed.');
+      tell({ step: first, state: 'playing' });
+      expect([one!.title, one!.classList.contains('is-missed')]).toEqual(['', false]);
+    });
+
+    it('hears the tour from the moment the first stop is added', () => {
+      const own = hostOf();
+      const view = mount(ReplyView, { target: document.createElement('div'), props: { markdown, walkthrough: own } });
+      mounted.push(view);
+
+      view.highlight(stop('a'));
+
+      expect(own.listeners).toHaveLength(1);
+    });
+
+    it('keeps a missed stop marked while the tour moves on', () => {
+      const [a, b] = [stop('a'), stop('b')];
+      reply.highlight(a);
+      reply.highlight(b);
+
+      tell({ step: a, state: 'missed' });
+      tell({ step: b, state: 'playing' });
+
+      expect(rows().map((row) => [row.classList.contains('is-missed'), row.classList.contains('is-current')])).toEqual([[true, false], [false, true]]);
+    });
+
+    it('draws a stop that joins a run without redrawing the ones in it', () => {
+      reply.highlight(stop('a'));
+      const first = rows()[0]!;
+      reply.highlight(stop('b'));
+
+      expect(el.querySelectorAll('.vicher-walkthrough')).toHaveLength(1);
+      expect(rows()).toHaveLength(2);
+      expect(rows()[0]).toBe(first);
     });
 
     it('keeps stops out of the copied text', () => {

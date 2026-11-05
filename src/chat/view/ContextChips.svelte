@@ -1,31 +1,10 @@
-<script module lang="ts">
-  import { cubicIn, quartOut } from 'svelte/easing';
-  import type { EasingFunction } from 'svelte/transition';
-  import { ms } from '@/shared/view/motion';
-
-  /**
-   * Grows a chip from nothing or folds it back to nothing. Its box and the gap beside it shrink together, so the chips
-   * next to it slide into place.
-   */
-  function squeeze(chip: HTMLElement, { duration, easing, y = 0, scale = 1 }: { duration: number; easing: EasingFunction; y?: number; scale?: number }) {
-    const style = getComputedStyle(chip);
-    const gap = parseFloat(getComputedStyle(chip.parentElement!).columnGap) || 0;
-    const { offsetWidth, offsetHeight } = chip;
-    const [top, right, bottom, left] = [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft].map((side) => parseFloat(side) || 0);
-    return {
-      duration: ms(duration),
-      easing,
-      css: (t: number, u: number) =>
-        `width: ${t * offsetWidth}px; height: ${t * offsetHeight}px; padding: ${t * top}px ${t * right}px ${t * bottom}px ${t * left}px; margin-right: ${-u * gap}px; opacity: ${t}; transform: translateY(${u * y}px) scale(${1 - u * (1 - scale)})`,
-    };
-  }
-</script>
-
 <script lang="ts">
+  import { quartOut } from 'svelte/easing';
   import { fly } from 'svelte/transition';
   import type { OpenDocumentState } from '@/context/NoteContext';
   import { icon } from '@/shared/view/icon';
-  import type { ChipExit } from '@/shared/view/Chip';
+  import { arrive, leave, type ChipExit } from '@/shared/view/chipMotion';
+  import { ms } from '@/shared/view/motion';
 
   /**
    * The chips above the input that show what the next turn carries. A chip lives as long as its subject: new state
@@ -65,14 +44,6 @@
     animate = animated;
   }
 
-  const arrive = (chip: HTMLElement) => squeeze(chip, { duration: animate ? 200 : 0, easing: quartOut, scale: 0.9 });
-
-  function leave(chip: HTMLElement) {
-    chip.classList.add('is-leaving');
-    chip.setAttribute('aria-hidden', 'true');
-    return squeeze(chip, { duration: 160, easing: cubicIn, ...(exit === 'sent' ? { y: -8 } : { scale: 0.9 }) });
-  }
-
   function toggleNote(event: KeyboardEvent) {
     if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
     event.preventDefault();
@@ -90,8 +61,8 @@
       title={note.excluded ? `${note.path} (left out; click to include)` : `${note.path} (click to leave out)`}
       onclick={() => host.toggleNote()}
       onkeydown={toggleNote}
-      in:arrive
-      out:leave
+      in:arrive={{ animate }}
+      out:leave={{ exit }}
     >
       <span class="vicher-context-icon" {@attach icon(note.icon)}></span>
       {#key note.label}
@@ -104,8 +75,8 @@
     <div
       class="vicher-context-chip"
       title={chat ? 'Selected chat text, sent with your next message' : 'Selected text, sent with your next message'}
-      in:arrive
-      out:leave
+      in:arrive={{ animate }}
+      out:leave={{ exit }}
     >
       <span class="vicher-context-icon" {@attach icon(chat ? 'messages-square' : 'text-select')}></span>
       {#key label}

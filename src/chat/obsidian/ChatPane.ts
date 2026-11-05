@@ -24,7 +24,7 @@ import Approvals from '@/chat/view/Approvals.svelte';
 import { type AfterRender, MarkdownContentRenderer } from '@/renderer/markdown/obsidian/MarkdownContentRenderer';
 import { renderMermaidDiagrams } from '@/renderer/mermaid/obsidian/mermaidDiagrams';
 import type { HighlightTour, TourEvent } from '@/tour/HighlightTour';
-import type { WalkthroughHost } from '@/tour/view/Walkthrough';
+import type { WalkthroughHost } from '@/tour/view/WalkthroughHost';
 import { messageOf } from '@/shared/messageOf';
 
 const PIN_MS = 1500;

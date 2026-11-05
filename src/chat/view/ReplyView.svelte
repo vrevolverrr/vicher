@@ -19,7 +19,8 @@
   import CopyButton from '@/shared/view/CopyButton.svelte';
   import { icon } from '@/shared/view/icon';
   import { canAnimate, ease } from '@/shared/view/motion';
-  import { Walkthrough, type WalkthroughHost } from '@/tour/view/Walkthrough';
+  import Walkthrough from '@/tour/view/Walkthrough.svelte';
+  import type { WalkthroughHost } from '@/tour/view/WalkthroughHost';
 
   /**
    * One assistant reply, in the order the agent produced it: text, then a group for each run of tool calls,
@@ -42,7 +43,8 @@
 
   type ToolsBlock = { id: number; kind: 'tools'; startedAt: number; rows: ToolPart[]; holding: boolean; finished: boolean; entering: boolean };
   type TextBlockEntry = { id: number; kind: 'text'; first: number; view?: TextBlock };
-  type WalkBlock = { id: number; kind: 'walk'; view?: Walkthrough };
+  /** A run of stops: `count` of the reply's `steps`, from `start`. */
+  type WalkBlock = { id: number; kind: 'walk'; start: number; count: number };
   type Block = ToolsBlock | TextBlockEntry | WalkBlock;
 
   const blocks = $state<Block[]>([]);
@@ -64,11 +66,11 @@
     return blocks.at(-1) as ToolsBlock;
   }
 
-  /** Adds a block whose element hands its view to `view` when it mounts, which `flushSync` makes happen now. */
-  function addWithView<T extends TextBlockEntry | WalkBlock>(block: Omit<T, 'id'>): T {
-    blocks.push({ id: ++ids, ...block } as T);
+  /** Adds a text block whose element hands its view to `view` when it mounts, which `flushSync` makes happen now. */
+  function addTextBlock(first: number): TextBlockEntry {
+    blocks.push({ id: ++ids, kind: 'text', first });
     flushSync();
-    return blocks.at(-1) as T;
+    return blocks.at(-1) as TextBlockEntry;
   }
 
   function discard(block: Block): void {
@@ -97,7 +99,7 @@
         else discard(block);
       }
       const first = blocks.reduce((count, previous) => count + (previous.kind === 'text' ? countFigures(previous.view!.text) : 0), 0);
-      block = addWithView<TextBlockEntry>({ kind: 'text', first });
+      block = addTextBlock(first);
     }
     block.view!.append(delta);
   }
@@ -107,9 +109,11 @@
     const last = blocks.at(-1);
     if (isWorkingLine(last)) discard(last);
     steps.push(step);
-    let run = blocks.at(-1);
-    if (run?.kind !== 'walk') run = addWithView<WalkBlock>({ kind: 'walk' });
-    run.view!.add();
+    const run = blocks.at(-1);
+    if (run?.kind === 'walk') run.count += 1;
+    else blocks.push({ id: ++ids, kind: 'walk', start: steps.length - 1, count: 1 });
+    // The walkthrough hears the tour from the moment it mounts.
+    flushSync();
   }
 
   export function thinking(): void {
@@ -173,10 +177,6 @@
     return () => view.destroy();
   };
 
-  const walkthroughBlock = (block: WalkBlock) => (node: HTMLElement) => {
-    block.view = new Walkthrough(node, steps, walkthrough);
-  };
-
   /** Pressing the lit thumb takes it back. */
   function rate(name: Rating, button: HTMLElement): void {
     rating = rating === name ? undefined : name;
@@ -197,7 +197,7 @@
   {:else if block.kind === 'text'}
     <div class="vicher-reply-text" {@attach textBlock(block)}></div>
   {:else}
-    <div class="vicher-walkthrough" {@attach walkthroughBlock(block)}></div>
+    <Walkthrough {steps} start={block.start} count={block.count} host={walkthrough} />
   {/if}
 {/each}{#if footer}
   <div class="vicher-reply-footer">

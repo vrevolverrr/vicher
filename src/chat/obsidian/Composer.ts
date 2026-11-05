@@ -17,8 +17,8 @@ import { PASTE_FILE_MIN_CHARS } from '@/attachments/attachmentStorage';
 import { mentionToken, mentionTokens, mentionTrigger } from '@/attachments/mentionSyntax';
 import type { MentionFile } from '@/attachments/obsidian/VaultFileIndex';
 import { type Dropped, dragCarriesFiles, imageFiles, readDrop } from '@/attachments/obsidian/droppedFiles';
-import { AttachmentChips } from '@/attachments/view/AttachmentChips';
-import type { ChipExit } from '@/shared/view/Chip';
+import AttachmentChips from '@/attachments/view/AttachmentChips.svelte';
+import type { ChipExit } from '@/shared/view/chipMotion';
 import { messageOf } from '@/shared/messageOf';
 
 const MAX_INPUT_HEIGHT = 192;
@@ -49,7 +49,7 @@ export class Composer {
   private readonly sendButton: ReturnType<typeof SendButton>;
   private readonly contextChips: ReturnType<typeof ContextChips>;
   private readonly pickers: ReturnType<typeof PickerBar>;
-  private readonly chips: AttachmentChips;
+  private readonly chips: ReturnType<typeof AttachmentChips>;
   private attachments: ChatAttachment[] = [];
   /** Images being stored, which a send must wait for. */
   private storing = 0;
@@ -80,7 +80,7 @@ export class Composer {
     this.document = new OpenDocument(owner, (state, sent, animate) => this.contextChips.set(state, sent ? 'sent' : 'dropped', animate));
     // The tray binds in an effect, and the attachment chips need it now.
     flushSync();
-    this.chips = new AttachmentChips(this.contextChips.trayEl(), (key) => this.removeChip(key));
+    this.chips = mount(AttachmentChips, { target: this.contextChips.trayEl(), props: { onRemove: (key) => this.removeChip(key) } });
     // The textarea's own text is transparent; the mirror behind it draws the same text with skill names and picked files colored.
     const inputWrap = composer.createDiv({ cls: 'vicher-input-wrap' });
     this.mirrorEl = inputWrap.createDiv({ cls: 'vicher-input-mirror', attr: { 'aria-hidden': 'true' } });
@@ -228,7 +228,7 @@ export class Composer {
   dispose(): void {
     this.disposed = true;
     this.discardAttachments();
-    for (const component of [this.contextChips, this.meter, this.pickers, this.sendButton, this.skillMenu, this.mentionMenu]) if (component) void unmount(component);
+    for (const component of [this.contextChips, this.chips, this.meter, this.pickers, this.sendButton, this.skillMenu, this.mentionMenu]) if (component) void unmount(component);
   }
 
   private closeSkillMenu(): void {

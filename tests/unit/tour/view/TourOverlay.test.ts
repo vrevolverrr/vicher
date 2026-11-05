@@ -63,10 +63,10 @@ describe('TourOverlay', () => {
     const { layer, hold } = setup();
     const card = layer.querySelector('.vicher-tour-card')!;
 
-    card.dispatchEvent(new Event('mouseenter'));
-    card.dispatchEvent(new Event('mouseleave'));
-    card.dispatchEvent(new Event('focusin'));
-    card.dispatchEvent(new Event('focusout'));
+    card.dispatchEvent(new MouseEvent('mouseenter'));
+    card.dispatchEvent(new MouseEvent('mouseleave'));
+    card.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    card.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
 
     expect(hold.mock.calls).toEqual([[true], [false], [true], [false]]);
   });
@@ -80,6 +80,26 @@ describe('TourOverlay', () => {
     expect(bar.classList.contains('is-timing')).toBe(true);
     overlay.setTiming(1500);
     expect(bar.style.getPropertyValue('--vicher-tour-ms')).toBe('1500ms');
+  });
+
+  it('hides the card when a stop has no comment, and shows it again for the next one', () => {
+    const { overlay, layer, pane } = setup();
+    const card = layer.querySelector('.vicher-tour-card')!;
+
+    overlay.show(() => ({ x: 1, y: 1, top: 0 }), pane);
+    expect(card.classList.contains('is-empty')).toBe(true);
+    overlay.show(() => ({ x: 1, y: 1, top: 0 }), pane, 'Look here');
+    expect(card.classList.contains('is-empty')).toBe(false);
+    expect(card.classList.contains('is-in')).toBe(true);
+  });
+
+  it('keeps the card a direct child of the layer, after the cursor, and takes it away with the layer', () => {
+    const { overlay, layer } = setup();
+
+    expect([...layer.children].map((child) => child.classList[0])).toEqual(['vicher-tour-cursor', 'vicher-tour-card']);
+    const card = layer.querySelector('.vicher-tour-card')!;
+    overlay.destroy();
+    expect([layer.isConnected, card.isConnected]).toEqual([false, false]);
   });
 
   it('is read out as each comment appears', () => {
