@@ -1,6 +1,6 @@
 # Benchmarks
 
-Measurement scripts for Vicher, never bundled into the plugin. Runs that call a model use your own installed agent CLI and login, so your own subscription pays. Each bench is `npm run bench:<name>`, and `--only=<text>` runs just the fixtures or configs whose id or name contains the text.
+Measurement scripts for Vicher, never bundled into the plugin.
 
 ## Figure bench (`figure/`)
 
@@ -11,6 +11,8 @@ It builds the plugin into a throwaway vault, opens it in a second Obsidian windo
 ```bash
 npm run bench:figures -- [--source=stress,demo,generated] [--only=text] [--widths=320,480,720] [--themes=light,dark] [--update] [--keep]
 ```
+
+`--only=<text>` runs just the fixtures whose id contains the text.
 
 Obsidian must be running with its command line interface on (Settings → General → Command line interface). The bench window takes focus while it runs. Results go to promptfoo (`npx promptfoo view`: a row per fixture, a column per theme and width, a metric per check) and to `out/<time>/`: `contact.html` shows each fixture's shots side by side, and `report.json` has every measured state.
 
@@ -26,15 +28,3 @@ Obsidian must be running with its command line interface on (Settings → Genera
 The demo fixtures are the figures of Vicher's scripted demos (`src/chat/obsidian/playVisualsDemo.ts`, `playLayoutDemo.ts`).
 
 Figure programs are model-written code. Outside the window each runs in its own Node process with no environment variables and Node's permission model on (`--permission`): it cannot read or write files or start processes, but Node 22 does not restrict the network. Inside the window they run in Vicher's own sandboxed worker, as in the plugin. Review changes to `fixtures/` as you would review code.
-
-## Latency bench (`latency/`)
-
-Drives the Claude Code CLI through the Agent SDK in several configurations and records spawn time, time to first token, time to the first page action, turn time, tokens and cost. It measures the live-tutor prototype, which acts on a page through tools (`highlight`, `annotate`, `draw_svg`, `scroll_to`, `say`).
-
-```bash
-npm run bench:latency -- [--smoke] [--only=text] [--out=<file>]
-node bench/latency/summarize.mjs bench/latency/results/results-full.json
-node bench/latency/replay.mjs bench/latency/results/results-full.json <config> > replay.html
-```
-
-Results go to `latency/results/`, which is not committed.

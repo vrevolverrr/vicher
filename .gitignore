@@ -25,5 +25,4 @@ coverage/
 /docs/
 
 # Bench output
-/bench/latency/results/
 /bench/figure/out/
