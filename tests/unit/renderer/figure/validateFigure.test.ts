@@ -370,6 +370,14 @@ describe('groups and the legend', () => {
     expect(errorOf(plot('active'))).toContain('must be one of dim');
   });
 
+  it('keeps a group out of the key when a Plot legend already names it', () => {
+    const fn = (id: string, label?: string) => el('Fn', { id, pts: [[0, 0], [1, 1]], group: 'a', ...(label ? { label } : {}) });
+    const key = (root: unknown) => { const valid = validateFigure(figure(root as never) as never); return valid.ok ? valid.figure.key : valid.error; };
+    expect(key(el('Plot', { x: [0, 1] }, fn('f', 'A line')))).toEqual([]);
+    expect(key(el('Plot', { x: [0, 1] }, fn('f')))).toEqual(['a']);
+    expect(key(el('Column', {}, el('Plot', { x: [0, 1] }, fn('f', 'A line')), el('Node', { label: 'n', group: 'a' })))).toEqual(['a']);
+  });
+
   it('refuses a Diagram too tall for its one scale, and names the Plot', () => {
     expect(errorOf(figure(el('Diagram', { width: 4, height: 54 })))).toContain('a chart goes in a Plot');
     expectOk(figure(el('Diagram', { width: 4, height: 12 })));

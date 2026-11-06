@@ -10,6 +10,9 @@ import { count as n, isObject, over, own, type Plain } from '@/renderer/figure/p
 
 class Invalid extends Error {}
 
+/** Plot layers whose label its legend lists. */
+const LEGEND_LAYERS = new Set(['Fn', 'Region', 'Shape', 'Circle']);
+
 function fail(path: string, message: string): never {
   throw new Invalid(`${path}: ${message}`);
 }
@@ -132,11 +135,29 @@ function readFigure(raw: unknown, earlier: ReadonlyMap<string, Color>): FigureDa
   return {
     ...(title === undefined || title === null || title === '' ? {} : { title: plainString(title, 'Figure', 'title') }),
     colors: colorsOf(readLegend(own(raw, 'legend')), figure.groups, earlier),
-    key: [...figure.groups],
+    key: keyedGroups(figure.groups, steps),
     states: figure.states,
     params: readParams(own(raw, 'params')),
     steps,
   };
+}
+
+/** The groups the key lists: not one used only in Plots whose own legend names it, which would say it twice. */
+function keyedGroups(groups: ReadonlySet<string>, steps: readonly Step[]): string[] {
+  const unnamed = new Set<string>();
+  const visit = (node: { type: string; group?: string; groups?: ReadonlyMap<string, string>; children?: readonly unknown[] }): void => {
+    const children = (node.children ?? []) as (typeof node & { label?: unknown })[];
+    if (node.type === 'Plot') {
+      const named = new Set(children.filter((layer) => layer.label !== undefined && LEGEND_LAYERS.has(layer.type)).map((layer) => layer.group));
+      for (const { group } of children) if (group !== undefined && !named.has(group)) unnamed.add(group);
+      return;
+    }
+    if (node.group !== undefined) unnamed.add(node.group);
+    for (const name of node.groups?.values() ?? []) unnamed.add(name);
+    children.forEach(visit);
+  };
+  for (const step of steps) visit(step.root);
+  return [...groups].filter((name) => unnamed.has(name));
 }
 
 function plainString(value: unknown, path: string, what: string): string {

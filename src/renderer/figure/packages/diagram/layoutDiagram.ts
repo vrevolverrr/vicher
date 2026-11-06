@@ -10,6 +10,8 @@ const MAX_HEIGHT = 260;
 const CHAR_WIDTH = 7.5;
 /** More than the 2 px margin `placeLabels` counts a line crossing within. */
 const LABEL_GAP = 3;
+/** Past this many dots labels ignore them, since placing against a cloud costs more than it saves. */
+const LABEL_AVOIDS_DOTS = 256;
 
 type Marked = { group?: string | undefined; state?: string | undefined };
 
@@ -140,7 +142,8 @@ export function layoutDiagram(diagram: Diagram, extent: Extent, available: numbe
   const outer = { x0: -left, y0: -top, x1: width + right, y1: height + bottom };
   // A label pushed past the top or bottom (one on a line along the edge) grows the drawing instead of covering the line.
   const spare = Math.max(0, ...labels.map((item) => item.height)) + LABEL_GAP * 2;
-  const placed = placeLabels(labels, { ...outer, y0: outer.y0 - spare, y1: outer.y1 + spare }, lines);
+  const dots = marks.flatMap((mark) => (mark.shape === 'circle' && (mark.className === 'is-point' || mark.className === 'is-ring') ? [{ x0: mark.cx - mark.r - 1, y0: mark.cy - mark.r - 1, x1: mark.cx + mark.r + 1, y1: mark.cy + mark.r + 1 }] : []));
+  const placed = placeLabels(labels, { ...outer, y0: outer.y0 - spare, y1: outer.y1 + spare }, lines, dots.length > LABEL_AVOIDS_DOTS ? [] : dots);
   const needed: Room = {
     left: Math.max(left, -Math.min(0, ...placed.map((at) => at.x))),
     right: Math.max(right, Math.max(width, ...placed.map((at, i) => at.x + labels[i].width)) - width),

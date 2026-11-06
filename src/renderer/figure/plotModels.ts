@@ -35,7 +35,7 @@ export function plotModel(plot: Plot, colorOf: ColorOf = () => undefined): PlotM
         const to = layer.to ?? x[1];
         const top = typeof layer.top === 'string' ? curve(layer.top) : ([[from, layer.top], [to, layer.top]] as Point[]);
         const lower = typeof layer.base === 'string' ? curve(layer.base) : undefined;
-        return [{ kind: 'area', points: top, base: typeof layer.base === 'number' ? layer.base : 0, ...(lower ? { lower } : {}), from, to, label, ...marks }];
+        return [{ kind: 'area', points: top, base: typeof layer.base === 'number' ? layer.base : 0, ...(lower ? { lower } : {}), from, to, label, ...(typeof layer.top === 'number' && layer.from !== undefined && layer.to !== undefined ? { bar: true } : {}), ...marks }];
       }
       case 'Shape': {
         const pts = layer.pts.map(([x, y]): Point => [x, y]);
@@ -45,8 +45,14 @@ export function plotModel(plot: Plot, colorOf: ColorOf = () => undefined): PlotM
         return [{ kind: 'line', points: circle(layer.at, layer.r), label, ...marks }];
       case 'Vector':
         return [{ kind: 'arrow', from: [...layer.from], to: [...layer.to], label, ...marks }];
-      case 'Segment':
-        return [{ kind: 'line', points: [[...layer.from], [...layer.to]], label, ...marks }];
+      case 'Segment': {
+        // A 2D Segment's label names the line it sits on, so it is a note and takes no colour from a group of that name.
+        const own = { ...marks, color: colorOf(layer.group) };
+        return [
+          { kind: 'line', points: [[...layer.from], [...layer.to]], neutral: true, ...own },
+          ...(label === undefined ? [] : [{ kind: 'note' as const, x: (layer.from[0] + layer.to[0]) / 2, y: (layer.from[1] + layer.to[1]) / 2, text: label, ...own }]),
+        ];
+      }
       case 'Points':
         return layer.pts.map(([x, y], i): Layer => ({ kind: 'dot', x, y, label: i === 0 ? label : undefined, ...marks }));
       case 'Label':

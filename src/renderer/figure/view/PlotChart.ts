@@ -3,7 +3,7 @@ import { isPlain } from '@/renderer/figure/figureText';
 import type { Layer, PlotModel, Point } from '@/renderer/figure/packages/plot/PlotModel';
 import { mixModel, modelDistance, type ResolvedModel, sameShape } from '@/renderer/figure/packages/plot/mixModel';
 import { type CategoryLabels, layoutPlot, TICK_CHAR_WIDTH, TICK_GAP } from '@/renderer/figure/packages/plot/layoutPlot';
-import { barSteps, minus, tickText } from '@/renderer/figure/packages/plot/plotMath';
+import { barSteps, minus, tickTexts } from '@/renderer/figure/packages/plot/plotMath';
 import { fitY } from '@/renderer/figure/packages/plot/range';
 import { type LabelBox, placeLabels } from '@/renderer/figure/placeLabels';
 
@@ -29,6 +29,7 @@ function key(label: HTMLElement, color: string, kind: string): HTMLElement {
   return item;
 }
 
+const LABEL_AVOIDS_DOTS = 256;
 const readout = (v: number) => minus(String(+v.toPrecision(4)));
 const seriesColor = (n: number) => `var(--vicher-series-${((n - 1) % SERIES) + 1})`;
 
@@ -154,12 +155,14 @@ export class PlotChart {
     const colors = this.assignColors(model.layers);
     this.drawLegend(model, colors);
 
-    for (const v of layout.yTicks) {
+    const yTexts = tickTexts(layout.yTicks);
+    const xTexts = tickTexts(xTicks);
+    layout.yTicks.forEach((v, i) => {
       svg('line', { x1: margin.left, x2: margin.left + pw, y1: sy(v), y2: sy(v), class: v === 0 ? 'vicher-plot-axis' : 'vicher-plot-grid' }, root);
-      svg('text', { x: margin.left - TICK_GAP, y: sy(v) + 4, 'text-anchor': 'end', class: 'vicher-plot-tick' }, root, tickText(v));
-    }
+      svg('text', { x: margin.left - TICK_GAP, y: sy(v) + 4, 'text-anchor': 'end', class: 'vicher-plot-tick' }, root, yTexts[i]);
+    });
     svg('line', { x1: margin.left, x2: margin.left + pw, y1: margin.top + ph, y2: margin.top + ph, class: 'vicher-plot-axis' }, root);
-    for (const v of xTicks) svg('text', { x: sx(v), y: margin.top + ph + 17, 'text-anchor': 'middle', class: 'vicher-plot-tick' }, root, tickText(v));
+    xTicks.forEach((v, i) => svg('text', { x: sx(v), y: margin.top + ph + 17, 'text-anchor': 'middle', class: 'vicher-plot-tick' }, root, xTexts[i]));
     if (model.yLabel) {
       if (isPlain(model.yLabel)) svg('text', { x: 0, y: 0, 'text-anchor': 'middle', transform: `translate(${12 + shift} ${margin.top + ph / 2}) rotate(-90)`, class: 'vicher-plot-tick vicher-plot-title' }, root, model.yLabel);
       else this.place(this.typeset(model.yLabel, 'is-title is-vertical'), 7 + shift, margin.top + ph / 2);
@@ -197,7 +200,7 @@ export class PlotChart {
             ? lower.filter(([x]) => x >= first[0] && x <= last[0]).reverse()
             : [[last[0], layer.base], [first[0], layer.base]] as [number, number][];
           if (!back.length) continue;
-          markData(svg('path', { d: `${path(run)}L${path(back).slice(1)}Z`, fill: color, 'fill-opacity': 0.18, stroke: layer.state ? color : undefined, class: 'vicher-plot-area' }, target), layer);
+          markData(svg('path', { d: `${path(run)}L${path(back).slice(1)}Z`, fill: color, 'fill-opacity': layer.bar ? 0.8 : 0.18, stroke: layer.state ? (layer.bar ? 'var(--text-normal)' : color) : undefined, class: 'vicher-plot-area' }, target), layer);
         }
       } else if (layer.kind === 'line') {
         for (const run of runs(layer.points)) markData(svg('path', { d: path(run), stroke: color, class: 'vicher-plot-line' }, data), layer);
@@ -239,7 +242,10 @@ export class PlotChart {
       const box = item.el?.getBoundingClientRect();
       if (box?.width) Object.assign(item, { width: box.width, height: box.height });
     }
-    placeLabels(pending, { x0: margin.left, y0: margin.top, x1: margin.left + pw, y1: margin.top + ph }, avoid).forEach((at, i) => {
+    const dots = model.layers.flatMap((l) => (l.kind === 'dot' ? [{ x: sx(l.x), y: sy(l.y), r: l.state === 'active' ? 11 : 6 }] : []));
+    // shortcut: a cloud of dots is not avoided, since labels are placed every animation frame; raise it if clouds lose their labels.
+    const fixed = dots.length > LABEL_AVOIDS_DOTS ? [] : dots.map(({ x, y, r }) => ({ x0: x - r, y0: y - r, x1: x + r, y1: y + r }));
+    placeLabels(pending, { x0: margin.left, y0: margin.top, x1: margin.left + pw, y1: margin.top + ph }, avoid, fixed).forEach((at, i) => {
       const { text, strong, height, el, ink, dim } = pending[i];
       if (el) {
         this.place(el, at.x, at.y);

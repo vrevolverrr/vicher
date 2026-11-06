@@ -73,5 +73,11 @@ export function barSteps(values: readonly (number | null)[], mode: 'bars' | 'wat
 }
 
 export const minus = (text: string): string => text.replaceAll('-', '−');
-/** A tick value as shown: thousands as K, and below 0.001 in significant digits, which fixed decimals would round to 0. */
-export const tickText = (v: number): string => (Math.abs(v) >= 10000 ? `${minus(String(+(v / 1000).toFixed(1)))}K` : minus(String(v !== 0 && Math.abs(v) < 1e-3 ? +v.toPrecision(3) : +v.toFixed(4))));
+/** An axis's ticks as shown: all in K when any reaches 10000, and below 0.001 in significant digits, which fixed decimals would round to 0. */
+export function tickTexts(ticks: readonly number[]): string[] {
+  const thousands = ticks.some((v) => Math.abs(v) >= 10000);
+  return ticks.map((v) => {
+    if (thousands && v !== 0) return `${minus(String(+(v / 1000).toFixed(1)))}K`;
+    return minus(String(v !== 0 && Math.abs(v) < 1e-3 ? +v.toPrecision(3) : +v.toFixed(4)));
+  });
+}

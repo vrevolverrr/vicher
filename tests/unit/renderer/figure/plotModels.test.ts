@@ -53,6 +53,18 @@ describe('a layer\'s colour', () => {
     expect(layers({ type: 'Shape', ...shape, label: 'missed' })[0]).toMatchObject({ color: 'red' });
   });
 
+  it('writes a 2D Segment\'s label on the plot and leaves the line neutral', () => {
+    const layers = plotModel({ type: 'Plot', x: [0, 2], children: [{ type: 'Segment', from: [0, 1], to: [2, 1], label: 'limit' }] } as never, () => undefined).layers;
+    expect(layers).toMatchObject([{ kind: 'line', neutral: true }, { kind: 'note', x: 1, y: 1, text: 'limit' }]);
+    expect(layers[0]).not.toHaveProperty('label');
+  });
+
+  it('marks a Region with a number top and both ends as a bar, and no other', () => {
+    const area = (props: object) => plotModel({ type: 'Plot', x: [0, 2], children: [{ type: 'Region', ...props }] } as never, () => undefined).layers[0];
+    expect(area({ top: 1, from: 0, to: 1 })).toMatchObject({ bar: true });
+    expect(area({ top: 1 })).not.toHaveProperty('bar');
+  });
+
   it('leaves only an unnamed Shape neutral', () => {
     const [unnamed, named] = layers({ type: 'Shape', ...shape }, { type: 'Shape', ...shape, label: 'observed' });
     expect(unnamed).toMatchObject({ neutral: true });

@@ -94,7 +94,7 @@ const keyed = <T extends string>(kind: Kind, word: string, problem: (name: unkno
   leaf(kind, isObject, `must be an object of id: ${word}`, (value: Record<string, unknown>) => {
     for (const key of Object.keys(value)) {
       const wrong = value[key] === null || value[key] === undefined ? undefined : problem(value[key]);
-      if (wrong) return `has a ${word} ${JSON.stringify(value[key])} for "${key}" that ${wrong}`;
+      if (wrong) return `has a ${word} ${typeof value[key] === 'string' ? JSON.stringify(value[key].slice(0, 60)) : `of type ${typeof value[key]}`} for "${key}" that ${wrong}`;
     }
     return undefined;
   }, (value: Record<string, unknown>) => new Map(Object.entries(dropAbsent(value)).map(([key, name]) => [key, read(name as never)])));

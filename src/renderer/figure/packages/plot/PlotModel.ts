@@ -4,7 +4,7 @@ export type Point = [number, number | null];
 export type Layer = (
   | { kind: 'line'; points: Point[]; label?: string; series?: number; neutral?: boolean }
   /** `lower`, when set, replaces the flat `base` as the edge shaded against; `from` and `to` limit the shading to an x range. */
-  | { kind: 'area'; points: Point[]; base: number; lower?: Point[]; from?: number; to?: number; label?: string; series?: number }
+  | { kind: 'area'; points: Point[]; base: number; lower?: Point[]; from?: number; to?: number; bar?: boolean; label?: string; series?: number }
   | { kind: 'bars'; values: (number | null)[]; mode: 'bars' | 'waterfall'; label?: string; series?: number }
   | { kind: 'dot'; x: number; y: number; label?: string; series?: number }
   | { kind: 'rule'; at: number; axis: 'x' | 'y'; label?: string; series?: number }

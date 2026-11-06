@@ -1,5 +1,5 @@
 import type { Plot3Model, Point3, View } from '@/renderer/figure/packages/plot3/Plot3Model';
-import { niceTicks, tickText } from '@/renderer/figure/packages/plot/plotMath';
+import { niceTicks, tickTexts } from '@/renderer/figure/packages/plot/plotMath';
 
 export type Xy = [number, number];
 export type Rgb = readonly [number, number, number];
@@ -263,10 +263,11 @@ export function scene3(model: Plot3Model, view: View, size: Size, colours: Colou
     const [lo, hi] = [model.x, model.y, model.z][k];
     const values = niceTicks(lo, hi, Math.max(2, Math.min(6, Math.round(length / 50))));
     let widest = 0;
-    for (const value of values) {
+    const texts = tickTexts(values);
+    for (const [i, value] of values.entries()) {
       const t = (value - lo) / (hi - lo);
       const at: Xy = [best.from[0] + (best.to[0] - best.from[0]) * t, best.from[1] + (best.to[1] - best.from[1]) * t];
-      const text = tickText(value);
+      const text = texts[i];
       widest = Math.max(widest, text.length);
       const textAt: Xy = [at[0] + out[0] * 12, at[1] + out[1] * 12 + 4];
       ticks.push({ at, to: [at[0] + out[0] * 5, at[1] + out[1] * 5], text, textAt, anchor, box: textBox(textAt, measure(text, TICK_PX), anchor, TICK_PX) });
