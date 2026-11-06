@@ -1,6 +1,7 @@
 import { type Extent, type Room } from '@/renderer/figure/packages/diagram/diagramExtent';
 import { estimateLabel, labelOf, layoutDiagram, type LabelSize } from '@/renderer/figure/packages/diagram/layoutDiagram';
-import { arrowHeads, div, type Markdown, svg, tagInk } from '@/renderer/figure/view/dom';
+import type { ColorOf } from '@/renderer/figure/marks';
+import { arrowHeads, div, type Markdown, markData, markInk, svg, textInk } from '@/renderer/figure/view/dom';
 import type { DiagramLayer, FigureNode } from '@/renderer/figure/FigureData';
 
 type Diagram = Extract<FigureNode, { type: 'Diagram' }>;
@@ -10,7 +11,14 @@ type Diagram = Extract<FigureNode, { type: 'Diagram' }>;
  * Returns the room past the border this drawing needs; it keeps at least `keep`, so every step of a figure can share the most
  * any step needs and nothing moves between them.
  */
-export function drawDiagram(el: HTMLElement, diagram: Diagram, extent: Extent, available: number, markdown: Markdown, keep?: Room): Room {
+export function drawDiagram(el: HTMLElement, diagram: Diagram, extent: Extent, available: number, markdown: Markdown, keep?: Room, colorOf: ColorOf = () => undefined): Room {
+  const paint = (el: HTMLElement | SVGElement, { group, state }: { group?: string | undefined; state?: string | undefined }): string | undefined => {
+    const marks = { group, color: colorOf(group), state };
+    const ink = el instanceof SVGElement ? markInk(marks) : textInk(marks);
+    if (ink) el.style.color = ink;
+    markData(el, marks);
+    return ink;
+  };
   el.replaceChildren();
   el.classList.add('vicher-figure-diagram');
   // Every label is drawn and then measured in one layout; one not laid out (no layout, or a render still running) keeps an estimate.
@@ -20,7 +28,7 @@ export function drawDiagram(el: HTMLElement, diagram: Diagram, extent: Extent, a
     const text = labelOf(layer);
     if (text === undefined) continue;
     const box = el.appendChild(div('vicher-figure-diagram-label'));
-    if (layer.tag) box.style.color = tagInk(layer.tag);
+    paint(box, layer);
     if (layer.type === 'Shape' && layer.closed) box.classList.add('is-inside');
     markdown(box, text);
     boxes.set(layer, box);
@@ -38,12 +46,13 @@ export function drawDiagram(el: HTMLElement, diagram: Diagram, extent: Extent, a
   el.prepend(root);
   const head = arrowHeads(root, { markerUnits: 'userSpaceOnUse', markerWidth: 11, markerHeight: 11 });
   for (const mark of layout.marks) {
-    const { shape, className, tag } = mark;
+    const { shape, className } = mark;
+    const ink = markInk({ color: colorOf(mark.group) });
     const attrs = mark.shape === 'path'
-      ? { d: mark.d, fill: 'none', ...(mark.arrow ? { 'marker-end': head(tag ? tagInk(tag) : 'var(--vicher-figure-ink)') } : {}) }
+      ? { d: mark.d, fill: 'none', ...(mark.arrow ? { 'marker-end': head(ink ?? 'var(--vicher-figure-ink)') } : {}) }
       : { cx: mark.cx, cy: mark.cy, r: mark.r, ...(className === 'is-point' ? {} : { fill: 'none' }) };
     const el = svg(shape, { ...attrs, class: `vicher-figure-mark${className ? ` ${className}` : ''}` }, root);
-    if (tag) el.style.color = tagInk(tag);
+    paint(el, mark);
   }
   const shown = new Set<HTMLElement>();
   for (const { layer, x, y } of layout.labels) {

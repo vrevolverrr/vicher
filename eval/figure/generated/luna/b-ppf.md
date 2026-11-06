@@ -1,22 +1,23 @@
-A production possibilities frontier (PPF) shows the maximum combinations of two goods an economy can produce with its resources. As production shifts toward one good, the resources used may be less suited to it, so each extra unit can cost more of the other good.
+A **production possibilities frontier (PPF)** shows the maximum combinations of two goods an economy can make with its available resources and technology. When the frontier bends outward, producing more of one good means giving up increasingly more of the other.
 
-For this example, let the frontier be:
-
-$$Y = 100 - X^2$$
-
-At $X=2$, the economy can make $Y=96$. Raising $X$ from 2 to 3 lowers $Y$ from 96 to 91, a cost of 5 units. Later, raising $X$ from 6 to 7 lowers $Y$ from 64 to 51, a cost of 13 units. The same extra unit of $X$ costs more $Y$ as production moves along the frontier.
+For example, moving along the frontier from A to B to C to D, production of Good X rises by 2 units each time. Good Y falls by 1, then 3, then 5 units, so the opportunity cost of producing more X increases.
 
 ```figure
 export default function () {
   return (
-    <Plot id="ppf" x={[0, 10]} y={[0, 100]} xLabel="Good X" yLabel="Good Y">
-      <Fn id="frontier" f={x => 100 - x * x} from={0} to={10} label="PPF" />
-      <Points pts={[[2, 96]]} label="(2, 96)" />
-      <Points pts={[[3, 91]]} label="(3, 91)" />
-      <Points pts={[[6, 64]]} label="(6, 64)" />
-      <Points pts={[[7, 51]]} label="(7, 51)" />
+    <Plot id="frontier" x={[0, 6]} y={[0, 10]} xLabel="Good X" yLabel="Good Y">
+      <Fn id="ppf" f={x => 10 - 0.25 * x * x} from={0} to={6} label="PPF" />
+      <Points id="a" pts={[[0, 10]]} />
+      <Points id="b" pts={[[2, 9]]} />
+      <Points id="c" pts={[[4, 6]]} />
+      <Points id="d" pts={[[6, 1]]} />
+      <Label at={[0, 10]} text="A" />
+      <Label at={[2, 9]} text="B" />
+      <Label at={[4, 6]} text="C" />
+      <Label at={[6, 1]} text="D" />
     </Plot>
   );
 }
 ```
 
+  

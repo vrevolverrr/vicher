@@ -1,21 +1,8 @@
-Series loop: battery, switch, resistor, capacitor, back to the battery. The figure tool cannot draw circuits, so this flowchart shows the layout only.
+The figure tool cannot draw electrical circuits, so the diagram is described in words. Trace one closed loop with four elements in series:
 
-```mermaid
-flowchart LR
-    B["Battery, $$V$$"] --> S["Switch, S"]
-    S --> R["Resistor, $$R$$"]
-    R --> C["Capacitor, $$C$$"]
-    C --> B
-```
+1. **Battery** $V$: positive terminal to the switch.
+2. **Switch** $S$.
+3. **Resistor** $R$.
+4. **Capacitor** $C$, then back to the battery's negative terminal.
 
-The arrows give the loop order. They do not show current direction.
-
-For a true schematic, use these symbols in the same loop:
-- Battery: a long line and a short line, pair repeated.
-- Switch: two terminals with an open gap and a hinged arm.
-- Resistor: a zigzag.
-- Capacitor: two parallel plates.
-
-When the switch closes, current flows and the capacitor charges. The time constant is $\tau = RC$.
-
-Not checked: a rendered schematic. This is layout only.
+The loop has no branches. Opening the switch breaks the loop and stops the current. The capacitor starts uncharged, and closing the switch starts it charging through $R$.

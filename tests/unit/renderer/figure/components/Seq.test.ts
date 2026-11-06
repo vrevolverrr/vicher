@@ -15,4 +15,8 @@ describe('Seq', () => {
   ])('refuses %j', (props, message) => {
     expect(read(el('Seq', props))).toBe(message);
   });
+
+  it('reads a state written on an item as if in the states map', () => {
+    expect(read(el('Seq', { items: [{ id: 'a', label: '1', state: 'active' }] }))).toMatchObject({ states: new Map([['a', 'active']]), items: [{ id: 'a', label: '1' }] });
+  });
 });

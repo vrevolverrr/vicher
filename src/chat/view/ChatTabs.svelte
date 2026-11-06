@@ -64,7 +64,7 @@
   }
 
   const fit = (bar: HTMLElement) => {
-    const observer = new ResizeObserver(() => (width = bar.clientWidth));
+    const observer = new (bar.ownerDocument.defaultView!.ResizeObserver)(() => (width = bar.clientWidth));
     observer.observe(bar);
     width = bar.clientWidth;
     return () => observer.disconnect();

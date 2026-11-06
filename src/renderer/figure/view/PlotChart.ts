@@ -1,9 +1,9 @@
-import { div, reducedMotion, svg, tagInk } from '@/renderer/figure/view/dom';
+import { div, markData, markInk, reducedMotion, svg, textInk } from '@/renderer/figure/view/dom';
 import { isPlain } from '@/renderer/figure/figureText';
 import type { Layer, PlotModel, Point } from '@/renderer/figure/packages/plot/PlotModel';
 import { mixModel, modelDistance, type ResolvedModel, sameShape } from '@/renderer/figure/packages/plot/mixModel';
 import { type CategoryLabels, layoutPlot, TICK_CHAR_WIDTH, TICK_GAP } from '@/renderer/figure/packages/plot/layoutPlot';
-import { barSteps, minus, tickText } from '@/renderer/figure/packages/plot/plotMath';
+import { barSteps, minus, tickTexts } from '@/renderer/figure/packages/plot/plotMath';
 import { fitY } from '@/renderer/figure/packages/plot/range';
 import { type LabelBox, placeLabels } from '@/renderer/figure/placeLabels';
 
@@ -29,6 +29,7 @@ function key(label: HTMLElement, color: string, kind: string): HTMLElement {
   return item;
 }
 
+const LABEL_AVOIDS_DOTS = 256;
 const readout = (v: number) => minus(String(+v.toPrecision(4)));
 const seriesColor = (n: number) => `var(--vicher-series-${((n - 1) % SERIES) + 1})`;
 
@@ -154,12 +155,14 @@ export class PlotChart {
     const colors = this.assignColors(model.layers);
     this.drawLegend(model, colors);
 
-    for (const v of layout.yTicks) {
+    const yTexts = tickTexts(layout.yTicks);
+    const xTexts = tickTexts(xTicks);
+    layout.yTicks.forEach((v, i) => {
       svg('line', { x1: margin.left, x2: margin.left + pw, y1: sy(v), y2: sy(v), class: v === 0 ? 'vicher-plot-axis' : 'vicher-plot-grid' }, root);
-      svg('text', { x: margin.left - TICK_GAP, y: sy(v) + 4, 'text-anchor': 'end', class: 'vicher-plot-tick' }, root, tickText(v));
-    }
+      svg('text', { x: margin.left - TICK_GAP, y: sy(v) + 4, 'text-anchor': 'end', class: 'vicher-plot-tick' }, root, yTexts[i]);
+    });
     svg('line', { x1: margin.left, x2: margin.left + pw, y1: margin.top + ph, y2: margin.top + ph, class: 'vicher-plot-axis' }, root);
-    for (const v of xTicks) svg('text', { x: sx(v), y: margin.top + ph + 17, 'text-anchor': 'middle', class: 'vicher-plot-tick' }, root, tickText(v));
+    xTicks.forEach((v, i) => svg('text', { x: sx(v), y: margin.top + ph + 17, 'text-anchor': 'middle', class: 'vicher-plot-tick' }, root, xTexts[i]));
     if (model.yLabel) {
       if (isPlain(model.yLabel)) svg('text', { x: 0, y: 0, 'text-anchor': 'middle', transform: `translate(${12 + shift} ${margin.top + ph / 2}) rotate(-90)`, class: 'vicher-plot-tick vicher-plot-title' }, root, model.yLabel);
       else this.place(this.typeset(model.yLabel, 'is-title is-vertical'), 7 + shift, margin.top + ph / 2);
@@ -174,9 +177,9 @@ export class PlotChart {
     svg('rect', { x: margin.left - 2, y: margin.top - 2, width: pw + 4, height: ph + 4 }, svg('clipPath', { id: clipId }, svg('defs', {}, root)));
     const data = svg('g', { 'clip-path': `url(#${clipId})` }, root);
     const path = (points: readonly [number, number][]) => 'M' + points.map(([x, y]) => `${sx(x).toFixed(1)},${sy(y).toFixed(1)}`).join('L');
-    const pending: (LabelBox & { text: string; strong: boolean; el?: HTMLElement })[] = [];
-    const label = (x: number, y: number, text: string, strong: boolean, center = false) =>
-      pending.push({ x, y, width: text.length * TICK_CHAR_WIDTH, height: 14, text, strong, center, el: isPlain(text) ? undefined : this.typeset(text, strong ? 'is-strong' : '') });
+    const pending: (LabelBox & { text: string; strong: boolean; el?: HTMLElement; ink?: string; dim?: boolean })[] = [];
+    const label = (x: number, y: number, text: string, strong: boolean, center = false, ink?: string, dim = false) =>
+      pending.push({ x, y, width: text.length * TICK_CHAR_WIDTH, height: 14, text, strong, center, ink, dim, el: isPlain(text) ? undefined : this.typeset(text, strong ? 'is-strong' : '') });
 
     model.layers.forEach((layer, index) => {
       const color = colors[index];
@@ -197,10 +200,10 @@ export class PlotChart {
             ? lower.filter(([x]) => x >= first[0] && x <= last[0]).reverse()
             : [[last[0], layer.base], [first[0], layer.base]] as [number, number][];
           if (!back.length) continue;
-          svg('path', { d: `${path(run)}L${path(back).slice(1)}Z`, fill: color, 'fill-opacity': 0.18, class: 'vicher-plot-area' }, target);
+          markData(svg('path', { d: `${path(run)}L${path(back).slice(1)}Z`, fill: color, 'fill-opacity': layer.bar ? 0.8 : 0.18, stroke: layer.state ? (layer.bar ? 'var(--text-normal)' : color) : undefined, class: 'vicher-plot-area' }, target), layer);
         }
       } else if (layer.kind === 'line') {
-        for (const run of runs(layer.points)) svg('path', { d: path(run), stroke: color, class: 'vicher-plot-line' }, data);
+        for (const run of runs(layer.points)) markData(svg('path', { d: path(run), stroke: color, class: 'vicher-plot-line' }, data), layer);
       }
     });
 
@@ -216,15 +219,18 @@ export class PlotChart {
         svg('line', vertical ? { x1: at, x2: at, y1: margin.top, y2: margin.top + ph, stroke: color, class: 'vicher-plot-rule' } : { x1: margin.left, x2: margin.left + pw, y1: at, y2: at, stroke: color, class: 'vicher-plot-rule' }, root);
         if (layer.label) label(vertical ? at : margin.left + pw, vertical ? margin.top : at, layer.label, true);
       } else if (layer.kind === 'dot') {
-        svg('circle', { cx: sx(layer.x), cy: sy(layer.y), r: 5, fill: color, class: 'vicher-plot-dot' }, root);
+        const dot = svg('circle', { cx: sx(layer.x), cy: sy(layer.y), r: 5, fill: color, class: 'vicher-plot-dot' }, root);
+        dot.style.color = color;
+        markData(dot, layer);
+        if (layer.state === 'active') svg('circle', { cx: sx(layer.x), cy: sy(layer.y), r: 9, class: 'vicher-plot-ring' }, root);
         if (layer.label) label(sx(layer.x), sy(layer.y), layer.label, true);
       } else if (layer.kind === 'note') {
-        label(sx(layer.x), sy(layer.y), layer.text, false, true);
+        label(sx(layer.x), sy(layer.y), layer.text, layer.state === 'active', true, textInk(layer), layer.state === 'dim');
       } else if (layer.kind === 'arrow') {
         const marker = `${clipId}-arrow-${index}`;
         const head = svg('marker', { id: marker, viewBox: '0 0 10 10', refX: 9, refY: 5, markerUnits: 'userSpaceOnUse', markerWidth: 12, markerHeight: 12, orient: 'auto-start-reverse' }, svg('defs', {}, root));
         svg('path', { d: 'M0 0L10 5L0 10z', fill: color }, head);
-        svg('path', { d: path([layer.from, layer.to]), stroke: color, 'marker-end': `url(#${marker})`, class: 'vicher-plot-line vicher-plot-arrow' }, data);
+        markData(svg('path', { d: path([layer.from, layer.to]), stroke: color, 'marker-end': `url(#${marker})`, class: 'vicher-plot-line vicher-plot-arrow' }, data), layer);
         if (layer.label) label(sx((layer.from[0] + layer.to[0]) / 2), sy((layer.from[1] + layer.to[1]) / 2), layer.label, true);
       }
     });
@@ -236,10 +242,17 @@ export class PlotChart {
       const box = item.el?.getBoundingClientRect();
       if (box?.width) Object.assign(item, { width: box.width, height: box.height });
     }
-    placeLabels(pending, { x0: margin.left, y0: margin.top, x1: margin.left + pw, y1: margin.top + ph }, avoid).forEach((at, i) => {
-      const { text, strong, height, el } = pending[i];
-      if (el) this.place(el, at.x, at.y);
-      else this.text(root, at.x, at.y + height - 3, text, 'start', strong);
+    const dots = model.layers.flatMap((l) => (l.kind === 'dot' ? [{ x: sx(l.x), y: sy(l.y), r: l.state === 'active' ? 11 : 6 }] : []));
+    // shortcut: a cloud of dots is not avoided, since labels are placed every animation frame; raise it if clouds lose their labels.
+    const fixed = dots.length > LABEL_AVOIDS_DOTS ? [] : dots.map(({ x, y, r }) => ({ x0: x - r, y0: y - r, x1: x + r, y1: y + r }));
+    placeLabels(pending, { x0: margin.left, y0: margin.top, x1: margin.left + pw, y1: margin.top + ph }, avoid, fixed).forEach((at, i) => {
+      const { text, strong, height, el, ink, dim } = pending[i];
+      if (el) {
+        this.place(el, at.x, at.y);
+        if (ink) el.style.color = ink;
+      }
+      const drawn = el ?? this.text(root, at.x, at.y + height - 3, text, 'start', strong, ink);
+      drawn.classList.toggle('is-dim', dim === true);
     });
 
     if (!cats && interactive) this.addHover(model, colors, { x0, x1, y0, y1, margin, pw, ph, sx, sy });
@@ -249,8 +262,11 @@ export class PlotChart {
   private assignColors(layers: readonly Layer[]): string[] {
     let next = 1;
     return layers.map((layer) => {
-      if (layer.tag) return tagInk(layer.tag);
+      const ink = markInk(layer);
+      if (ink) return ink;
       if (layer.kind === 'note') return 'var(--text-normal)';
+      // Unnamed Shapes are usually one kind of thing, such as 20 confidence intervals, so a colour is for the one that differs.
+      if (layer.kind === 'line' && layer.neutral) return 'var(--text-muted)';
       if (layer.series !== undefined) return seriesColor(layer.series);
       if (layer.kind === 'dot' || layer.kind === 'arrow') return 'var(--text-normal)';
       if (layer.kind === 'rule') return 'var(--text-muted)';
@@ -307,8 +323,10 @@ export class PlotChart {
     el.style.top = `${y}px`;
   }
 
-  private text(parent: Element, x: number, y: number, text: string, anchor: 'start' | 'middle' | 'end', strong: boolean): void {
-    svg('text', { x, y, 'text-anchor': anchor, class: `vicher-plot-label${strong ? ' is-strong' : ''}` }, parent, text);
+  private text(parent: Element, x: number, y: number, text: string, anchor: 'start' | 'middle' | 'end', strong: boolean, ink?: string): SVGElement {
+    const label = svg('text', { x, y, 'text-anchor': anchor, class: `vicher-plot-label${strong ? ' is-strong' : ''}` }, parent, text);
+    if (ink) label.style.fill = ink;
+    return label;
   }
 
   private drawBars(layer: Extract<Layer, { kind: 'bars' }>, color: string, cats: string[], labels: CategoryLabels, g: { margin: { top: number; left: number }; pw: number; ph: number; sy: (y: number) => number }): void {

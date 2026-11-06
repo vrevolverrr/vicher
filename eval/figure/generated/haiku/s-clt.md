@@ -1,74 +1,24 @@
-The central limit theorem says that averages of many independent values form a bell curve, even when the values themselves do not. This lets you use normal-based tests and intervals without knowing the population's shape.
+The Central Limit Theorem says that the average of many draws looks roughly normal, even when the population the draws come from is skewed. Each sample mean $\bar{x}$ is one number. Collect many of them and their histogram becomes a bell curve as the sample size $n$ grows.
 
-Precisely: if $X_1, \dots, X_n$ are independent and identically distributed, with mean $\mu$ and finite variance $\sigma^2$, then for large $n$ the sample mean is approximately normal:
+The figure uses an exponential population with $\mu = 1$ and $\sigma = 1$. Its skewness is 2, so it is far from normal. The exact curve for the sample mean is drawn in colour. Move the slider to change $n$.
 
-$$\bar X \approx N\!\left(\mu,\ \frac{\sigma^2}{n}\right)$$
+## The formula
 
-Here $\mu$ is the population mean, $\sigma$ is its standard deviation, and $n$ is the sample size. The spread of the means, $\sigma/\sqrt{n}$, is called the standard error. Drag the slider to change $n$. The bars are 1,000 simulated sample means. The curve is the normal approximation.
+For independent draws with mean $\mu$ and standard deviation $\sigma$, the sample mean is approximately normal when $n$ is large:
 
-```figure
-export const params = { n: { label: 'Sample size n', min: 1, max: 50, step: 1, value: 2 } };
+$$\bar{x} \approx N\!\left(\mu,\ \frac{\sigma^2}{n}\right)$$
 
-const M = 1000;   // number of sample means drawn
-const BINS = 40;  // histogram bars
-const pdf = x => Math.exp(-x);   // population: exponential, rate 1, mean 1, sd 1
+Here $\mu$ is the population mean, $\sigma$ is the population standard deviation, and $n$ is the sample size. The spread of $\bar{x}$ is $\sigma/\sqrt{n}$, so it shrinks as $n$ grows.
 
-export default function ({ n }) {
-  // seeded generator: the same n always gives the same picture
-  let seed = 12345;
-  const rand = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return (seed + 0.5) / 4294967296; };
+## Worked example, n = 4
 
-  const means = [];
-  for (let k = 0; k < M; k++) {
-    let sum = 0;
-    for (let j = 0; j < n; j++) sum += -Math.log(rand());
-    means.push(sum / n);
-  }
-  const mean = means.reduce((a, b) => a + b, 0) / M;
-  const sd = Math.sqrt(means.reduce((a, b) => a + (b - mean) ** 2, 0) / M);
+Here $\mu = 1$ and $\sigma = 1$, so $\bar{x} \approx N(1, 0.5^2)$. Find $P(\bar{x} > 1.5)$.
 
-  const se = 1 / Math.sqrt(n);   // theory: sd of the sample mean is sigma / sqrt(n)
-  const lo = Math.max(0, 1 - 4 * se), hi = 1 + 4 * se;
-  const w = (hi - lo) / BINS;
-  const counts = new Array(BINS).fill(0);
-  for (const m of means) {
-    if (m < lo || m >= hi) continue;
-    counts[Math.min(BINS - 1, Math.floor((m - lo) / w))]++;
-  }
-  const bars = counts.map((c, i) => (
-    <Region key={i} top={c / (M * w)} from={lo + i * w} to={lo + (i + 1) * w} />
-  ));
-  const normal = x => Math.exp(-((x - 1) ** 2) / (2 * se * se)) / (se * Math.sqrt(2 * Math.PI));
+- Normal approximation: $z = (1.5 - 1)/0.5 = 1$, so $P \approx 0.1587$.
+- Exact value, from the Gamma distribution of the sum: $P = 61e^{-6} \approx 0.1512$.
 
-  return (
-    <Panel title="Sample means from an exponential population">
-      <Column gap="md">
-        <Row gap="lg" align="center">
-          <Plot id="pop" x={[0, 4]} y={[0, 1]} xLabel="x" yLabel="density">
-            <Fn id="pdf" f={pdf} from={0} to={4} label="Population" />
-          </Plot>
-          <Plot id="means" x={[lo, hi]} xLabel="sample mean" yLabel="density">
-            {bars}
-            <Fn id="normal" f={normal} from={lo} to={hi} label="Normal curve" />
-          </Plot>
-        </Row>
-        <Row gap="md" align="start">
-          <Node id="mu" label={mean.toFixed(3)} sub="mean of means (theory 1)" />
-          <Node id="sd" label={sd.toFixed(3)} sub={`spread (theory ${se.toFixed(3)})`} />
-        </Row>
-      </Column>
-    </Panel>
-  );
-}
-```
+The approximation is close but not exact. At $n = 4$ the skewness of $\bar{x}$ is still $2/\sqrt{4} = 1$.
 
-The population here is exponential with rate 1, so $\mu = 1$ and $\sigma = 1$. It is strongly right-skewed: most values are small, and a few are large. Take $n = 25$:
+The theorem fails when the variance is infinite, as it is for the Cauchy distribution.
 
-1. Standard error: $\sigma/\sqrt{n} = 1/\sqrt{25} = 0.2$.
-2. Find the chance that the mean of 25 values exceeds 1.4.
-3. Convert to a z-score: $z = (1.4 - 1)/0.2 = 2$.
-4. Read the normal table: $P(\bar X > 1.4) \approx P(Z > 2) \approx 0.023$.
-
-The approximation is rough at small $n$. At $n = 4$, the normal curve gives about 0.023 for the mean exceeding 2, but the exact value is about 0.042. Move the slider down to 4 and compare the bars with the curve.
-
-Not checked: I did not render or run the figure, so the slider and layout are unverified. Risk: the bar heights are densities, so they match the normal curve only if the bin width and sample count are right.
+Not run: I did not render the figure. The $n = 4$ values were worked by hand.

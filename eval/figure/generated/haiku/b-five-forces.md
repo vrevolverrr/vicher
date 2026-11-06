@@ -1,22 +1,22 @@
 ```mermaid
-flowchart LR
-    NE["Threat of new entrants<br/>Medium"]
-    SU["Supplier power<br/>Medium"]
-    BU["Buyer power<br/>High"]
-    SB["Threat of substitutes<br/>High"]
-    RI["Rivalry among existing firms<br/>High"]
-    NE --> RI
-    SU --> RI
-    BU --> RI
-    SB --> RI
+flowchart TB
+    NE["Threat of new entrants<br/>Independent cafés open cheaply"]
+    SP["Supplier power<br/>Beans, milk, cups, machines"]
+    BP["Buyer power<br/>Customers switch easily"]
+    SU["Threat of substitutes<br/>Tea, energy drinks, home coffee"]
+    RV["Competitive rivalry<br/>Many cafés compete on location and price"]
+    NE --> RV
+    SP --> RV
+    BP --> RV
+    SU --> RV
 ```
 
-| Force | Strength | Coffee-chain driver |
+| Force | Level | Coffee chain reason |
 |---|---|---|
-| New entrants | Medium | Independent cafés open cheaply, but prime sites, brand, and scale raise the bar. |
-| Supplier power | Medium | Beans are a commodity with volatile prices. Few large roasters and espresso-machine makers. |
-| Buyer power | High | Switching cost is near zero. Customers compare prices and nearby options. |
-| Substitutes | High | Home brewing, instant coffee, tea, convenience-store coffee, and drive-thrus. |
-| Rivalry | High | Chains, independents, fast food, and convenience stores compete for the same sites and hours. |
+| Threat of new entrants | High | Small cafés need little capital. Chain stores need more. |
+| Supplier power | Medium | Beans come from few large traders, so prices swing. Milk and cups are common goods. |
+| Buyer power | Medium to high | Customers pay little to switch. Loyalty apps reduce this. |
+| Threat of substitutes | High | Tea, energy drinks and home coffee machines replace a café visit. |
+| Competitive rivalry | High | Many cafés compete on the same locations, drinks and prices. |
 
-Not checked: real market data for any named chain. The ratings are judgment, so they may differ by city or country. Test them against local sales and lease data before you use them for a decision.
+Skipped: market size, local competitor data and financials. Not checked: your target market. These levels are general, so check them against local data before you use them in a decision.

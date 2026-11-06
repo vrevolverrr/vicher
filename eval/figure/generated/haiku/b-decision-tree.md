@@ -1,17 +1,19 @@
-**Launch.** Expected value is **+$48k**, versus $0 for not launching.
+**Launch.** Expected value is **$48k**, against **$0** for not launching.
 
-I read the $150k and $20k as gross receipts, with the $50k cost paid either way. Net outcomes are +$100k (60%) and -$30k (40%).
+I read $150k and $20k as gross returns, with the $50k cost paid in both launch outcomes.
 
 ```mermaid
 flowchart LR
-  D{Launch?} -->|No, $0| N["EV: $0"]
-  D -->|Yes, pay $50k| C(("Market: EV $48k"))
-  C -->|"60%: gross $150k"| S["Net +$100k"]
-  C -->|"40%: gross $20k"| F["Net -$30k"]
+    D{Decision} -->|Launch| C(("Chance<br/>EV = $48k"))
+    D -->|Do not launch| N["Payoff: $0<br/>EV = $0"]
+    C -->|"60%"| H["Net: +$100k<br/>150k − 50k"]
+    C -->|"40%"| L["Net: −$30k<br/>20k − 50k"]
 ```
 
-$$EV_{\text{launch}} = 0.6(+100) + 0.4(-30) = 60 - 12 = 48\ \text{($k)}$$
+Calculation:
 
-$48k > $0, so launch.
+$$EV_{\text{launch}} = 0.6(150 - 50) + 0.4(20 - 50) = 60 - 12 = 48$$
 
-Not checked: time value of money, risk aversion, and whether the $150k and $20k already net out the $50k. If they do, EV is $98k and the decision is unchanged.
+Same result without netting per branch: $0.6(150) + 0.4(20) - 50 = 98 - 50 = 48$ ($k).
+
+Not checked: discounting, risk aversion, and any cost beyond the $50k. The main risk is the 40% branch, which loses $30k net.

@@ -1,43 +1,29 @@
-A **standing wave** forms when waves traveling along a string reflect and combine. On a string fixed at both ends, the ends must stay still, so they are nodes. Each allowed harmonic fits a whole-number count of half-wavelengths along the string.
+A string fixed at both ends must have zero displacement at each end. Its **harmonics** are the standing-wave patterns that fit between those fixed points: the first harmonic has one loop, the second has two, and so on.
 
-For a string of length $L$ with wave speed $v$, harmonic $n$ has wavelength $\lambda_n$ and frequency $f_n$:
+For a string of length $L$, the $n$th harmonic’s shape at maximum displacement is
 
 $$
-\lambda_n = \frac{2L}{n},
-\qquad
-f_n = \frac{nv}{2L}
+y_n(x)=A\sin\left(\frac{n\pi x}{L}\right)
 $$
 
-Here $n=1,2,3,\ldots$; $n=1$ is the fundamental, and each higher number is a harmonic. The first four patterns are shown below; each curve is a snapshot, and the marked points are nodes.
+Here $x$ is position along the string, $A$ is the amplitude, and $n=1,2,3,\ldots$ counts the harmonic. The harmonic frequencies are whole-number multiples of the first harmonic:
+
+$$
+f_n=n f_1
+$$
 
 ```figure
 export default function () {
-  const harmonics = [1, 2, 3, 4];
   return (
-    <Diagram id="harmonics" width={1} height={5}>
-      {harmonics.map((n, row) => {
-        const y0 = 0.55 + row * 1.2;
-        const wave = Array.from({ length: 81 }, (_, i) => {
-          const x = i / 80;
-          return [x, y0 + 0.34 * Math.sin(n * Math.PI * x)];
-        });
-        const nodes = Array.from({ length: n + 1 }, (_, j) => [
-          j / n,
-          y0
-        ]);
-        return (
-          <>
-            <Segment from={[0, y0]} to={[1, y0]} id={`base-${n}`} />
-            <Shape pts={wave} id={`wave-${n}`} />
-            <Points pts={nodes} id={`nodes-${n}`} />
-            <Label at={[0.04, y0 + 0.46]} text={`${n === 1 ? 'Fundamental' : `Harmonic ${n}`} · ${n} half-wavelength${n > 1 ? 's' : ''}`} />
-          </>
-        );
-      })}
-    </Diagram>
+    <Plot id="harmonics" x={[0, 1]} y={[-1.1, 1.1]} xLabel="Position along string, $x/L$" yLabel="Displacement">
+      <Fn id="h1" f={x => Math.sin(Math.PI * x)} label="1st: $n=1$" />
+      <Fn id="h2" f={x => Math.sin(2 * Math.PI * x)} label="2nd: $n=2$" />
+      <Fn id="h3" f={x => Math.sin(3 * Math.PI * x)} label="3rd: $n=3$" />
+      <Points pts={[[0, 0], [1, 0]]} label="Fixed ends" />
+    </Plot>
   );
 }
 ```
 
-For example, if $L=1.2$ m and $v=240$ m/s, the fundamental is $240/(2 \cdot 1.2)=100$ Hz. The next three harmonics are $200$, $300$, and $400$ Hz. This pattern assumes the string’s tension and wave speed stay the same.
+Each curve shows a snapshot of one harmonic. The ends stay at zero; the interior points that also stay at zero are called **nodes**.
 

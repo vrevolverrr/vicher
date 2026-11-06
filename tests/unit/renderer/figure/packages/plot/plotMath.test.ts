@@ -1,4 +1,4 @@
-import { barSteps, niceDomain, niceTicks, tickText, wrapLabel } from '@/renderer/figure/packages/plot/plotMath';
+import { barSteps, niceDomain, niceTicks, tickTexts, wrapLabel } from '@/renderer/figure/packages/plot/plotMath';
 
 describe('niceTicks', () => {
   it('steps by round numbers that stay inside the range', () => {
@@ -87,8 +87,13 @@ describe('barSteps', () => {
   });
 });
 
-describe('tickText', () => {
+describe('tickTexts', () => {
   it('keeps tiny values apart instead of rounding them to 0', () => {
-    expect([2e-13, 5e-4, -3e-7, 0, 0.25, 12000].map(tickText)).toEqual(['2e−13', '0.0005', '−3e−7', '0', '0.25', '12K']);
+    expect(tickTexts([2e-13, 5e-4, -3e-7, 0, 0.25])).toEqual(['2e−13', '0.0005', '−3e−7', '0', '0.25']);
+  });
+
+  it('writes a whole axis in K once any tick reaches 10000, and leaves 0 alone', () => {
+    expect(tickTexts([0, 5000, 10000, 12500])).toEqual(['0', '5K', '10K', '12.5K']);
+    expect(tickTexts([0, 5000, 9000])).toEqual(['0', '5000', '9000']);
   });
 });

@@ -72,7 +72,7 @@ export class ClaudeAgent implements AgentAdapter {
 
   async openSession(options: AgentSessionOptions): Promise<AgentSession> {
     const cli = await resolveCLI(options.cliPath, findClaudeBinaryPath);
-    if (!cli) throw new Error('Claude Code 2.1.113 or later not found. Install or update Claude Code, or set its path.');
+    if (!cli) throw new Error('Claude Code 2.1.267 or later not found. Install or update Claude Code, or set its path.');
     const query = this.query ?? (await loadClaudeAgentSDK()).query;
     const id = options.resume ?? randomUUID();
     const tools = new ClaudeToolAdapter(options.cwd, options.tools ?? []);
@@ -146,7 +146,8 @@ class ClaudeSession implements AgentSession {
     // Bypass never asks, and the SDK warns when it is given a callback it will not call.
     const approvals = options.permissionMode === 'bypassPermissions' ? {} : { canUseTool };
     // The replay echo is how the session learns the CLI took a message in.
-    const extraArgs = { ...options.extraArgs, 'replay-user-messages': null };
+    // Without the snapshot flag a resume runs under the prompt recorded when the conversation began, not this one.
+    const extraArgs = { ...options.extraArgs, 'replay-user-messages': null, ...(options.resume ? { 'system-prompt-snapshot': 'off' } : {}) };
     this.query = createQuery({ prompt: this.prompts, options: { ...options, ...approvals, extraArgs, spawnClaudeCodeProcess } });
     this.modelAdapter = new ClaudeModelAdapter(this.query);
     void this.read();

@@ -1,40 +1,42 @@
-$A$ maps the unit square to a parallelogram with corners $(0,0)$, $(2,1)$, $(3,3)$ and $(1,2)$. Its eigenvectors are $(1,1)$, with eigenvalue $3$, and $(1,-1)$, with eigenvalue $1$.
+A matrix moves every point of a shape. Here it turns the unit square into a parallelogram. Two directions keep their line through the origin, and those are the eigenvectors.
 
 ```figure
-const A = [[2, 1], [1, 2]];
-const apply = p => [A[0][0] * p[0] + A[0][1] * p[1], A[1][0] * p[0] + A[1][1] * p[1]];
 const square = [[0, 0], [1, 0], [1, 1], [0, 1]];
+const apply = ([x, y]) => [2 * x + y, x + 2 * y];
 const image = square.map(apply);
 
 export default function () {
-  const steps = [
-    { heading: 'Unit square', text: 'The unit square has corners $(0,0)$, $(1,0)$, $(1,1)$ and $(0,1)$.', orig: 'active', img: null, eig: false },
-    { heading: 'Image under A', text: 'Each corner $p$ moves to $Ap$. The square becomes a parallelogram with corners $(0,0)$, $(2,1)$, $(3,3)$ and $(1,2)$.', orig: 'dim', img: 'active', eig: false },
-    { heading: 'Eigenvectors', text: 'Along $v_1=(1,1)$, $A$ stretches by $3$. Along $v_2=(1,-1)$, $A$ leaves the vector unchanged, so its eigenvalue is $1$.', orig: 'dim', img: 'done', eig: true },
-  ];
   return (
-    <Figure steps={steps} caption={step => step.text} heading={step => step.heading} render={step => (
-      <Plot id="plane" x={[-0.5, 3.5]} y={[-1.5, 3.5]} xLabel="x" yLabel="y">
-        <Shape id="orig" pts={square} closed label="unit square" tag={step.orig} />
-        {step.img && <Shape id="image" pts={image} closed label="image of square" tag={step.img} />}
-        {step.eig && <Vector id="v1" from={[0, 0]} to={[1, 1]} label="$v_1$, eigenvalue $3$" tag="match" />}
-        {step.eig && <Vector id="v2" from={[0, 0]} to={[1, -1]} label="$v_2$, eigenvalue $1$" tag="match" />}
-      </Plot>
-    )} />
+    <Diagram id="map" width={4.5} height={4.5}>
+      <Shape id="sq" pts={square} closed label="unit square" group="unit square" />
+      <Shape id="par" pts={image} closed label="image" group="image of square" />
+      <Points id="corners" pts={image} group="image of square" />
+      <Vector id="v1" from={[0, 0]} to={[1, 1]} label="v₁ = (1,1)" group="eigenvector" />
+      <Vector id="v1img" from={[0, 0]} to={[3, 3]} label="A v₁ = 3v₁" group="eigenvector" />
+      <Vector id="v2" from={[0, 0]} to={[1, -1]} label="v₂ = (1,-1)" group="eigenvector" />
+      <Label id="l1" at={[2, 1]} text="(2,1)" />
+      <Label id="l2" at={[3, 3]} text="(3,3)" />
+      <Label id="l3" at={[1, 2]} text="(1,2)" />
+    </Diagram>
   );
 }
 ```
 
-An eigenvector of $A$ is a nonzero vector $v$ whose direction does not change when $A$ acts on it. Only its length changes, by a factor $\lambda$ called the eigenvalue:
+An **eigenvector** is a nonzero vector $\mathbf{v}$ that the matrix only scales. Its scale factor is the **eigenvalue** $\lambda$:
 
-$$Av = \lambda v$$
+$$A\mathbf{v}=\lambda\mathbf{v}$$
 
-Here $A$ is the matrix, $v$ the vector and $\lambda$ a number. Check $v_1=(1,1)$:
+To find the eigenvalues, solve $\det(A-\lambda I)=0$:
 
-$$A v_1 = \begin{pmatrix}2&1\\1&2\end{pmatrix}\begin{pmatrix}1\\1\end{pmatrix} = \begin{pmatrix}3\\3\end{pmatrix} = 3\,v_1$$
+$$(2-\lambda)^2-1=(\lambda-1)(\lambda-3)=0$$
 
-Check $v_2=(1,-1)$: $Av_2 = (2-1,\ 1-2) = (1,-1) = 1\cdot v_2$.
+So $\lambda=1$ or $\lambda=3$. For each value, solve $(A-\lambda I)\mathbf{v}=0$:
 
-The area scales by $\det A = 2\cdot 2 - 1\cdot 1 = 3$. The unit square has area $1$, and the parallelogram has area $3$.
+- $\lambda=3$: $-x+y=0$, so $\mathbf{v}_1=(1,1)$.
+- $\lambda=1$: $x+y=0$, so $\mathbf{v}_2=(1,-1)$.
 
-Skipped: no code was run and no tests were added. The figure coordinates were checked by hand, not rendered.
+Check: $A(1,1)=(3,3)=3(1,1)$ and $A(1,-1)=(1,-1)=1(1,-1)$.
+
+The square's corners map as follows: $(1,0)\to(2,1)$, $(0,1)\to(1,2)$, $(1,1)\to(3,3)$, and the origin stays fixed. The image has corners $(0,0)$, $(2,1)$, $(3,3)$, $(1,2)$.
+
+Not verified: how the figure fits in your pane. The layout assumes the host fits the drawing to its bounds.

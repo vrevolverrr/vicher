@@ -1,14 +1,16 @@
-| | Before | Change | After |
+Assumed start: owners put in 5,000 cash. No other assets or debts. Amounts are in dollars.
+
+| | Before | After borrowing | After buying machine |
 |---|---|---|---|
-| Cash | $10,000 | +$20,000 loan, -$15,000 machine | $15,000 |
-| Machine | $0 | +$15,000 | $15,000 |
-| **Total assets** | **$10,000** | **+$20,000** | **$30,000** |
-| Bank loan (liability) | $0 | +$20,000 | $20,000 |
-| Owner's equity | $10,000 | No change | $10,000 |
-| **Total liabilities and equity** | **$10,000** | **+$20,000** | **$30,000** |
+| Cash | 5,000 | 25,000 | 10,000 |
+| Machine | 0 | 0 | 15,000 |
+| **Total assets** | **5,000** | **25,000** | **25,000** |
+| Bank loan | 0 | 20,000 | 20,000 |
+| Owners' equity | 5,000 | 5,000 | 5,000 |
+| **Total liabilities + equity** | **5,000** | **25,000** | **25,000** |
 
-The loan adds the same amount to cash and to liabilities. Buying the machine moves $15,000 from cash to machine, so total assets do not change. Equity does not change because no profit or new owner money came in.
+- Borrowing adds cash and a loan. Equity stays the same because the owners put in no money.
+- Buying the machine moves 15,000 from cash to machine. Total assets do not change.
+- Both sides match in every column: Assets = Liabilities + Equity.
 
-I assumed a starting balance sheet of $10,000 cash and $10,000 owner's equity. A different start changes the numbers, not the method.
-
-Skipped: loan interest, machine depreciation, and loan repayment. None of these change the "after" picture shown here.
+Not checked: your real starting figures. Risk: this leaves out loan interest, loan repayments and machine depreciation, which change the balance sheet over time.

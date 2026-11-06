@@ -1,5 +1,5 @@
 import type { BlockNode, NodeOf } from '@/renderer/figure/components/registry';
-import type { Tag } from '@/renderer/figure/Tag';
+import type { Color, State } from '@/renderer/figure/marks';
 
 export const ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;
 export const LIMITS = {
@@ -8,13 +8,12 @@ export const LIMITS = {
   layers: 256, layerPoints: 2000, shapePoints: 256, params: 8, options: 12, quizOptions: 8,
   depth: 32, cloneDepth: 80, source: 64 * 1024, runMs: 2000, replyWaitMs: 2500, workers: 4,
   figuresPerReply: 4, repairError: 500, fnSamples: 161, cloneVisits: 2_000_000, startMs: 5000,
-  surfaceCells: 48, surfaces: 4,
+  surfaceCells: 48, surfaces: 4, groupName: 60, groups: 8, diagramTallness: 3,
 } as const;
 
 export type Point = readonly [number, number];
 export type Point3 = readonly [number, number, number];
 export type Range = readonly [number, number];
-export type Tags = ReadonlyMap<string, Tag>;
 /** A table cell, a Seq label or any other shown value: Markdown, numbers formatted when read. */
 export type Text = string;
 
@@ -25,6 +24,12 @@ export type Param =
 
 export interface FigureData {
   title?: string;
+  /** Each name's colour: every group, and every name the legend pins. */
+  colors: ReadonlyMap<string, Color>;
+  /** The groups the key lists, as first seen. */
+  key: readonly string[];
+  /** The states in use, which the key explains. */
+  states: ReadonlySet<State>;
   params: readonly Param[];
   steps: readonly Step[];
 }
@@ -34,7 +39,7 @@ export interface Step {
   /** A few words naming the step, shown above its caption. */
   heading?: string;
   root: FigureNode;
-  /** Every id this step's links and tags can name: elements, rows, cells, items, nodes, edges and TeX anchors. */
+  /** Every id this step's links, groups and states can name: elements, rows, cells, items, nodes, edges and TeX anchors. */
   ids: ReadonlySet<string>;
 }
 

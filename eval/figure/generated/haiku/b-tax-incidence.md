@@ -1,49 +1,72 @@
-A 20 per-unit tax cuts the traded quantity from 40 to 30 and creates a deadweight loss of 100.
+A per-unit tax adds a cost to every unit a seller sells. Sellers need a higher price for the same sale, so the supply curve shifts up by the tax. Buyers pay more, sellers keep less, and some trades stop happening. The lost surplus from those trades is the deadweight loss.
 
-A per-unit tax is a fixed amount that sellers pay to the government for each unit sold. Sellers need more per unit to supply the same quantity, so the supply curve shifts up by the tax. Fewer units trade, and some trades that buyers valued above their cost to sellers no longer happen. The value lost on those trades is the deadweight loss.
+### Tax shifts supply
 
-With $P_b$ the price buyers pay and $P_s$ the price sellers keep, the tax $t$ creates a wedge between them:
+Sellers keep $P_s$, and buyers pay $P_b$. The tax $t$ is the gap between them:
 
-$$P_b - P_s = t$$
+$$P_b = P_s + t$$
 
-The deadweight loss is the triangle of lost trades between the demand and supply curves:
+Supply is $P_s = 20 + Q$, so with the tax, supply in buyer prices is $P_b = 20 + t + Q = 40 + Q$.
 
-$$DWL = \tfrac{1}{2}\, t\, \Delta Q$$
+### Worked example
 
-Here $\Delta Q$ is the fall in quantity traded.
+Without the tax, demand meets supply: $100 - Q = 20 + Q$, so $Q = 40$ and $P = 60$.
+
+With the tax of 20, demand meets the shifted supply: $100 - Q = 40 + Q$, so $2Q = 60$ and $Q = 30$.
+
+- Buyers pay $P_b = 100 - 30 = 70$.
+- Sellers keep $P_s = 70 - 20 = 50$. Check: $20 + 30 = 50$.
+- Tax revenue is $t \cdot Q = 20 \cdot 30 = 600$.
+
+### Deadweight loss
+
+The 10 lost units form a triangle. Its base is the tax wedge of 20 and its height is the drop in quantity, $40 - 30 = 10$:
+
+$$\text{DWL} = \tfrac{1}{2} \cdot 20 \cdot 10 = 100$$
+
+Check: consumers lose 350 and producers lose 350, so the total loss of 700 equals the revenue of 600 plus the deadweight loss of 100.
 
 ```figure
+const a = 100, c = 20, t = 20;        // demand intercept, supply intercept, tax per unit
+const q0 = (a - c) / 2;               // 40
+const p0 = a - q0;                    // 60
+const q1 = (a - c - t) / 2;           // 30
+const pb = a - q1;                    // 70, buyers pay
+const ps = pb - t;                    // 50, sellers keep
+const revenue = t * q1;               // 600
+const dwl = 0.5 * t * (q0 - q1);      // 100
+
 export default function () {
   const steps = [
-    { tax: false, dwl: false, text: 'Before the tax: demand meets supply at $Q = 40$, $P = 60$.' },
-    { tax: true, dwl: false, text: 'The tax lifts the supply price by $20$. Buyers pay $70$, sellers keep $50$, and $Q$ falls to $30$.' },
-    { tax: true, dwl: true, text: 'The lost trades between $Q = 30$ and $Q = 40$ form the deadweight loss, area $100$.' },
+    { stage: 0, text: String.raw`No tax. Demand $P = ${a} - Q$ meets supply $P = ${c} + Q$ at $Q = ${q0}$, $P = ${p0}$.` },
+    { stage: 1, text: String.raw`The tax adds $${t}$ to seller cost. Supply shifts up to $P = ${c + t} + Q$. The new equilibrium is $Q = ${q1}$.` },
+    { stage: 2, text: String.raw`Buyers pay $${pb}$, sellers keep $${ps}$. The lost trades form a triangle with area $\tfrac{1}{2} \cdot ${t} \cdot ${q0 - q1} = ${dwl}$.` },
   ];
   return (
     <Figure steps={steps} caption={step => step.text} render={step => (
-      <Plot id="plot" x={[0, 100]} y={[0, 100]} xLabel="Q" yLabel="P">
-        <Fn id="dem" f={q => 100 - q} from={0} to={100} label="Demand" />
-        <Fn id="sup" f={q => 20 + q} from={0} to={80} label="Supply" />
-        {step.tax ? <Fn id="taxSup" f={q => 40 + q} from={0} to={60} label="Supply + tax" /> : null}
-        {step.tax ? <Segment from={[30, 50]} to={[30, 70]} label="tax 20" /> : null}
-        {step.dwl ? <Region top="dem" base="sup" from={30} to={40} label="DWL" /> : null}
-        <Points pts={step.tax ? [[30, 50], [30, 70]] : [[40, 60]]} />
-      </Plot>
+      <Row gap="lg" align="center">
+        <Plot id="market" x={[0, 100]} y={[0, 100]} xLabel="Q" yLabel="P">
+          <Fn id="demand" f={x => a - x} from={0} to={100} label="Demand" />
+          <Fn id="supply" f={x => c + x} from={0} to={100} label="Supply" state={step.stage ? 'dim' : undefined} />
+          <Fn id="supplyTax" f={x => c + t + x} from={0} to={100} label="Supply + tax" state={step.stage ? undefined : 'dim'} />
+          <Segment id="wedge" from={[q1, ps]} to={[q1, pb]} label={`tax ${t}`} state={step.stage ? 'active' : 'dim'} />
+          <Points id="eq0" pts={[[q0, p0]]} label="no tax" state={step.stage ? 'dim' : 'active'} />
+          <Points id="eq1" pts={[[q1, pb], [q1, ps]]} label="with tax" state={step.stage ? 'active' : 'dim'} />
+          <Shape id="dwl" pts={[[q1, pb], [q1, ps], [q0, p0]]} closed label="DWL" state={step.stage === 2 ? 'active' : 'dim'} />
+        </Plot>
+        <Table id="values" title="Values" columns={['', 'No tax', 'With tax']} rows={[
+          ['Quantity Q', q0, q1],
+          ['Buyer price', p0, pb],
+          ['Seller price', p0, ps],
+          ['Tax revenue', 0, revenue],
+          ['Deadweight loss', 0, dwl],
+        ]} />
+      </Row>
     )} />
   );
 }
 ```
 
-Worked example:
+The triangle is exact here because both curves are straight lines. With curved lines, the same loss needs the area between the curves, found by integration.
 
-1. Before the tax, demand meets supply: $100 - Q = 20 + Q$, so $Q = 40$ and $P = 60$.
-2. The tax adds 20 to the price sellers need. The new supply curve in buyer terms is $P_b = 40 + Q$. Set it equal to demand: $100 - Q = 40 + Q$, so $Q = 30$.
-3. Buyers pay $P_b = 100 - 30 = 70$. Sellers keep $P_s = 70 - 20 = 50$. Check: supply at $Q = 30$ is $20 + 30 = 50$.
-4. Tax revenue: $t \times Q = 20 \times 30 = 600$.
-5. Deadweight loss: the lost trades run from $Q = 30$ to $Q = 40$, a base of 10, with height $t = 20$:
-
-$$DWL = \tfrac{1}{2} \times 10 \times 20 = 100$$
-
-Check with surplus. Consumer surplus falls from 800 to 450, and producer surplus falls from 800 to 450. The total loss is 700, which equals 600 revenue plus 100 deadweight loss.
-
-The triangle shortcut holds only when both curves are straight lines. With curves, the area needs integration.
+Not covered: how the tax burden splits between buyers and sellers in general, and any curved supply or demand.

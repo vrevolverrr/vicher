@@ -14,7 +14,7 @@ export const DiagramView: ElementView<NodeOf<'Diagram'>, Extent> = {
     const room = ctx.keep<Room>('room');
     const paint = (): void => {
       const kept = room.get() ?? { left: 0, top: 0, right: 0, bottom: 0 };
-      const grown = widen(kept, drawDiagram(drawing, node, extent, ctx.width, ctx.markdown, kept));
+      const grown = widen(kept, drawDiagram(drawing, node, extent, ctx.width, ctx.markdown, kept, ctx.colorOf));
       if ((['left', 'top', 'right', 'bottom'] as const).every((side) => grown[side] === kept[side])) return;
       room.set(grown);
       ctx.stale();

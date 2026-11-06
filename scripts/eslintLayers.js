@@ -34,8 +34,6 @@ const HOST = ['main', 'chat/obsidian', 'module/obsidian', 'shared/obsidian', 'co
 /** The one file outside the host zones that imports Obsidian, for its icon set. */
 const ICONS = 'shared/view/icon.ts';
 const NO_DOM = ['chat', 'context', 'shared', 'module', 'figure', 'plot', 'plot3'];
-/** Files a zone may import outside its table: the plot packages still take the figure's tag type, until phase B of `docs/specs/figure-components.md` replaces tags. */
-const CROSSINGS = { plot: ['renderer/figure/Tag.ts'], plot3: ['renderer/figure/Tag.ts'] };
 const MODULES = new Set(['attachments', 'tour', 'settings', 'renderer/markdown', 'renderer/mermaid']);
 /** agents/ is reached only through its contract and catalogue. */
 const AGENT_CONTRACT = new Set(['agents/types.ts', 'agents/providers.ts']);
@@ -116,7 +114,6 @@ const layers = {
         return report('A provider adapter is independent of its sibling adapters and of the provider runtime.');
       }
       const targetZone = zoneOf(target);
-      if (CROSSINGS[zone]?.includes(target)) return;
       if (!ALLOWED[zone].includes(targetZone)) return report(`Zone \`${zone}\` may not import zone \`${targetZone}\` (${target}).`);
       const otherModule = moduleOf(target);
       if (own !== null && otherModule !== null && otherModule !== own) return report(`A module never imports another module: ${own} imports ${otherModule}.`);

@@ -1,16 +1,25 @@
-Shade the part of circle A that lies outside circle B. This is the crescent on the left side of the diagram.
+$A \cap B^c$ is the part of $A$ that is outside $B$: the elements in $A$ that are not in $B$. The shaded crescent is that region.
 
-$A \cap B^c$ is the set of elements that are in $A$ and not in $B$. It is also written $A \setminus B$, read "A minus B". Formally, $A \cap B^c = \{x : x \in A \text{ and } x \notin B\}$.
+For example, with $A = \{1, 2, 3, 4\}$ and $B = \{3, 4, 5\}$, the elements of $A$ that are not in $B$ are $1$ and $2$, so $A \cap B^c = \{1, 2\}$.
 
-Draw two overlapping circles. Shade only the part of A that does not overlap B:
+```figure
+const inA = (x, y) => (x - 1.4) ** 2 + (y - 1.5) ** 2 <= 1;
+const inB = (x, y) => (x - 2.6) ** 2 + (y - 1.5) ** 2 <= 1;
 
-| Region | In A | In B | Shade? |
-|---|---|---|---|
-| A only | yes | no | **yes** |
-| A and B (overlap) | yes | yes | no |
-| B only | no | yes | no |
-| Outside both | no | no | no |
+export default function () {
+  const pts = [];
+  for (let x = 0; x <= 4.001; x += 0.1)
+    for (let y = 0; y <= 3.001; y += 0.1)
+      if (inA(x, y) && !inB(x, y)) pts.push([x, y]);
+  return (
+    <Diagram id="venn" width={4} height={3}>
+      <Circle id="A" at={[1.4, 1.5]} r={1} label="A" />
+      <Circle id="B" at={[2.6, 1.5]} r={1} label="B" />
+      <Points id="shade" pts={pts} />
+      <Label id="name" at={[1.0, 2.75]} text="$A \cap B^c$" />
+    </Diagram>
+  );
+}
+```
 
-Example: $U=\{1,\dots,8\}$, $A=\{1,2,3,4,5\}$, $B=\{4,5,6,7\}$. Then $B^c=\{1,2,3,8\}$, so $A \cap B^c=\{1,2,3\}$. Points 1, 2 and 3 fall in the A-only region and are shaded. Points 4 and 5 lie in the overlap, so they stay unshaded.
-
-Skipped: a drawn figure. The figure tool here cannot fill a region, so the table and example carry the answer.
+Not run here: the figure renders only in the Vicher pane.

@@ -1,39 +1,84 @@
-Level curves of $f(x,y)=x^2-y^2$ are hyperbolas, with the two lines $y=\pm x$ at level 0. The arrows are gradients.
+A level curve joins the points where $f$ has one fixed value, like a contour line on a map. The gradient points in the direction $f$ grows fastest, and it is perpendicular to the level curve through that point.
+
+For a value $c$, the level curve is
+
+$$\{(x,y) : f(x,y) = c\}$$
+
+and the gradient is the vector of partial derivatives:
+
+$$\nabla f = \left(\frac{\partial f}{\partial x},\ \frac{\partial f}{\partial y}\right)$$
+
+For $f(x,y) = x^2 - y^2$, the gradient is $\nabla f = (2x,\ -2y)$. The level curves satisfy $x^2 - y^2 = c$:
+
+- $c = 0$: the lines $y = x$ and $y = -x$ cross at the origin.
+- $c > 0$: hyperbolas that open left and right.
+- $c < 0$: hyperbolas that open up and down.
 
 ```figure
-const curve = (c) => {
-  // the level set x² − y² = c, clipped to the box [-3, 3]²
-  const t = Math.sqrt(9 - Math.abs(c));
-  const u = [];
-  for (let i = 0; i <= 80; i++) u.push(-t + (2 * t * i) / 80);
-  if (c > 0) return [u.map(v => [Math.sqrt(c + v * v), v]), u.map(v => [-Math.sqrt(c + v * v), v])];
-  return [u.map(v => [v, Math.sqrt(v * v - c)]), u.map(v => [v, -Math.sqrt(v * v - c)])];
-};
+const L = 3;   // the box runs from -3 to 3 on both axes
+const N = 60;  // samples per curve
+
+// The level curve x^2 - y^2 = c, as one or two polylines.
+function branches(c) {
+  if (c === 0) return [[[-L, -L], [L, L]], [[-L, L], [L, -L]]];
+  if (c > 0) {
+    const ymax = Math.sqrt(L * L - c);
+    const right = [], left = [];
+    for (let i = 0; i <= N; i++) {
+      const y = -ymax + (2 * ymax * i) / N;
+      const x = Math.sqrt(c + y * y);
+      right.push([x, y]);
+      left.push([-x, y]);
+    }
+    return [right, left];
+  }
+  const k = -c;
+  const xmax = Math.sqrt(L * L - k);
+  const top = [], bottom = [];
+  for (let i = 0; i <= N; i++) {
+    const x = -xmax + (2 * xmax * i) / N;
+    const y = Math.sqrt(x * x + k);
+    top.push([x, y]);
+    bottom.push([x, -y]);
+  }
+  return [top, bottom];
+}
+
+const signGroup = c => (c > 0 ? 'f > 0' : c < 0 ? 'f < 0' : 'f = 0');
 
 export default function () {
-  const levels = [-4, -3, -2, -1, 0, 1, 2, 3, 4];
-  const probes = [[1, 0], [0, 1], [2, 1], [-1, 2]];
-  const k = 0.2;   // arrow length per unit of gradient
+  const levels = [-4, -2, -1, 0, 1, 2, 4];
+  const points = [[1, 0], [2, 1], [0, 2], [-2, -1]];
+  const s = 0.25;   // arrows drawn at one quarter of true length
+
   return (
-    <Plot id="plot" x={[-3, 3]} y={[-3, 3]} xLabel="x" yLabel="y">
-      {levels.flatMap(c => curve(c).map((pts, j) => (
-        <Shape pts={pts} label={j === 0 ? `$x^2-y^2=${c}$` : undefined} />
+    <Plot x={[-L, L]} y={[-L, L]} xLabel="$x$" yLabel="$y$" equal>
+      {levels.flatMap(c => branches(c).map((pts, j) => (
+        <Shape pts={pts} group={signGroup(c)} label={j === 0 ? String.raw`$f=${c}$` : undefined} />
       )))}
-      {probes.map(([x, y]) => <Points pts={[[x, y]]} label={`(${x}, ${y})`} />)}
-      {probes.map(([x, y]) => <Vector from={[x, y]} to={[x + k * 2 * x, y - k * 2 * y]} label={`$\\nabla f=(${2 * x},${-2 * y})$`} />)}
+      {points.map(([x, y]) => {
+        const gx = 2 * x, gy = -2 * y;   // grad f = (2x, -2y)
+        return (
+          <>
+            <Points pts={[[x, y]]} label={String.raw`$(${x},${y})$`} />
+            <Vector from={[x, y]} to={[x + s * gx, y + s * gy]} group="gradient"
+              label={String.raw`$\nabla f=(${gx},${gy})$`} />
+          </>
+        );
+      })}
     </Plot>
   );
 }
 ```
 
-A level curve joins every point where $f$ has the same value $c$:
+The curves are coloured by the sign of $c$. The four arrows show $\nabla f$ at $(1,0)$, $(2,1)$, $(0,2)$ and $(-2,-1)$.
 
-$$\{(x,y) : f(x,y) = c\}$$
+**Worked example at $(2,1)$**
 
-The gradient collects the two partial derivatives. It points in the direction in which $f$ rises fastest, and it is perpendicular to the level curve through the point:
+The height there is $f(2,1) = 2^2 - 1^2 = 3$, so the level curve through the point is $x^2 - y^2 = 3$. The gradient is
 
-$$\nabla f = \left(\frac{\partial f}{\partial x},\ \frac{\partial f}{\partial y}\right) = (2x,\ -2y)$$
+$$\nabla f(2,1) = (2\cdot 2,\ -2\cdot 1) = (4,\ -2)$$
 
-Take $(2,1)$. Here $f = 4 - 1 = 3$, so the point lies on the level curve $c = 3$. The gradient is $\nabla f = (4, -2)$. The curve's tangent there is $(1, 2)$, found from $4\,dx - 2\,dy = 0$. Their dot product is $4\cdot 1 + (-2)\cdot 2 = 0$, so the gradient is perpendicular to the curve.
+To check it is perpendicular to the curve, differentiate $x^2 - y^2 = 3$ implicitly: $2x\,dx - 2y\,dy = 0$. The tangent direction is therefore $(y, x) = (1, 2)$. The dot product is $(4,-2)\cdot(1,2) = 4 - 4 = 0$.
 
-At the origin $\nabla f = (0,0)$, so no direction rises. The level curves cross there, which makes it a saddle point.
+The gradient fails to give a direction at the origin, where $\nabla f = (0,0)$. There the curves cross, and the origin is a saddle point.

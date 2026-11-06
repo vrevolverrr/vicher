@@ -1,86 +1,76 @@
-Field lines show the direction a positive test charge would be pushed or pulled at each point. In the figure, they leave the positive charge and end on the negative charge.
-
-The electric field is the force per unit charge on a small test charge $q_0$, measured in N/C: $\vec{E} = \vec{F}/q_0$. A **field line** is a curve whose tangent at every point matches $\vec{E}$ there. Lines never cross, and where they bunch together, the field is strong. For a point charge, the strength is
-
-$$E = \frac{k\,|q|}{r^2}$$
-
-Here $k \approx 8.99 \times 10^9\ \text{N·m}^2/\text{C}^2$ is Coulomb's constant, $|q|$ is the charge size in coulombs, and $r$ is the distance from the charge in metres.
-
-The figure uses charges of equal size and opposite sign. Lines that miss the negative charge go off to infinity, and lines from far away end on it.
+Field lines leave a positive charge and enter a negative charge. The figure shows each case, then the equal pair.
 
 ```figure
-const charges = [
-  { x: -1, y: 0 },   // positive charge
-  { x: 1, y: 0 }     // negative charge, same size
-];
-const sign = [1, -1];  // +1 pushes outward, -1 pulls inward
+const W = 8, H = 6, h = 0.05;
+const P = { at: [2.5, 3], q: 1 };
+const N = { at: [5.5, 3], q: -1 };
 
-function field(px, py) {
+function field(r, cs) {
   let ex = 0, ey = 0;
-  charges.forEach((c, i) => {
-    const dx = px - c.x, dy = py - c.y;
-    const r3 = Math.pow(dx * dx + dy * dy, 1.5);
-    ex += sign[i] * dx / r3;
-    ey += sign[i] * dy / r3;
-  });
-  return [ex, ey];
-}
-
-// Follow the field from (sx, sy); dir = -1 traces backwards.
-// Returns the points and the index of the charge reached, or -1 if it leaves the box.
-function trace(sx, sy, dir) {
-  const pts = [[sx, sy]];
-  let x = sx, y = sy, end = -1;
-  for (let n = 0; n < 240 && end < 0; n++) {
-    const [ex, ey] = field(x, y);
-    const m = Math.hypot(ex, ey);
-    x += dir * 0.06 * ex / m;
-    y += dir * 0.06 * ey / m;
-    pts.push([x, y]);
-    charges.forEach((c, i) => { if (Math.hypot(x - c.x, y - c.y) < 0.15) end = i; });
-    if (Math.abs(x) > 3.5 || Math.abs(y) > 3) break;
+  for (const c of cs) {
+    const dx = r[0] - c.at[0], dy = r[1] - c.at[1];
+    const d3 = Math.hypot(dx, dy) ** 3;
+    ex += c.q * dx / d3;
+    ey += c.q * dy / d3;
   }
-  return { pts, end };
+  const m = Math.hypot(ex, ey);
+  return [ex / m, ey / m];
 }
 
-const N = 16;
-const paths = [];
-for (let i = 0; i < N; i++) {
-  const a = (2 * Math.PI * i) / N;
-  paths.push(trace(charges[0].x + 0.2 * Math.cos(a), charges[0].y + 0.2 * Math.sin(a), 1));
+function trace(start, cs, sign) {
+  const pts = [start];
+  let r = start;
+  for (let s = 0; s < 800; s++) {
+    const [ux, uy] = field(r, cs);
+    r = [r[0] + sign * h * ux, r[1] + sign * h * uy];
+    pts.push(r);
+    const out = r[0] < 0 || r[0] > W || r[1] < 0 || r[1] > H;
+    const hit = cs.some(c => Math.hypot(r[0] - c.at[0], r[1] - c.at[1]) < 0.15);
+    if (out || hit) break;
+  }
+  return sign < 0 ? pts.reverse() : pts;
 }
-for (let i = 0; i < N; i++) {
-  const a = (2 * Math.PI * i) / N;
-  const t = trace(charges[1].x + 0.2 * Math.cos(a), charges[1].y + 0.2 * Math.sin(a), -1);
-  if (t.end !== 0) paths.push(t);   // lines that reach the positive charge are already drawn
-}
-
-// One arrowhead per line, at its midpoint, pointing along the field
-const arrows = paths.map(p => {
-  const i = Math.floor(p.pts.length / 2);
-  const [ax, ay] = p.pts[i], [bx, by] = p.pts[i + 1];
-  const len = Math.hypot(bx - ax, by - ay);
-  return [[ax, ay], [ax + 0.3 * (bx - ax) / len, ay + 0.3 * (by - ay) / len]];
-});
 
 export default function () {
+  const steps = [
+    { name: 'Positive charge alone', src: P, cs: [P], sign: 1, text: 'Lines leave the positive charge and point **away** from it. Arrows show the direction.' },
+    { name: 'Negative charge alone', src: N, cs: [N], sign: -1, text: 'Lines point **toward** the negative charge, so the arrows point inward.' },
+    { name: 'Equal pair', src: P, cs: [P, N], sign: 1, text: 'Each line starts on $+q$ and ends on $-q$. Lines that do not reach $-q$ leave the frame.' },
+  ];
   return (
-    <Plot id="field" x={[-3.5, 3.5]} y={[-3, 3]} xLabel="x (m)" yLabel="y (m)">
-      {paths.map((p, i) => <Shape id={`line-${i}`} pts={p.pts} />)}
-      {arrows.map(a => <Vector from={a[0]} to={a[1]} />)}
-      <Circle id="pos" at={[-1, 0]} r={0.13} />
-      <Circle id="neg" at={[1, 0]} r={0.13} />
-      <Label at={[-1, 0.4]} text="+q" />
-      <Label at={[1, 0.4]} text="−q" />
-    </Plot>
+    <Figure
+      steps={steps}
+      heading={s => s.name}
+      caption={s => s.text}
+      render={s => {
+        const lines = [];
+        for (let k = 0; k < 8; k++) {
+          const a = k * Math.PI / 4;
+          lines.push(trace([s.src.at[0] + 0.3 * Math.cos(a), s.src.at[1] + 0.3 * Math.sin(a)], s.cs, s.sign));
+        }
+        return (
+          <Diagram width={W} height={H}>
+            {lines.map((pts, k) => {
+              const m = Math.floor(pts.length / 2);
+              return (
+                <>
+                  <Shape id={`line${k}`} pts={pts} />
+                  {m + 6 < pts.length && <Vector id={`arrow${k}`} from={pts[m]} to={pts[m + 6]} />}
+                </>
+              );
+            })}
+            {s.cs.includes(P) && <Circle id="pos" at={P.at} r={0.25} group="Positive charge" />}
+            {s.cs.includes(P) && <Label id="pos-label" at={[P.at[0], P.at[1] + 0.5]} text="$+q$" group="Positive charge" />}
+            {s.cs.includes(N) && <Circle id="neg" at={N.at} r={0.25} group="Negative charge" />}
+            {s.cs.includes(N) && <Label id="neg-label" at={[N.at[0], N.at[1] + 0.5]} text="$-q$" group="Negative charge" />}
+          </Diagram>
+        );
+      }}
+    />
   );
 }
 ```
 
-**Worked example.** Put $q = 1\ \mu\text{C}$ on each charge, with the midpoint 1 m from each. Each charge alone gives
+The number of lines is proportional to the charge, so equal charges get equal numbers. Lines that leave the frame still return to $-q$ outside it.
 
-$$E = \frac{(8.99 \times 10^9)(1 \times 10^{-6})}{(1)^2} = 8.99 \times 10^3\ \text{N/C}$$
-
-At the midpoint, both fields point from the positive charge toward the negative one. The total is $2 \times 8.99 \times 10^3 = 1.80 \times 10^4$ N/C. The lines cross the midpoint horizontally and sit close together there, which matches the strong field.
-
-Field lines are a sketch. The number of lines you draw is a choice. Only their direction and spacing carry meaning.
+Not checked: I did not render the figure, and I assumed `Diagram` coordinates start at (0, 0) at the lower left. The curves are traced numerically with a fixed step, so they are approximate.

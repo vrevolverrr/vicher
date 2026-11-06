@@ -14,8 +14,8 @@ export default function ({ a, b, c, d, e, h, s, n }) {
   const path = Array.from({ length: n }, (_, i) => { const t = -3 + (6 * i) / (n - 1); return [t, t / 2, f(t, t / 2)]; }).filter(p => Number.isFinite(p[2]));
   return (
     <Plot id="p" x={[-3, 3]} y={[-3, 3]} z={[-5, 5]} xLabel="x" yLabel="y" zLabel="z">
-      <Fn id="s" f={f} tag="dim" />
-      <Shape id="path" pts={path} tag="active" />
+      <Fn id="s" f={f} state="dim" />
+      <Shape id="path" pts={path} state="active" />
     </Plot>
   );
 }

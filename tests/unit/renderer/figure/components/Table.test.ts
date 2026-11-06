@@ -2,7 +2,7 @@ import { el, read } from './read';
 
 describe('Table', () => {
   it('reads cells as text, null as an empty cell, and claims each row and cell id', () => {
-    expect(read(el('Table', { columns: ['a', 'b'], rows: [[0.1 + 0.2, null]], rowIds: ['r'], tags: { 'r.1': 'new' } }))).toMatchObject({ rows: [['0.3', null]] });
+    expect(read(el('Table', { columns: ['a', 'b'], rows: [[0.1 + 0.2, null]], rowIds: ['r'], groups: { 'r.1': 'new' } }))).toMatchObject({ rows: [['0.3', null]] });
   });
 
   it.each([
@@ -11,7 +11,8 @@ describe('Table', () => {
     [{ columns: [], rows: [] }, 'Step 1 > Table: columns needs at least 1'],
     [{ columns: ['a'], rows: [[{}]] }, 'Step 1 > Table: rows[0][0] must be text, a number or null'],
     [{ columns: ['a'], rows: [['a'.repeat(2001)]] }, 'Step 1 > Table: rows[0][0] is 2,001 characters; the limit is 2,000'],
-    [{ columns: ['a'], rows: [], tags: { t: 'red' } }, 'Step 1 > Table: tags has a tag for "t" that is not one of active, done, match, new, dim, good, bad'],
+    [{ columns: ['a'], rows: [], states: { t: { big: 'x'.repeat(100) } } }, 'Step 1 > Table: states has a state of type object for "t" that is not one of active, done, dim; a name for a kind of thing goes in groups'],
+    [{ columns: ['a'], rows: [], states: { t: 'red' } }, 'Step 1 > Table: states has a state "red" for "t" that is not one of active, done, dim; a name for a kind of thing goes in groups'],
   ])('refuses %j', (props, message) => {
     expect(read(el('Table', props))).toBe(message);
   });

@@ -1,13 +1,13 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { BLOCK_CONTAINERS, isLink, NODE_DEFINITIONS } from '@/renderer/figure/components/registry';
-import { computedColour, div, parseColour } from '@/renderer/figure/view/dom';
+import { computedColour, div, markData, type Marks, parseColour } from '@/renderer/figure/view/dom';
 import type { DrawContext, Drawn, ElementView, Lane } from '@/renderer/figure/view/components/ElementView';
 import { type DrawnType, VIEWS } from '@/renderer/figure/view/components/registry';
 import { drawLinks, type Link } from '@/renderer/figure/view/drawLinks';
 import type { FigureData, FigureNode, Param } from '@/renderer/figure/FigureData';
-import { TAGS, type Tag } from '@/renderer/figure/Tag';
 import { figureSandbox, type FigureSandbox } from '@/renderer/figure/view/FigureSandbox';
-import { drawTex, drawTexIn, mapMath, type Rgb, type TagColour, texTags, TYPESET_MATH } from '@/renderer/figure/figureTex';
+import { type Color, type ColorOf, type State, STATES } from '@/renderer/figure/marks';
+import { drawTex, drawTexIn, mapMath, type Rgb, type TexColour, TYPESET_MATH } from '@/renderer/figure/figureTex';
 import { figureText, isPlain } from '@/renderer/figure/figureText';
 import { formatFigure } from '@/renderer/figure/formatFigure';
 import ParamControls from '@/renderer/figure/view/ParamControls.svelte';
@@ -36,12 +36,8 @@ const SETTLE_MS = 150;
 /** The most steps listed beside a figure; more show one caption at a time. */
 const MAX_LISTED = 6;
 
-/** The tags the key explains: ▶, ✓ and green or red say what they mean, these three do not. */
-const MEANING: Partial<Record<Tag, string>> = {
-  match: 'a found or equal pair',
-  new: 'just added or changed',
-  dim: 'out of play',
-};
+/** What the key says of each state. */
+const MEANING: Record<State, string> = { active: 'being worked on', done: 'finished', dim: 'out of play' };
 const FALLBACK_WIDTH = 480;
 const RENDERED_LIMIT = 500;
 /** Plain text and `$…$` maths only, which MathJax draws at once with no Markdown render to wait for; else undefined. */
@@ -89,7 +85,7 @@ interface Drawing {
   tex: (el: HTMLElement, tex: string) => void;
   prepared: Map<string, unknown>;
   lanes: Map<string, Lane>;
-  used: Set<Tag>;
+  colorOf: ColorOf;
   /** Every element drawn, by key, so one can have its other steps repaint. */
   instances: Map<string, Instance[]>;
 }
@@ -157,13 +153,17 @@ export class FigureView {
   private readonly prepared = new Map<string, unknown>();
   /** State each element's view keeps across steps and param reruns, by key and name. */
   private readonly keeps = new Map<string, unknown>();
+  /** Every colour this figure has shown, so a param change does not repaint a name. */
+  private named: ReadonlyMap<string, Color> = new Map();
   /** The shown drawing's Markdown, for links redrawn after a resize. */
   private markdown?: Drawing['markdown'];
 
   constructor(parent: HTMLElement, private readonly host: FigureHost, private readonly sandbox: FigureSandbox = figureSandbox) {
     this.el = parent.appendChild(div('vicher-figure'));
-    if (typeof ResizeObserver !== 'undefined') {
-      this.observer = new ResizeObserver(() => this.resized());
+    // The figure's own window: the main window's observer reports a popout only when the main window paints.
+    const Observer = this.el.ownerDocument.defaultView?.ResizeObserver;
+    if (Observer) {
+      this.observer = new Observer(() => this.resized());
       this.observer.observe(this.el);
     }
     watchTheme(this);
@@ -208,7 +208,7 @@ export class FigureView {
     this.clear();
   }
 
-  /** Redraws with the theme's tag colours, which figure TeX holds as literals. */
+  /** Redraws with the theme's colours, which figure TeX holds as literals. */
   retheme(): void {
     this.colours.clear();
     if (this.figure && this.body?.isConnected) void this.draw(this.figure, true);
@@ -223,15 +223,17 @@ export class FigureView {
     };
     const result = await this.sandbox.run(this.source, params, near, this.controller.signal);
     if (!result.ok) return { ok: false, error: result.line ? `${result.error} (line ${result.line})` : result.error, repairable: result.repairable };
-    const valid = validateFigure(result.payload);
+    const valid = validateFigure(result.payload, this.named);
+    if (valid.ok) this.named = new Map([...this.named, ...valid.figure.colors]);
     return valid.ok ? { ok: true, figure: valid.figure } : { ok: false, error: valid.error, repairable: true };
   }
 
   /** Resolves once the figure is within a screen of the viewport, or at once where that cannot be watched. */
   private visible(): Promise<void> {
-    if (typeof IntersectionObserver === 'undefined') return Promise.resolve();
+    const Observer = this.el.ownerDocument.defaultView?.IntersectionObserver;
+    if (!Observer) return Promise.resolve();
     return new Promise((resolve) => {
-      const observer = new IntersectionObserver((entries) => {
+      const observer = new Observer((entries) => {
         if (!entries.some((entry) => entry.isIntersecting) && !this.controller.signal.aborted) return;
         observer.disconnect();
         resolve();
@@ -339,24 +341,21 @@ export class FigureView {
     const typed = (): void => {
       typeset = true;
     };
-    const used = new Set<Tag>();
-    const colour: TagColour = (tag, fill) => this.colour(tag, fill);
+    const colour: TexColour = (color, fill) => this.colour(color, fill);
     const drawing: Drawing = {
       markdown: (el, text) => {
         if (typeof text === 'number' || isPlain(text)) {
           el.textContent = typeof text === 'number' ? formatFigure(text) : text;
           return;
         }
-        for (const tag of texTags(text)) used.add(tag);
         this.render(el, figureText(drawTexIn(text, colour)), renders, typed);
       },
       tex: (el, tex) => {
-        for (const tag of texTags(tex)) used.add(tag);
         this.render(el, figureText(`$$\n${drawTex(tex, colour)}\n$$`), renders, typed);
       },
       prepared: this.prepare(figure, false),
       lanes: pointerLanes(figure),
-      used,
+      colorOf: (name) => (name ? figure.colors.get(name) : undefined),
       instances: new Map(),
     };
 
@@ -388,23 +387,19 @@ export class FigureView {
     this.width = this.canvasWidth();
     const steps = figure.steps.map((step) => {
       const view: StepView = { el: stack.appendChild(div('vicher-figure-step')), links: [], drawn: [], dirty: false };
-      const tags = new Map<string, Tag>();
+      const groups = new Map<string, string>();
+      const states = new Map<string, string>();
       const keys = new Map<FigureNode, string>();
       walk(step.root, (node, key) => {
         keys.set(node, key);
-        if ('tags' in node && node.tags) for (const [id, tag] of node.tags) tags.set(id, tag);
-        // A drawing's layers draw their own tag colours.
-        if ('children' in node && !BLOCK_CONTAINERS.has(node.type)) for (const layer of node.children) if ('tag' in layer && layer.tag) used.add(layer.tag);
+        if ('groups' in node && node.groups) for (const [id, name] of node.groups) groups.set(id, name);
+        if ('states' in node && node.states) for (const [id, state] of node.states) states.set(id, state);
       });
-      walk(step.root, (node) => {
-        if ('id' in node && node.id && 'tag' in node && node.tag) tags.set(node.id, node.tag);
-      });
-      const tagOf = (id: string): Tag | undefined => {
-        const tag = tags.get(id);
-        if (tag) used.add(tag);
-        return tag;
+      const marksOf = (id: string): Marks => {
+        const group = groups.get(id);
+        return { group, color: drawing.colorOf(group), state: states.get(id) };
       };
-      this.drawBlocks([step.root], view.el, view, drawing, tagOf, keys);
+      this.drawBlocks([step.root], view.el, view, drawing, marksOf, keys);
       return view;
     });
 
@@ -445,17 +440,18 @@ export class FigureView {
         };
       }
     }
-    const explained = TAGS.filter((tag) => used.has(tag) && MEANING[tag]);
-    if (explained.length) {
+    if (figure.key.length || figure.states.size) {
       const key = scroll.appendChild(div('vicher-figure-key'));
-      for (const tag of explained) {
+      const entry = (marks: Marks, meaning: string): void => {
         const item = key.appendChild(div('vicher-figure-key-item'));
         const mark = item.appendChild(createSpan());
         mark.className = 'vicher-figure-key-mark';
-        mark.dataset.tag = tag;
+        markData(mark, marks);
         mark.textContent = ' ';
-        item.append(`${tag}: ${MEANING[tag]}`);
-      }
+        drawing.markdown(item.appendChild(createSpan()), meaning);
+      };
+      for (const name of figure.key) entry({ color: drawing.colorOf(name) }, name);
+      for (const state of STATES) if (figure.states.has(state)) entry({ state }, `${state}: ${MEANING[state]}`);
     }
     if (figure.steps.length > 1) {
       playback = mount(Playback, { target: side, props: { change: (index) => this.show(index) } });
@@ -582,9 +578,9 @@ export class FigureView {
     return (Math.floor(this.el.clientWidth) || FALLBACK_WIDTH) - (inset || 0);
   }
 
-  /** A tag's theme colour, ink or fill, read from a probe element: the custom property's own text is not a colour. */
-  private colour(tag: Tag, fill: boolean): Rgb {
-    const name = `--vicher-figure-${fill ? 'fill' : 'tag'}-${tag}`;
+  /** A colour's theme value, ink or fill, read from a probe element: the custom property's own text is not a colour. */
+  private colour(color: Color, fill: boolean): Rgb {
+    const name = `--vicher-figure-${fill ? 'fill' : 'color'}-${color}`;
     let rgb = this.colours.get(name);
     if (!rgb) {
       rgb = parseColour(computedColour(this.el, `var(${name})`));
@@ -633,10 +629,10 @@ export class FigureView {
   }
 
   /** Draws blocks into `parent` by their views; links wait for the step to be laid out. */
-  private drawBlocks(nodes: readonly FigureNode[], parent: HTMLElement, view: StepView, drawing: Drawing, tagOf: (id: string) => Tag | undefined, keys: ReadonlyMap<FigureNode, string>): void {
+  private drawBlocks(nodes: readonly FigureNode[], parent: HTMLElement, view: StepView, drawing: Drawing, marksOf: (id: string) => Marks, keys: ReadonlyMap<FigureNode, string>): void {
     for (const node of nodes) {
       if (isLink(node)) {
-        view.links.push(node);
+        view.links.push({ ...node, color: drawing.colorOf(node.group) });
         continue;
       }
       const key = keys.get(node)!;
@@ -653,18 +649,18 @@ export class FigureView {
         lane: drawing.lanes.get(key),
         markdown: drawing.markdown,
         tex: drawing.tex,
-        mark: (el, id, tag) => {
+        mark: (el, id, own = {}) => {
           if (id) el.dataset.figureId = id;
-          const shown = tag ?? (id ? tagOf(id) : undefined);
-          if (shown) {
-            el.dataset.tag = shown;
-            drawing.used.add(shown);
-          }
+          const given = id ? marksOf(id) : {};
+          const group = own.group ?? given.group;
+          const shown = { group, color: drawing.colorOf(group), state: own.state ?? given.state };
+          markData(el, shown);
           return el;
         },
-        tagOf,
+        marksOf,
+        colorOf: drawing.colorOf,
         child: (className, into) => into.appendChild(div(className)),
-        blocks: (children, into) => this.drawBlocks(children, into, view, drawing, tagOf, keys),
+        blocks: (children, into) => this.drawBlocks(children, into, view, drawing, marksOf, keys),
         keep: <T>(name: string) => ({ get: () => this.keeps.get(`${key}/${name}`) as T | undefined, set: (value: T) => void this.keeps.set(`${key}/${name}`, value) }),
         stale: () => {
           for (const other of drawing.instances.get(key) ?? []) {

@@ -22,7 +22,7 @@ export default function ({ n }) {
       </Plot>
       <Row gap="sm">
         <Node id="deg" label={2 * n - 1} sub="degree" />
-        <Node id="err" label={error.toFixed(4)} sub="error at x = 3" tag={error < 0.01 ? 'good' : 'bad'} />
+        <Node id="err" label={error.toFixed(4)} sub="error at x = 3" group={error < 0.01 ? 'close enough' : 'too far'} />
       </Row>
     </Column>
   );
@@ -50,13 +50,13 @@ export default function () {
     }
     steps.push({ d: { ...d }, done: [...done], u, text: 'Settle **' + u + '** at ' + show(d[u]) + '. ' + (changed.length ? 'Relaxed: ' + changed.join(', ') + '.' : 'No distance improves.') });
   }
-  const tagOf = (step, n) => (n === step.u ? 'active' : step.done.includes(n) ? 'done' : null);
+  const stateOf = (step, n) => (n === step.u ? 'active' : step.done.includes(n) ? 'done' : null);
   return <Figure steps={steps} caption={step => step.text} render={step => (
     <Row gap="lg" align="center">
       <Graph id="g" nodes={nodes.map(n => ({ id: 'g-' + n, label: n }))} edges={edges.map(([a, b, w], i) => ({ id: 'e' + i, from: 'g-' + a, to: 'g-' + b, label: w }))}
-        tags={Object.fromEntries(nodes.map(n => ['g-' + n, tagOf(step, n)]))} />
+        states={Object.fromEntries(nodes.map(n => ['g-' + n, stateOf(step, n)]))} />
       <Table id="dist" title="Distance" columns={['Node', 'Distance']} rows={nodes.map(n => [n, show(step.d[n])])} rowIds={nodes.map(n => 't-' + n)}
-        tags={Object.fromEntries(nodes.map(n => ['t-' + n, tagOf(step, n)]))} />
+        states={Object.fromEntries(nodes.map(n => ['t-' + n, stateOf(step, n)]))} />
     </Row>
   )} />;
 }`;
@@ -77,13 +77,13 @@ export default function ({ angle }) {
         <Angle at={A} from={B} to={C} label={'$' + angle + '^\\circ$'} />
         <RightAngle at={B} from={A} to={C} />
         <Vector from={P} to={tip([0, -1], W)} label="$mg$" />
-        <Vector from={P} to={tip([-Math.sin(t), Math.cos(t)], N)} label="$N$" tag="good" />
-        <Vector from={P} to={tip([-Math.cos(t), -Math.sin(t)], F)} label="$mg\sin\theta$" tag="active" />
+        <Vector from={P} to={tip([-Math.sin(t), Math.cos(t)], N)} label="$N$" group="normal force" />
+        <Vector from={P} to={tip([-Math.cos(t), -Math.sin(t)], F)} label="$mg\sin\theta$" state="active" />
         <Dimension from={A} to={B} label={(L * Math.cos(t)).toFixed(2) + ' m'} />
       </Diagram>
       <Column gap="sm">
         <Node id="n" label={N.toFixed(1) + ' N'} sub="normal force" />
-        <Node id="f" label={F.toFixed(1) + ' N'} sub="force down the slope" tag="active" />
+        <Node id="f" label={F.toFixed(1) + ' N'} sub="force down the slope" state="active" />
       </Column>
     </Row>
   );
@@ -104,7 +104,7 @@ const ELIMINATION = String.raw`export default function () {
   eliminate(2, 0, 0);
   eliminate(2, 1, 1);
   const fmt = v => String(Number(v.toFixed(2)));
-  const tex = step => '\\left[\\begin{array}{ccc|c}' + step.M.map((r, i) => (i === step.row ? '\\rowcolor{new} ' : '') + r.map((v, j) => (i === step.row && j === 0 ? '\\cssId{pivot}{' + fmt(v) + '}' : fmt(v))).join(' & ')).join(' \\\\ ') + '\\end{array}\\right]';
+  const tex = step => '\\left[\\begin{array}{ccc|c}' + step.M.map((r, i) => (i === step.row ? '\\rowcolor{yellow} ' : '') + r.map((v, j) => (i === step.row && j === 0 ? '\\cssId{pivot}{' + fmt(v) + '}' : fmt(v))).join(' & ')).join(' \\\\ ') + '\\end{array}\\right]';
   return <Figure steps={steps} caption={step => step.text} render={step => (
     <Column gap="sm">
       <Tex id="m" tex={tex(step)} />
@@ -129,7 +129,7 @@ export default function () {
   return <Figure steps={steps} caption={step => step.text} render={step => (
     <Table id="dp" columns={['', 'ε'].concat(b.split(''))} rowIds={D.map((_, i) => 'r' + i)}
       rows={D.map((row, i) => [i === 0 ? 'ε' : a[i - 1]].concat(row.map(v => (i <= step.i ? v : null))))}
-      tags={step.done ? { [last]: 'good' } : { ['r' + step.i]: 'active' }} />
+      states={step.done ? { [last]: 'done' } : { ['r' + step.i]: 'active' }} />
   )} />;
 }`;
 
@@ -159,7 +159,7 @@ export default function () {
   return <Figure steps={steps} caption={step => step.text} render={step => step.trial ? (
     <Table id="trial" title="Trial balance" columns={['Account', 'Debit', 'Credit']}
       rows={accounts.map(a => { const v = balance(posted[a]); return [a, v > 0 ? usd(v) : '', v < 0 ? usd(-v) : '']; }).concat([['Total', usd(total), usd(total)]])}
-      rowIds={accounts.map(slug).concat(['total'])} tags={{ total: 'match' }} />
+      rowIds={accounts.map(slug).concat(['total'])} groups={{ total: 'totals agree' }} />
   ) : (
     <Row gap="md">
       {accounts.map(a => {
@@ -168,9 +168,9 @@ export default function () {
         const v = balance(step.posted[a]);
         const t = transactions[step.i];
         return (
-          <Panel id={slug(a)} title={a} tag={t.debit === a || t.credit === a ? 'active' : undefined}>
+          <Panel id={slug(a)} title={a} state={t.debit === a || t.credit === a ? 'active' : undefined}>
             <Table id={'t-' + slug(a)} columns={['Debit', 'Credit']} rows={rows.concat([[v >= 0 ? usd(v) : '', v < 0 ? usd(-v) : '']])}
-              rowIds={rows.map((_, k) => slug(a) + '-' + k).concat([slug(a) + '-bal'])} tags={{ [slug(a) + '-bal']: 'done' }} />
+              rowIds={rows.map((_, k) => slug(a) + '-' + k).concat([slug(a) + '-bal'])} states={{ [slug(a) + '-bal']: 'done' }} />
           </Panel>
         );
       })}

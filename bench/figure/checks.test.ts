@@ -38,7 +38,7 @@ test('dimmed text and a rotated label are measured for what they are', () => {
   // A step other than the current one is dimmed on purpose; the same colour on live text still fails.
   expect(checks(state([text({ fg: 'rgb(170, 170, 170)', muted: true })]))).toEqual([]);
   expect(checks(state([text({ fg: 'rgb(170, 170, 170)' })]))).toEqual(['low-contrast']);
-  // A tag colour at 2.7 passes; the grey above, at 2.3, does not.
+  // A figure colour at 2.7 passes; the grey above, at 2.3, does not.
   expect(checks(state([text({ fg: 'rgb(40, 180, 90)' })]))).toEqual([]);
   // A label turned on its side is as tall as its box is wide.
   expect(checks(state([text({ kind: 'svg', w: 11, h: 7, rotated: true })]))).toEqual([]);

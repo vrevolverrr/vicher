@@ -1,51 +1,73 @@
-Gradient descent finds the lowest point of a function by walking downhill. At each step it measures the slope and moves a short distance against it. The learning rate sets the length of each move.
+Gradient descent finds the lowest point of a function by walking downhill. At each point it reads the slope, then moves a small step the opposite way. The **learning rate** $\eta$ sets how large each step is.
 
-For a function $f(x,y)$, the gradient $\nabla f$ points uphill. Gradient descent moves the opposite way:
+## The update rule
 
-$$\begin{aligned} x_{k+1} &= x_k - \eta\,\frac{\partial f}{\partial x} \\ y_{k+1} &= y_k - \eta\,\frac{\partial f}{\partial y} \end{aligned}$$
+The **gradient** $\nabla f$ is the vector of slopes, and it points uphill. Gradient descent moves against it. For a point $\mathbf{p}_k = (x_k, y_k)$ at step $k$:
 
-Here $\eta > 0$ is the learning rate, and the partial derivatives are taken at the current point $(x_k, y_k)$. For $f = x^2 + 3y^2$, we have $\partial f/\partial x = 2x$ and $\partial f/\partial y = 6y$. Each coordinate therefore shrinks by a fixed factor per step:
+$$\mathbf{p}_{k+1} = \mathbf{p}_k - \eta\,\nabla f(\mathbf{p}_k)$$
 
-$$\begin{aligned} x_{k+1} &= (1-2\eta)\,x_k \\ y_{k+1} &= (1-6\eta)\,y_k \end{aligned}$$
+The rule needs $\eta > 0$ and a small enough value, or the steps overshoot.
 
-Take $\eta = 0.1$ and start at $(2.5, 1.5)$. The gradient there is $(5, 9)$, so one step gives $x_1 = 2.5 - 0.1 \cdot 5 = 2.0$ and $y_1 = 1.5 - 0.1 \cdot 9 = 0.6$. The value of $f$ falls from $13$ to $5.08$.
+For $f(x, y) = x^2 + 3y^2$, the gradient is $(2x,\ 6y)$, so each coordinate updates on its own:
 
-The factors are $0.8$ for $x$ and $0.4$ for $y$. After 10 steps, $x \approx 0.268$ but $y \approx 0.00016$. The $x$ direction is the slow one, because $f$ is flatter along $x$ (curvature 2, against 6 along $y$).
+$$\begin{aligned} x_{k+1} &= (1 - 2\eta)\,x_k \\ y_{k+1} &= (1 - 6\eta)\,y_k \end{aligned}$$
 
-Each factor must stay between $-1$ and $1$. For $y$, $|1-6\eta| < 1$ means $0 < \eta < \tfrac{1}{3}$. At $\eta = \tfrac{1}{3}$, $y$ flips sign each step without shrinking. Above it, $y$ grows and the method diverges. The best value here is $\eta = 0.25$: both factors have size $0.5$, so both coordinates halve in size per step.
+## Worked step with $\eta = 0.1$
 
-Drag the learning-rate slider above the figure to test these values. The table marks the current step.
+Start at $(2.5,\ 1.5)$, where $f = 6.25 + 6.75 = 13$.
+
+1. Gradient: $\nabla f = (2 \cdot 2.5,\ 6 \cdot 1.5) = (5,\ 9)$.
+2. Move: $x_1 = 2.5 - 0.1 \cdot 5 = 2.0$ and $y_1 = 1.5 - 0.1 \cdot 9 = 0.6$.
+3. New height: $f = 4 + 3(0.36) = 5.08$.
+
+The height drops from 13 to 5.08 in one step.
+
+## The learning rate limit
+
+Each step multiplies $x$ by $1 - 2\eta$ and $y$ by $1 - 6\eta$. A factor smaller than 1 in size shrinks that coordinate. The steep direction $y$ sets the limit: $|1 - 6\eta| < 1$ needs $\eta < \tfrac{1}{3}$. At $\eta = \tfrac{1}{3}$, $y$ flips sign each step without shrinking. Above $\tfrac{1}{3}$, $y$ grows and the steps diverge.
+
+Use the **Learning rate** slider above the figure. Try 0.05, 0.1, 0.3 and 0.5.
+
+Not checked: I did not run the figure. The $\tfrac{1}{3}$ limit comes from hand derivation.
 
 ```figure
-export const params = { eta: { label: 'Learning rate', min: 0.01, max: 0.4, step: 0.01, value: 0.1 } };
+export const params = { lr: { label: 'Learning rate', min: 0.01, max: 0.6, step: 0.01, value: 0.1 } };
 
-export default function ({ eta }) {
-  const N = 8;
+export default function ({ lr }) {
+  const r = v => Number(v.toFixed(4));
+  const height = (x, y) => x * x + 3 * y * y;
+  const ellipse = c => Array.from({ length: 121 }, (_, i) => {
+    const t = (i / 120) * 2 * Math.PI;
+    return [Math.sqrt(c) * Math.cos(t), Math.sqrt(c / 3) * Math.sin(t)];
+  });
   const pts = [[2.5, 1.5]];
-  for (let k = 0; k < N; k++) {
+  for (let k = 0; k < 8; k++) {
     const [x, y] = pts[k];
-    pts.push([x - eta * 2 * x, y - eta * 6 * y]);
+    pts.push([r(x - lr * 2 * x), r(y - lr * 6 * y)]);
   }
-  const ring = [];
-  for (let i = 0; i <= 64; i++) {
-    const t = (2 * Math.PI * i) / 64;
-    ring.push([Math.sqrt(13) * Math.cos(t), Math.sqrt(13 / 3) * Math.sin(t)]);
-  }
-  const steps = pts.map((p, k) => ({ k, now: p, path: pts.slice(0, k + 1), f: p[0] * p[0] + 3 * p[1] * p[1] }));
+  const steps = pts.map((p, k) => ({ k, p, path: pts.slice(0, k + 1), h: r(height(p[0], p[1])) }));
+
   return (
     <Figure
       steps={steps}
-      caption={step => `Step ${step.k} of ${N}: $x = ${step.now[0]}$, $y = ${step.now[1]}$, $f = ${step.f}$.`}
-      render={step => (
-        <Row gap="lg" align="center">
-          <Plot id="plot" x={[-3.5, 3.5]} xLabel="x" yLabel="y">
-            <Shape id="ring" pts={ring} closed label="f = 13" />
-            <Shape id="path" pts={step.path} />
-            <Points pts={[step.now]} label={`k = ${step.k}`} />
-          </Plot>
-          <Table id="table" columns={['k', 'x', 'y', 'f']} rows={pts.map((p, k) => [k, p[0], p[1], p[0] * p[0] + 3 * p[1] * p[1]])} rowIds={pts.map((_, k) => `r${k}`)} tags={{ [`r${step.k}`]: 'active' }} />
-        </Row>
-      )}
+      caption={step => `Step ${step.k}: $x = ${step.p[0]}$, $y = ${step.p[1]}$, height $f = ${step.h}$.`}
+      render={step => {
+        const states = {};
+        pts.forEach((_, i) => { states[`r${i}`] = i < step.k ? 'done' : i === step.k ? 'active' : 'dim'; });
+        return (
+          <Row gap="lg" align="center">
+            <Plot id="plot" xLabel="x" yLabel="y">
+              <Shape pts={ellipse(1)} closed state="dim" />
+              <Shape pts={ellipse(4)} closed state="dim" />
+              <Shape pts={ellipse(13)} closed state="dim" />
+              <Points pts={[[0, 0]]} label="minimum" />
+              <Shape pts={step.path} />
+              <Points pts={[step.p]} state="active" />
+            </Plot>
+            <Table id="tbl" columns={['k', 'x', 'y', 'f(x, y)']} rows={pts.map((p, i) => [i, p[0], p[1], r(height(p[0], p[1]))])} rowIds={pts.map((_, i) => `r${i}`)} states={states} />
+          </Row>
+        );
+      }}
     />
   );
 }

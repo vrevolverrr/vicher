@@ -1,35 +1,39 @@
-```figure
-export const params = { price: { label: 'Price per unit', min: 31, max: 100, step: 1, value: 50, unit: '$' } };
+Move the price slider to see the break-even point, where the revenue line crosses the total cost line.
 
-const FIXED = 12000;   // fixed costs, dollars
-const VAR = 30;        // variable cost per unit, dollars
+```figure
+const F = 12000;     // fixed costs, $
+const V = 30;        // variable cost per unit, $
+const MAX_X = 1500;  // chart runs to 1,500 units
+
+export const params = {
+  price: { label: 'Price per unit', min: 40, max: 100, step: 1, value: 60, unit: '$' }
+};
+
+const money = n => '$' + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 export default function ({ price }) {
-  const q = price > VAR ? FIXED / (price - VAR) : null;   // exact break-even units
-  const xMax = q === null ? 1000 : Math.max(1000, Math.ceil(q * 1.3));
-  const yMax = Math.max(price * xMax, FIXED + VAR * xMax) * 1.1;
-  const units = q === null ? null : Math.ceil(q);
+  const qs = F / (price - V);   // break-even units
+  const rs = qs * price;        // break-even revenue
   return (
-    <Column gap="md">
-      <Plot id="chart" x={[0, xMax]} y={[0, yMax]} xLabel="Units sold" yLabel="Dollars">
-        <Fn id="rev" f={x => price * x} from={0} to={xMax} label="Revenue" />
-        <Fn id="cost" f={x => FIXED + VAR * x} from={0} to={xMax} label="Total cost" />
-        {q !== null && <Points pts={[[q, price * q]]} label="Break-even" />}
+    <Row gap="lg" align="start">
+      <Plot id="be" x={[0, MAX_X]} xLabel="Units sold" yLabel="Dollars">
+        <Fn id="rev" f={x => price * x} from={0} to={MAX_X} label="Revenue" />
+        <Fn id="cost" f={x => F + V * x} from={0} to={MAX_X} label="Total cost" />
+        <Segment id="drop" from={[qs, 0]} to={[qs, rs]} state="dim" />
+        <Points id="be-pt" pts={[[qs, rs]]} label={`Break-even: ${Math.round(qs)} units`} />
       </Plot>
-      {q === null ? (
-        <Text>The price must be above 30, the variable cost. At or below it, the lines never cross.</Text>
-      ) : (
-        <Column gap="md">
-          <Tex tex={`q^* = \\frac{${FIXED}}{${price} - ${VAR}} \\approx ${q.toFixed(1)}`} />
-          <Row gap="lg">
-            <Node id="units" label={`${units}`} sub="units to break even" />
-            <Node id="rev-be" label={`${units * price}`} sub="revenue at break-even" />
-          </Row>
-        </Column>
-      )}
-    </Column>
+      <Column gap="sm">
+        <Node id="units" label={`${Math.round(qs)}`} sub="units to break even" />
+        <Node id="rev-n" label={money(rs)} sub="revenue at break-even" />
+        <Node id="margin" label={money(price - V)} sub="profit per unit after variable cost" />
+      </Column>
+    </Row>
   );
 }
 ```
 
-Not run: I checked the program by reading it, not by rendering it.
+The break-even formula, with $F$ fixed cost, $v$ variable cost per unit, $p$ price:
+
+$$Q^* = \frac{F}{p - v} = \frac{12000}{60 - 30} = 400 \text{ units}$$
+
+Not checked: the figure was not rendered in your viewer. Risk: below $40 per unit the break-even passes 1,500 units and leaves the chart, so the slider starts at $40.

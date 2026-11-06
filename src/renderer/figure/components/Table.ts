@@ -1,4 +1,4 @@
-import { component, field } from '@/renderer/figure/components/component';
+import { component, field, keyedMarks } from '@/renderer/figure/components/component';
 import { LIMITS } from '@/renderer/figure/FigureData';
 
 const cells = (rowIds: readonly string[] | undefined, columns: number): string[] =>
@@ -13,8 +13,8 @@ export const Table = component({
     columns: field.list(field.text(), { min: 1, max: LIMITS.tableColumns }),
     rows: field.list(field.list(field.either(field.literal(null), field.text(), 'must be text, a number or null')), { max: LIMITS.tableRows }),
     rowIds: field.optional(field.list(field.id(), { max: LIMITS.tableRows }))
-      .doc('`rowIds` is optional: give it, one id per row, only when a tag, `Arrow` or `Pointer` names a row or cell. A cell then has the id `rowId.column` (0-based column): a DP table, a Punnett square or a pipeline marks `{ \'r2.3\': \'active\' }`.'),
-    tags: field.optional(field.tags()),
+      .doc('`rowIds` is optional: give it, one id per row, only when `groups`, `states`, an `Arrow` or a `Pointer` names a row or cell. A cell then has the id `rowId.column` (0-based column): a DP table, a Punnett square or a pipeline marks `states={{ \'r2.3\': \'active\' }}`.'),
+    ...keyedMarks,
   },
   check(table, { fail }) {
     table.rows.forEach((row, r) => {

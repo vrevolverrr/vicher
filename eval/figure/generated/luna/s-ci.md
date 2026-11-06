@@ -1,32 +1,32 @@
-Each horizontal line is a 95% confidence interval from a repeated sample. The vertical line marks the true mean; one interval misses it.
+A 95% confidence interval is made by a method that captures the true mean in about 95% of repeated samples. The mean is fixed; the intervals change from sample to sample. Here, 19 of the 20 intervals contain the true mean, and the one that misses is marked orange.
 
 ```figure
 const intervals = [
-  [46, 54], [47, 55], [44, 52], [45, 53], [48, 56],
-  [43, 51], [46, 54], [47, 55], [44, 52], [45, 53],
-  [48, 56], [46, 54], [43, 51], [47, 55], [44, 52],
-  [45, 53], [46, 54], [48, 56], [43, 51], [54, 62]
+  [47, 53], [46, 52], [49, 54], [45, 51], [48, 52],
+  [47, 55], [46, 50.5], [48, 54], [44, 49], [47.5, 52],
+  [46, 53], [48, 51], [45, 54], [47, 50.8], [46, 52],
+  [49, 55], [48, 53], [45.5, 51], [47, 54], [46, 51],
 ];
 
 export default function () {
   return (
-    <Figure
-      steps={[{ text: 'One of the 20 intervals misses the true mean.' }]}
-      caption={step => step.text}
-      render={() => (
-        <Plot id="intervals" x={[40, 64]} y={[0, 21]} xLabel="Value" yLabel="Repeated sample">
-          <Vector from={[50, 0]} to={[50, 21]} label="True mean" />
-          {intervals.map(([lo, hi], i) => (
-            <Shape
-              id={`ci${i + 1}`}
-              pts={[[lo, i + 1], [hi, i + 1]]}
-              label={`Sample ${i + 1}`}
-              tag={i === 19 ? 'bad' : 'good'}
-            />
-          ))}
-        </Plot>
-      )}
-    />
+    <Figure steps={[{ intervals }]} legend={{
+      hit: 'contains true mean',
+      miss: 'misses true mean',
+      truth: 'true mean',
+    }} render={step => (
+      <Plot x={[43, 56]} y={[0, 21]} xLabel="Mean" yLabel="Sample">
+        {step.intervals.map(([lo, hi], i) => (
+          <Segment
+            id={`ci${i + 1}`}
+            from={[lo, i + 1]}
+            to={[hi, i + 1]}
+            group={lo <= 50 && 50 <= hi ? 'hit' : 'miss'}
+          />
+        ))}
+        <Segment id="trueMean" from={[50, 0]} to={[50, 21]} group="truth" />
+      </Plot>
+    )} />
   );
 }
 ```

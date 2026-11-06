@@ -1,30 +1,57 @@
-A level curve connects points where $f$ has the same value. The gradient points toward the steepest increase and is perpendicular to the level curve.
+A **level curve** connects points where $f(x,y)$ has the same value. For $f(x,y)=x^2-y^2$, the curve at height $c$ satisfies:
 
-$$
-f(x,y)=c
-$$
+$$x^2-y^2=c$$
 
-$$
-\nabla f(x,y)=(2x,-2y)
-$$
+The **gradient** points in the direction of greatest increase and is perpendicular to the level curve:
 
-The figure shows levels $c=-4,0,4$ and gradients at three points.
+$$\nabla f(x,y)=(2x,-2y)$$
+
+For example, at $(1,1)$, $f=0$ and $\nabla f=(2,-2)$, shown by an arrow on the zero curve.
 
 ```figure
+const sample = (fn, count = 41) =>
+  Array.from({ length: count }, (_, i) => fn(-1.3 + (2.6 * i) / (count - 1)));
+
+const levels = [-4, -1, 0, 1, 4];
+
 export default function () {
-  const t = Array.from({ length: 61 }, (_, i) => -1.3 + i * 2.6 / 60);
-  const s = Array.from({ length: 61 }, (_, i) => -4 + i * 8 / 60);
+  const curves = levels.flatMap(c => {
+    if (c === 0) {
+      return [
+        { id: 'zero-up', c, pts: sample(t => [t, t]) },
+        { id: 'zero-down', c, pts: sample(t => [t, -t]) }
+      ];
+    }
+    if (c > 0) {
+      const r = Math.sqrt(c);
+      return [-1, 1].map((side, i) => ({
+        id: `level-${c}-${i}`,
+        c,
+        pts: sample(t => [side * r * Math.cosh(t), r * Math.sinh(t)])
+      }));
+    }
+    const r = Math.sqrt(-c);
+    return [-1, 1].map((side, i) => ({
+      id: `level-${Math.abs(c)}-${i}`,
+      c,
+      pts: sample(t => [r * Math.sinh(t), side * r * Math.cosh(t)])
+    }));
+  });
+
   return (
-    <Plot id="levels" x={[-4, 4]} y={[-4, 4]} xLabel="x" yLabel="y">
-      <Shape id="positive-right" pts={t.map(v => [2 * Math.cosh(v), 2 * Math.sinh(v)])} label="$c=4$" />
-      <Shape id="positive-left" pts={t.map(v => [-2 * Math.cosh(v), 2 * Math.sinh(v)])} label="$c=4$" />
-      <Shape id="negative-top" pts={t.map(v => [2 * Math.sinh(v), 2 * Math.cosh(v)])} label="$c=-4$" />
-      <Shape id="negative-bottom" pts={t.map(v => [2 * Math.sinh(v), -2 * Math.cosh(v)])} label="$c=-4$" />
-      <Shape id="zero-up" pts={s.map(v => [v, v])} label="$c=0$" />
-      <Shape id="zero-down" pts={s.map(v => [v, -v])} label="$c=0$" />
-      <Vector from={[1, 0]} to={[3, 0]} label="$\\nabla f(1,0)$" />
-      <Vector from={[0, 1]} to={[0, -1]} label="$\\nabla f(0,1)$" />
-      <Vector from={[1, 1]} to={[3, -1]} label="$\\nabla f(1,1)$" />
+    <Plot x={[-4, 4]} y={[-4, 4]} xLabel="x" yLabel="y" equal>
+      {curves.map(curve => (
+        <Shape
+          key={curve.id}
+          id={curve.id}
+          pts={curve.pts}
+          group={`f = ${curve.c}`}
+        />
+      ))}
+      <Points id="gradient-points" pts={[[1, 0], [0, 1], [1, 1]]} />
+      <Vector id="grad-a" from={[1, 0]} to={[3, 0]} label="(2, 0)" group="gradient" />
+      <Vector id="grad-b" from={[0, 1]} to={[0, -1]} label="(0, −2)" group="gradient" />
+      <Vector id="grad-c" from={[1, 1]} to={[3, -1]} label="(2, −2)" group="gradient" />
     </Plot>
   );
 }

@@ -1,4 +1,5 @@
-import { computedColour, div, parseColour, svg, tagInk } from '@/renderer/figure/view/dom';
+import { COLORS } from '@/renderer/figure/marks';
+import { computedColour, div, markInk, parseColour, svg } from '@/renderer/figure/view/dom';
 import { clampElevation, type Plot3Model, type View } from '@/renderer/figure/packages/plot3/Plot3Model';
 import { isPlain } from '@/renderer/figure/figureText';
 import { type Box, type LabelBox, placeLabels } from '@/renderer/figure/placeLabels';
@@ -39,7 +40,7 @@ export class Plot3Chart {
   private readonly shown = new Set<HTMLElement>();
   private names = '';
   private model?: Plot3Model;
-  private colours?: Colours & { edge: string; box: string; halo: string };
+  private colours?: Colours & { edge: string; box: string; halo: string; paper: string };
   /** Overlay inks resolved from the theme, by CSS colour. */
   private readonly inks = new Map<string, string>();
   private observer?: IntersectionObserver;
@@ -135,8 +136,9 @@ export class Plot3Chart {
   }
 
   private watch(): void {
-    if (this.observer || typeof IntersectionObserver === 'undefined') return;
-    this.observer = new IntersectionObserver((entries) => {
+    const Observer = this.el.ownerDocument.defaultView?.IntersectionObserver;
+    if (this.observer || !Observer) return;
+    this.observer = new Observer((entries) => {
       const near = entries.some((entry) => entry.isIntersecting);
       if (near === this.near) return;
       this.near = near;
@@ -150,13 +152,14 @@ export class Plot3Chart {
     this.canvas.height = 0;
   }
 
-  private readColours(): Colours & { edge: string; box: string; halo: string } {
+  private readColours(): Colours & { edge: string; box: string; halo: string; paper: string } {
     const ramp = Array.from({ length: RAMP }, (_, i) => parseColour(computedColour(this.el, `var(--vicher-surface-${i + 1})`)));
-    return { ramp, edge: computedColour(this.el, 'var(--vicher-surface-edge)'), box: computedColour(this.el, 'var(--vicher-surface-box)'), halo: computedColour(this.el, 'var(--background-primary)') };
+    const tints = new Map(COLORS.map((color) => [color as string, parseColour(computedColour(this.el, markInk({ color })!))]));
+    return { ramp, tints, paper: computedColour(this.el, 'var(--background-primary)'), edge: computedColour(this.el, 'var(--vicher-surface-edge)'), box: computedColour(this.el, 'var(--vicher-surface-box)'), halo: computedColour(this.el, 'var(--background-primary)') };
   }
 
-  private ink(overlay: Overlay): string {
-    const css = overlay.tag ? tagInk(overlay.tag) : 'var(--text-normal)';
+  private ink(overlay: { color?: string | undefined }): string {
+    const css = markInk(overlay) ?? 'var(--text-normal)';
     let colour = this.inks.get(css);
     if (colour === undefined) {
       colour = computedColour(this.el, css);
@@ -191,7 +194,7 @@ export class Plot3Chart {
     this.frame.setAttribute('aria-label', `3D plot${this.names ? ` of ${this.names}` : ''}, turned to azimuth ${Math.round(view.azimuth)}°, elevation ${Math.round(view.elevation)}°. Drag or use the arrow keys to turn it; double-click to reset.`);
   }
 
-  private paintCanvas(scene: Scene3, width: number, height: number, colours: { edge: string; box: string; halo: string }): void {
+  private paintCanvas(scene: Scene3, width: number, height: number, colours: { edge: string; box: string; halo: string; paper: string }): void {
     const ratio = window.devicePixelRatio || 1;
     const [w, h] = [Math.round(width * ratio), Math.round(height * ratio)];
     // Setting a canvas's size clears and reallocates it, which a frame of a drag at the same size does not need.
@@ -228,14 +231,14 @@ export class Plot3Chart {
       context.stroke();
     }
     context.globalAlpha = 1;
-    this.paintOverlays(context, scene.overlays, colours.halo);
+    this.paintOverlays(context, scene.overlays, colours.halo, colours.paper);
   }
 
   /**
-   * Lines, arrows and dots over the faces, each on a band of the background so a tag colour reads on every height colour.
+   * Lines, arrows and dots over the faces, each on a band of the background so a mark's colour reads on every height colour.
    * On the canvas, not in SVG: a figure can hold thousands of points, and SVG rebuilt each frame of a turn takes seconds.
    */
-  private paintOverlays(context: CanvasRenderingContext2D, overlays: readonly Overlay[], halo: string): void {
+  private paintOverlays(context: CanvasRenderingContext2D, overlays: readonly Overlay[], halo: string, paper: string): void {
     context.lineCap = 'round';
     context.lineJoin = 'round';
     const trace = (points: readonly Xy[]): void => {
@@ -246,31 +249,44 @@ export class Plot3Chart {
     for (let i = 0; i < overlays.length; i += 1) {
       const overlay = overlays[i];
       const ink = this.ink(overlay);
+      context.globalAlpha = overlay.state === 'dim' ? 0.4 : 1;
       if (overlay.kind === 'dot') {
         // Dots of one colour in a row are one path, so a cloud of thousands draws in two calls.
         context.beginPath();
         let j = i;
         for (; j < overlays.length; j += 1) {
           const dot = overlays[j];
-          if (dot.kind !== 'dot' || this.ink(dot) !== ink) break;
+          if (dot.kind !== 'dot' || dot.color !== overlay.color || dot.state !== overlay.state) break;
           context.moveTo(dot.at[0] + 4.5, dot.at[1]);
           context.arc(dot.at[0], dot.at[1], 4.5, 0, 2 * Math.PI);
         }
-        i = j - 1;
         context.lineWidth = 2;
-        context.strokeStyle = halo;
+        context.strokeStyle = overlay.state === 'done' ? ink : halo;
         context.stroke();
-        context.fillStyle = ink;
+        context.fillStyle = overlay.state === 'done' ? paper : ink;
         context.fill();
+        if (overlay.state === 'active') {
+          context.beginPath();
+          for (const dot of overlays.slice(i, j) as Extract<Overlay, { kind: 'dot' }>[]) {
+            context.moveTo(dot.at[0] + 8.5, dot.at[1]);
+            context.arc(dot.at[0], dot.at[1], 8.5, 0, 2 * Math.PI);
+          }
+          context.strokeStyle = this.ink({});
+          context.stroke();
+        }
+        i = j - 1;
         continue;
       }
       if (overlay.kind === 'note') continue;
-      for (const [width, colour] of [[5.5, halo], [2.5, ink]] as const) {
+      const extra = overlay.state === 'active' ? 1 : 0;
+      context.setLineDash(overlay.state === 'done' ? [7, 6] : []);
+      for (const [width, colour] of [[5.5 + extra, halo], [2.5 + extra, ink]] as const) {
         trace(overlay.points);
         context.lineWidth = width;
         context.strokeStyle = colour;
         context.stroke();
       }
+      context.setLineDash([]);
       if (overlay.kind === 'arrow') {
         const [from, to] = overlay.points;
         const length = Math.hypot(to[0] - from[0], to[1] - from[1]) || 1;
@@ -287,6 +303,7 @@ export class Plot3Chart {
         context.fill();
       }
     }
+    context.globalAlpha = 1;
   }
 
   private paintSvg(scene: Scene3, width: number, height: number): void {

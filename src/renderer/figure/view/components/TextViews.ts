@@ -1,13 +1,12 @@
 import type { NodeOf } from '@/renderer/figure/components/registry';
-import { status } from '@/renderer/figure/geometry';
 import type { ElementView } from '@/renderer/figure/view/components/ElementView';
 import { pointerLabel } from '@/renderer/figure/view/drawLinks';
 
 export const NodeView: ElementView<NodeOf<'Node'>> = {
   draw(el, node, ctx) {
     el.className = `vicher-figure-node${node.shape === 'circle' ? ' is-circle' : ''}`;
-    ctx.mark(el, node.id, node.tag);
-    ctx.markdown(ctx.child('vicher-figure-node-label', el), `${status(el.dataset.tag ?? '')}${node.label}`);
+    ctx.mark(el, node.id, node);
+    ctx.markdown(ctx.child('vicher-figure-node-label', el), node.label);
     if (node.sub !== undefined) ctx.markdown(ctx.child('vicher-figure-node-sub', el), node.sub);
   },
 };

@@ -1,15 +1,16 @@
-Assuming the company starts with no assets or debts, the transaction-only balance sheet is:
+Assuming the company starts with $10,000 in cash and $10,000 in owner’s equity:
 
-|  | Before | After |
+| Balance sheet | Before | After |
 |---|---:|---:|
 | **Assets** |  |  |
-| Cash | $0 | $5,000 |
+| Cash | $10,000 | $15,000 |
 | Machine | $0 | $15,000 |
-| **Total assets** | **$0** | **$20,000** |
+| **Total assets** | **$10,000** | **$30,000** |
 | **Liabilities** |  |  |
 | Loan payable | $0 | $20,000 |
-| **Equity** | $0 | $0 |
-| **Total liabilities and equity** | **$0** | **$20,000** |
+| **Equity** |  |  |
+| Owner’s equity | $10,000 | $10,000 |
+| **Total liabilities and equity** | **$10,000** | **$30,000** |
 
-The company borrows $20,000, then spends $15,000 of the cash on the machine. The remaining $5,000 stays as cash. The balance sheet balances because total assets equal liabilities plus equity.
+The $20,000 loan adds $20,000 cash and $20,000 debt. Buying the $15,000 machine converts that much cash into equipment, leaving cash at $15,000. The balance sheet balances because assets equal liabilities plus equity.
 

@@ -176,7 +176,7 @@ export class ChatPane extends Component {
    */
   private pinToEnd(): void {
     this.unpin?.();
-    const observer = new ResizeObserver(() => (this.messagesEl.scrollTop = this.messagesEl.scrollHeight));
+    const observer = new (this.messagesEl.ownerDocument.defaultView!.ResizeObserver)(() => (this.messagesEl.scrollTop = this.messagesEl.scrollHeight));
     for (const turn of Array.from(this.messagesEl.children)) observer.observe(turn);
     const timer = window.setTimeout(() => this.unpin?.(), PIN_MS);
     const events = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;

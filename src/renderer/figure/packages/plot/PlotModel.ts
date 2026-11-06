@@ -1,17 +1,17 @@
 export type Point = [number, number | null];
 
-/** `tag`, a figure tag, colours a layer with that tag's theme colour. */
+/** `color` and `state`, a figure's marks, ink a layer with their theme colour. */
 export type Layer = (
-  | { kind: 'line'; points: Point[]; label?: string; series?: number }
+  | { kind: 'line'; points: Point[]; label?: string; series?: number; neutral?: boolean }
   /** `lower`, when set, replaces the flat `base` as the edge shaded against; `from` and `to` limit the shading to an x range. */
-  | { kind: 'area'; points: Point[]; base: number; lower?: Point[]; from?: number; to?: number; label?: string; series?: number }
+  | { kind: 'area'; points: Point[]; base: number; lower?: Point[]; from?: number; to?: number; bar?: boolean; label?: string; series?: number }
   | { kind: 'bars'; values: (number | null)[]; mode: 'bars' | 'waterfall'; label?: string; series?: number }
   | { kind: 'dot'; x: number; y: number; label?: string; series?: number }
   | { kind: 'rule'; at: number; axis: 'x' | 'y'; label?: string; series?: number }
   | { kind: 'note'; x: number; y: number; text: string; series?: number }
   /** A line with an arrowhead at `to` and no point marks. */
   | { kind: 'arrow'; from: [number, number]; to: [number, number]; label?: string; series?: number }
-) & { tag?: string };
+) & { color?: string; state?: string };
 
 export interface PlotModel {
   /** A range, or the names of the categories a `Bars` layer stands on. */

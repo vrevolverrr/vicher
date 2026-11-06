@@ -1,4 +1,5 @@
 import type { Point as DataPoint, FigureNode, Plot3Layer, PlotLayer, Point3 } from '@/renderer/figure/FigureData';
+import type { ColorOf } from '@/renderer/figure/marks';
 import { breakJumps, type Layer, type PlotModel, type Point } from '@/renderer/figure/packages/plot/PlotModel';
 import { fitRange } from '@/renderer/figure/packages/plot/range';
 import { clampElevation, DEFAULT_VIEW, type Layer3, type Plot3Model, type Range } from '@/renderer/figure/packages/plot3/Plot3Model';
@@ -10,15 +11,22 @@ type Plot = Extract<FigureNode, { type: 'Plot' }>;
 
 const CIRCLE_POINTS = 96;
 
+/** Layers whose `label` names them; any other only writes its label on the plot. */
+const NAMED = new Set(['Fn', 'Region', 'Shape', 'Circle', 'Segment']);
+
+function marksOf(layer: { type: string; group?: string; state?: string; label?: string }, colorOf: ColorOf): { color: string | undefined; state: string | undefined } {
+  return { color: colorOf(layer.group ?? (NAMED.has(layer.type) ? layer.label : undefined)), state: layer.state };
+}
+
 /** The `PlotChart` model of a figure's Plot, with x fitted to the layers when the Plot gives none. */
-export function plotModel(plot: Plot): PlotModel {
+export function plotModel(plot: Plot, colorOf: ColorOf = () => undefined): PlotModel {
   const x = plot.x ?? fitRange(plot.children.flatMap((layer) => coordinates(layer, 0)));
   const fns = new Map(plot.children.flatMap((layer) => (layer.type === 'Fn' && layer.id ? [[layer.id, layer] as const] : [])));
   const box = plot.y ?? finiteRange(plot.children.flatMap((layer) => (layer.type === 'Fn' ? layer.pts.map((p) => p[1]) : [])));
   const curve = (id: string): Point[] => breakJumps(fns.get(id)!.pts.map(([x, y]): Point => [x, y]), box);
   const layers = plot.children.flatMap((layer): Layer[] => {
-    const marks = { ...(layer.tag ? { tag: layer.tag } : {}) };
     const label = 'label' in layer ? layer.label : undefined;
+    const marks = marksOf(layer, colorOf);
     switch (layer.type) {
       case 'Fn':
         return [{ kind: 'line', points: breakJumps(layer.pts.map(([x, y]): Point => [x, y]), box), label, ...marks }];
@@ -27,18 +35,24 @@ export function plotModel(plot: Plot): PlotModel {
         const to = layer.to ?? x[1];
         const top = typeof layer.top === 'string' ? curve(layer.top) : ([[from, layer.top], [to, layer.top]] as Point[]);
         const lower = typeof layer.base === 'string' ? curve(layer.base) : undefined;
-        return [{ kind: 'area', points: top, base: typeof layer.base === 'number' ? layer.base : 0, ...(lower ? { lower } : {}), from, to, label, ...marks }];
+        return [{ kind: 'area', points: top, base: typeof layer.base === 'number' ? layer.base : 0, ...(lower ? { lower } : {}), from, to, label, ...(typeof layer.top === 'number' && layer.from !== undefined && layer.to !== undefined ? { bar: true } : {}), ...marks }];
       }
       case 'Shape': {
         const pts = layer.pts.map(([x, y]): Point => [x, y]);
-        return pts.length < 2 ? [] : [{ kind: 'line', points: layer.closed ? [...pts, pts[0]] : pts, label, ...marks }];
+        return pts.length < 2 ? [] : [{ kind: 'line', points: layer.closed ? [...pts, pts[0]] : pts, label, ...(label ? {} : { neutral: true }), ...marks }];
       }
       case 'Circle':
         return [{ kind: 'line', points: circle(layer.at, layer.r), label, ...marks }];
       case 'Vector':
         return [{ kind: 'arrow', from: [...layer.from], to: [...layer.to], label, ...marks }];
-      case 'Segment':
-        return [{ kind: 'line', points: [[...layer.from], [...layer.to]], label, ...marks }];
+      case 'Segment': {
+        // A 2D Segment's label names the line it sits on, so it is a note and takes no colour from a group of that name.
+        const own = { ...marks, color: colorOf(layer.group) };
+        return [
+          { kind: 'line', points: [[...layer.from], [...layer.to]], neutral: true, ...own },
+          ...(label === undefined ? [] : [{ kind: 'note' as const, x: (layer.from[0] + layer.to[0]) / 2, y: (layer.from[1] + layer.to[1]) / 2, text: label, ...own }]),
+        ];
+      }
       case 'Points':
         return layer.pts.map(([x, y], i): Layer => ({ kind: 'dot', x, y, label: i === 0 ? label : undefined, ...marks }));
       case 'Label':
@@ -73,7 +87,7 @@ const models3 = new WeakMap<Plot3, Plot3Model>();
  * samples, and a graph's x and y become the Plot's, narrowed by its `from` and `to`. Kept per node, so a redraw reuses the
  * mesh `scene3` caches per model.
  */
-export function plot3Model(plot: Plot3): Plot3Model {
+export function plot3Model(plot: Plot3, colorOf: ColorOf = () => undefined): Plot3Model {
   const kept = models3.get(plot);
   if (kept) return kept;
   const surfaces = plot.children.filter((layer) => layer.type === 'Surface');
@@ -87,8 +101,8 @@ export function plot3Model(plot: Plot3): Plot3Model {
   // apart are data in different units, which one scale would squash to a sliver.
   const solid = plot.x === undefined && plot.y === undefined && plot.z === undefined && Math.max(...spans) <= 10 * Math.min(...spans);
   const children = plot.children.map((layer): Layer3 => {
-    if (layer.type === 'Label') return { type: 'Label', at: layer.at, text: layer.text, ...(layer.tag ? { tag: layer.tag } : {}) };
-    const marks = { ...(layer.id ? { id: layer.id } : {}), ...(layer.tag ? { tag: layer.tag } : {}), ...(layer.label === undefined ? {} : { label: layer.label }) };
+    if (layer.type === 'Label') return { type: 'Label', at: layer.at, text: layer.text, ...marksOf(layer, colorOf) };
+    const marks = { ...(layer.id ? { id: layer.id } : {}), ...marksOf(layer, colorOf), ...(layer.label === undefined ? {} : { label: layer.label }) };
     switch (layer.type) {
       case 'Surface':
         return layer.zs ? { type: 'Fn', zs: layer.zs, x: [layer.from ?? x[0], layer.to ?? x[1]], y, ...marks } : { type: 'Fn', pts: layer.pts!, ...marks };

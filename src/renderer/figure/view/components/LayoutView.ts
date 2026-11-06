@@ -12,7 +12,7 @@ export const LayoutView: ElementView<NodeOf<'Row' | 'Column'>> = {
 export const PanelView: ElementView<NodeOf<'Panel'>> = {
   draw(el, panel, ctx) {
     el.className = 'vicher-figure-panel';
-    ctx.mark(el, panel.id, panel.tag);
+    ctx.mark(el, panel.id, panel);
     if (panel.title !== undefined) ctx.markdown(ctx.child('vicher-figure-panel-title', el), panel.title);
     ctx.blocks(panel.children, ctx.child('vicher-figure-panel-body', el));
   },

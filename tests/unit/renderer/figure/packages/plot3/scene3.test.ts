@@ -113,6 +113,15 @@ describe('scene3', () => {
     expect(holed.faces.length).toBeLessThan(48 * 48 - 300);
   });
 
+  it('shades a surface in a group by height in its own hue, and leaves the others on the ramp', () => {
+    const colours: Colours = { ramp: [[0, 0, 0], [0, 0, 1]], tints: new Map([['red', [200, 0, 0]]]) };
+    const fills = (layer: Layer3): string[] => [...new Set(scene3(model([layer]), { azimuth: 30, elevation: 25 }, SIZE, colours, textWidth, () => true).faces.map((face) => face.fill))];
+    const red = fills({ ...graph((x) => x), color: 'red' } as Layer3);
+    expect(red.length).toBeGreaterThan(3);
+    expect(red.every((fill) => { const [r, g, b] = fill.match(/\d+/g)!.map(Number); return r >= g && r >= b; })).toBe(true);
+    expect(fills(graph((x) => x)).every((fill) => fill.startsWith('rgb(0, 0,'))).toBe(true);
+  });
+
   it('colours the bottom of the box with the first ramp colour and the top with the last, in either theme', () => {
     const light: Colours = { ramp: [[68, 1, 84], [33, 145, 140], [253, 231, 37]] };
     const dark: Colours = { ramp: [[90, 70, 160], [253, 231, 37]] };
@@ -150,10 +159,10 @@ describe('scene3', () => {
   });
 
   it('projects overlays, a Circle in the plane of x and y at its height', () => {
-    const scene = scene3(model([{ type: 'Circle', at: [0, 0, 0.5], r: 0.5, tag: 'active' }, { type: 'Points', pts: [[0, 0, 1], [1, 1, 0]], label: 'p' }]), { azimuth: 0, elevation: 0 }, SIZE, COLOURS);
+    const scene = scene3(model([{ type: 'Circle', at: [0, 0, 0.5], r: 0.5, state: 'active' }, { type: 'Points', pts: [[0, 0, 1], [1, 1, 0]], label: 'p' }]), { azimuth: 0, elevation: 0 }, SIZE, COLOURS);
     const [circle, first, second] = scene.overlays;
     expect(circle.kind === 'line' && new Set(circle.points.map((p) => p[1].toFixed(6))).size).toBe(1);
-    expect(circle.tag).toBe('active');
+    expect(circle.state).toBe('active');
     expect([first.kind, first.label, second.label]).toEqual(['dot', 'p', undefined]);
   });
 

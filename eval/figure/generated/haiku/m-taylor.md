@@ -1,35 +1,58 @@
-Each added term makes the polynomial copy $\sin x$ over a wider stretch around $0$. Step through the figure to see it.
+The Taylor polynomial of $\sin x$ at $0$ is a sum of odd powers of $x$. Each added term matches one more derivative of $\sin$ at $0$, so the polynomial stays close to the curve over a wider range.
+
+**Taylor polynomial.** The degree-$n$ Taylor polynomial of $f$ at $0$ is:
+
+$$P_n(x) = \sum_{k=0}^{n} \frac{f^{(k)}(0)}{k!}\,x^k$$
+
+Here $f^{(k)}(0)$ is the $k$th derivative of $f$ at $0$, and $k!$ is $k$ factorial. The derivatives of $\sin$ at $0$ repeat $0, 1, 0, -1$, so only odd powers survive. The degree-7 polynomial is:
+
+$$P_7(x) = x - \frac{x^3}{3!} + \frac{x^5}{5!} - \frac{x^7}{7!}$$
+
+**Example at $x = 1$**, where $\sin 1 = 0.841471$:
+
+| Degree | Last term added | $P(1)$ | Error |
+|---|---|---|---|
+| 1 | $x$ | 1 | 0.158529 |
+| 3 | $-\frac{x^3}{3!}$ | 0.833333 | 0.008138 |
+| 5 | $+\frac{x^5}{5!}$ | 0.841667 | 0.000196 |
+| 7 | $-\frac{x^7}{7!}$ | 0.841468 | 0.0000027 |
+
+**Where it stops working.** For a fixed degree, the error grows as $|x|$ grows. At $x = 3$, $P_7(3) = 0.0911$ misses $\sin 3 = 0.1411$ by $0.0500$. $P_{11}(3) = 0.14087$ misses by only $0.00025$.
+
+Use the step control to add terms, from degree 1 to degree 7:
 
 ```figure
-const steps = [
-  { n: 1, name: '$P_1$', caption: 'One term: $P_1(x)=x$. Error at $x=1$ is $0.1585$.' },
-  { n: 3, name: '$P_3$', caption: '$P_3(x)=x-\\frac{x^3}{6}$. Error at $x=1$ is $0.00814$.' },
-  { n: 5, name: '$P_5$', caption: '$P_5(x)=P_3(x)+\\frac{x^5}{120}$. Error at $x=1$ is $0.000196$.' },
-  { n: 7, name: '$P_7$', caption: '$P_7(x)=P_5(x)-\\frac{x^7}{5040}$. Error at $x=1$ is $2.7\\times10^{-6}$.' },
-  { n: 9, name: '$P_9$', caption: '$P_9(x)=P_7(x)+\\frac{x^9}{362880}$. Error at $x=1$ is $2.5\\times10^{-8}$.' },
-];
+const sinOf = x => Math.sin(x);
 
-// sum of the odd-power terms of sin x up to x^n
-function taylorSin(n, x) {
-  let sum = 0;
-  let fact = 1;
-  for (let k = 0; 2 * k + 1 <= n; k++) {
-    const p = 2 * k + 1;
-    if (k > 0) fact *= (p - 1) * p;
-    sum += (k % 2 ? -1 : 1) * Math.pow(x, p) / fact;
+// Sum of the first m nonzero terms of the sine series.
+function P(m, x) {
+  let s = 0, term = x;
+  for (let j = 0; j < m; j++) {
+    s += term;
+    term = -term * x * x / ((2 * j + 2) * (2 * j + 3));
   }
-  return sum;
+  return s;
 }
 
 export default function () {
+  const steps = [1, 2, 3, 4].map(m => {
+    const deg = 2 * m - 1;
+    const err = (Math.sin(1) - P(m, 1)).toPrecision(3);
+    return {
+      m,
+      deg,
+      text: String.raw`Degree $P_{${deg}}$ has ${m} term${m > 1 ? 's' : ''}. At $x=1$ the error is ${err}.`,
+    };
+  });
   return (
     <Figure
       steps={steps}
-      caption={step => step.caption}
+      caption={step => step.text}
       render={step => (
-        <Plot id="plot" x={[-7, 7]} y={[-2, 2]} xLabel="x" yLabel="y">
-          <Fn id="sin" f={x => Math.sin(x)} from={-7} to={7} label="sin x" />
-          <Fn id="taylor" f={x => taylorSin(step.n, x)} from={-7} to={7} label={step.name} />
+        <Plot id="plot" x={[-3.5, 3.5]} y={[-2, 2]} xLabel="$x$" yLabel="$y$">
+          <Fn id="sin" f={x => sinOf(x)} label="$\sin x$" />
+          <Fn id="poly" f={x => P(step.m, x)} label={String.raw`$P_{${step.deg}}(x)$`} />
+          <Points id="at1" pts={[[1, Math.sin(1)]]} />
         </Plot>
       )}
     />
@@ -37,26 +60,4 @@ export default function () {
 }
 ```
 
-A Taylor polynomial copies a curve by matching its height, slope, and bending at one point. Each new term matches one more layer of bending, so the copy stays accurate over a wider range.
-
-For a function $f$ that is smooth at $0$, the Taylor polynomial of degree $n$ is
-
-$$P_n(x)=\sum_{k=0}^{n}\frac{f^{(k)}(0)}{k!}\,x^k$$
-
-Here $f^{(k)}(0)$ is the $k$-th derivative of $f$ at $0$, and $k!$ is $k$ factorial.
-
-For $\sin x$, the derivatives at $0$ run $0, 1, 0, -1, 0, 1, \dots$. The even-order values vanish, so only odd powers remain:
-
-$$\sin x = x-\frac{x^3}{3!}+\frac{x^5}{5!}-\cdots$$
-
-Now test $x=1$, where $\sin 1 = 0.84147$:
-
-- $P_1(1)=1$. Error $0.1585$.
-- $P_3(1)=1-\frac{1}{6}=0.83333$. Error $0.00814$.
-- $P_5(1)=0.83333+\frac{1}{120}=0.84167$. Error $0.000196$.
-
-Each term is much smaller than the one before it, so the error drops fast.
-
-The match holds near $0$ only. At $x=4$, $P_5(4)\approx 1.87$ while $\sin 4\approx -0.76$, so a low-degree polynomial turns away from the curve far out. Higher degrees push that region outward.
-
-Not checked: how the figure renders in your pane. The error values were computed by hand to about four significant figures.
+Not checked: I did not render the figure, and the table values are hand-computed to six digits.

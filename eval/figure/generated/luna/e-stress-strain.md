@@ -1,28 +1,29 @@
-A typical mild steel curve rises linearly at first, shows a yield plateau, then rises to its maximum stress before falling as necking begins. The sketch is schematic, not to scale.
+A mild steel stress–strain curve shows a straight elastic region, a yield plateau, strain hardening, then necking before fracture. Here is a schematic curve; the exact values vary by steel sample.
 
 ```figure
 export default function () {
   return (
-    <Plot id="curve" x={[0, 0.35]} y={[0, 600]} xLabel="Strain (%)" yLabel="Stress (MPa)">
-      <Shape id="steel-curve" pts={[
-        [0, 0], [0.04, 180], [0.08, 360], [0.10, 420],
-        [0.105, 455], [0.115, 400], [0.16, 400], [0.24, 500],
-        [0.29, 570], [0.32, 540], [0.34, 480]
+    <Plot id="steel-curve" x={[0, 30]} y={[0, 600]}
+      xLabel="Engineering strain (%)" yLabel="Engineering stress (MPa)">
+      <Shape id="curve" pts={[
+        [0, 0], [0.2, 200], [0.35, 250], [0.5, 300],
+        [0.8, 270], [2, 270], [5, 300], [10, 370],
+        [15, 450], [20, 420], [25, 360]
       ]} />
       <Points id="key-points" pts={[
-        [0.08, 360], [0.10, 420], [0.105, 455], [0.115, 400],
-        [0.16, 400], [0.29, 570], [0.34, 480]
+        [0.2, 200], [0.35, 250], [0.5, 300],
+        [0.8, 270], [15, 450], [25, 360]
       ]} />
-      <Label at={[0.08, 360]} text="Proportional limit" />
-      <Label at={[0.10, 420]} text="Elastic limit" />
-      <Label at={[0.105, 455]} text="Upper yield point" />
-      <Label at={[0.14, 430]} text="Lower yield / plateau" />
-      <Label at={[0.29, 570]} text="Ultimate tensile strength" />
-      <Label at={[0.34, 480]} text="Fracture" />
-      <Label at={[0.22, 465]} text="Strain hardening" />
-      <Label at={[0.32, 520]} text="Necking" />
+      <Label at={[0.2, 200]} text="P" />
+      <Label at={[0.35, 250]} text="E" />
+      <Label at={[0.5, 300]} text="UY" />
+      <Label at={[0.8, 270]} text="LY" />
+      <Label at={[15, 450]} text="UTS" />
+      <Label at={[25, 360]} text="F" />
     </Plot>
   );
 }
 ```
+
+P is the proportional limit, where stress stops increasing linearly with strain. E is the elastic limit. UY and LY are the upper and lower yield points, where steel begins to deform permanently. After the yield plateau, strain hardening raises the stress to the ultimate tensile strength (UTS). Necking then reduces the engineering stress until fracture (F).
 

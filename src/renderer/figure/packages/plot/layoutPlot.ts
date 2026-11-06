@@ -1,5 +1,5 @@
 import { categoriesOf, type ResolvedModel } from '@/renderer/figure/packages/plot/mixModel';
-import { niceTicks, tickText, wrapLabel } from '@/renderer/figure/packages/plot/plotMath';
+import { niceTicks, tickTexts, wrapLabel } from '@/renderer/figure/packages/plot/plotMath';
 
 const MIN_LEFT_MARGIN = 28;
 export const TICK_CHAR_WIDTH = 7.5;
@@ -28,22 +28,33 @@ export interface PlotLayout {
   sy: (y: number) => number;
 }
 
+/** `ticks` without the fractions when the data sits only on whole x values, as years do; a line running to an axis end is no data. */
+function wholeTicks(ticks: number[], { layers }: ResolvedModel, x0: number, x1: number): number[] {
+  const xs = layers.flatMap((layer) => {
+    if (layer.kind === 'line' || layer.kind === 'area') return layer.points.map(([x]) => x);
+    if (layer.kind === 'dot') return [layer.x];
+    return layer.kind === 'arrow' ? [layer.from[0], layer.to[0]] : [];
+  }).filter((x) => x !== x0 && x !== x1);
+  const whole = ticks.filter(Number.isInteger);
+  return xs.length && xs.every(Number.isInteger) && whole.length >= 2 ? whole : ticks;
+}
+
 /** Where a 2D plot's axes, ticks and plotting area go at `width` pixels, asked to be `height` tall. */
 export function layoutPlot(model: ResolvedModel, width: number, height: number): PlotLayout {
   const narrow = width < 480;
   const cats = categoriesOf(model.x);
   const [x0, x1] = cats ? ([0, cats.length] as [number, number]) : (model.x as [number, number]);
   const [y0, y1] = model.y;
-  const xTicks = cats ? [] : niceTicks(x0, x1, narrow ? 4 : 7);
+  const xTicks = cats ? [] : wholeTicks(niceTicks(x0, x1, narrow ? 4 : 7), model, x0, x1);
   const margin = { top: 14, right: narrow ? 12 : 20, bottom: model.xLabel ? 46 : 32, left: 0 };
   // Only visible tick labels need room; interpolated range endpoints can have extra decimal places.
   const yTicks = (ph: number) => niceTicks(y0, y1, Math.max(3, Math.round(ph / 50)));
-  const widest = Math.max(...yTicks(height - margin.top - margin.bottom).map((v) => tickText(v).length));
+  const widest = Math.max(...tickTexts(yTicks(height - margin.top - margin.bottom)).map((text) => text.length));
   margin.left = Math.max(MIN_LEFT_MARGIN, Math.ceil(widest * TICK_CHAR_WIDTH) + TICK_GAP + 4) + (model.yLabel ? Y_TITLE_WIDTH : 0);
   let pw = width - margin.left - margin.right;
   // A tick label is centred on its tick, so the last one needs room past the plot's right edge.
   const last = xTicks[xTicks.length - 1];
-  if (last !== undefined && last > x0) pw = Math.min(pw, (width - margin.left - (tickText(last).length * TICK_CHAR_WIDTH) / 2) / ((last - x0) / (x1 - x0)));
+  if (last !== undefined && last > x0) pw = Math.min(pw, (width - margin.left - (tickTexts(xTicks).at(-1)!.length * TICK_CHAR_WIDTH) / 2) / ((last - x0) / (x1 - x0)));
   // Category names wrap to their slot, or tilt when a word will not fit, so neighbours never run together.
   const labels = cats ? categoryLabels(cats, pw / cats.length) : null;
   if (labels) margin.bottom = labels.tilted ? 62 : 20 + 13 * Math.max(...labels.lines.map((l) => l.length));

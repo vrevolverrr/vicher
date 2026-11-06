@@ -1,28 +1,32 @@
-**Result:** Pratt diagonals and end posts carry the load. Positive = tension, negative = compression.
+**Result:** 17 members, all solvable by statics. Reactions are 15 kN up at L0 and L4. Tension (T) is in the bottom-centre chord and the diagonals. Compression (C) is in the top chord, end posts and short verticals.
 
-**Setup:** Bottom joints B0 to B4 sit at x = 0, 3, 6, 9, 12 m (y = 0). Top joints T0 to T4 sit at y = 3 m. Pin at B0, roller at B4. Each of B1, B2, B3 carries 10 kN down.
-
-**Reactions:** Load is symmetric, total 30 kN, so R_A = R_B = 15 kN up.
+**Assumed geometry:** Pin at L0, roller at L4. Nodes at x = 0, 3, 6, 9, 12 m. Bottom nodes L0 to L4 at y = 0. Top nodes U0 to U4 at y = 3 m, with end posts U0L0 and U4L4. Diagonals slope toward midspan: U0L1, U1L2, U3L2, U4L3, each 3√2 = 4.24 m at 45°.
 
 | Member | Force (kN) | Type |
 |---|---|---|
-| Top chord T0-T1, T3-T4 | −15 | Compression |
-| Top chord T1-T2, T2-T3 | −20 | Compression |
-| Bottom chord B0-B1, B3-B4 | 0 | Zero-force |
-| Bottom chord B1-B2, B2-B3 | +15 | Tension |
-| End posts V0, V4 | −15 | Compression |
-| Verticals V1, V3 | −5 | Compression |
-| Centre vertical V2 | 0 | Zero-force |
-| End diagonals D1 (T0-B1), D4 (T4-B3) | +21.2 | Tension |
-| Inner diagonals D2 (T1-B2), D3 (T3-B2) | +7.07 | Tension |
+| L0L1 (bottom, end) | 0 | Zero |
+| L1L2 (bottom) | 15 | T |
+| L2L3 (bottom) | 15 | T |
+| L3L4 (bottom, end) | 0 | Zero |
+| U0U1 (top) | 15 | C |
+| U1U2 (top) | 20 | C |
+| U2U3 (top) | 20 | C |
+| U3U4 (top) | 15 | C |
+| U0L0 (end post) | 15 | C |
+| U1L1 (vertical) | 5 | C |
+| U2L2 (centre vertical) | 0 | Zero |
+| U3L3 (vertical) | 5 | C |
+| U4L4 (end post) | 15 | C |
+| U0L1 (diagonal) | 21.2 | T |
+| U1L2 (diagonal) | 7.1 | T |
+| U3L2 (diagonal) | 7.1 | T |
+| U4L3 (diagonal) | 21.2 | T |
 
-**Key steps:**
-1. Joint B0: ΣFy gives V0 = −15. ΣFx gives B0-B1 = 0.
-2. Joint T0: ΣFy gives 15 − D1/√2 = 0, so D1 = 15√2 = 21.2 (T). ΣFx gives T0-T1 = −15.
-3. Joint B1: ΣFy gives 15 + V1 − 10 = 0, so V1 = −5. ΣFx gives B1-B2 = +15.
-4. Section at x = 4.5 m, moments about T1: B1-B2 = 15 (T).
-5. Same section, moments about B2: T1-T2 = −20 (C).
-6. Same section, ΣFy: D2 = 5√2 = 7.07 (T).
-7. Joint T2: ΣFy gives V2 = 0. Symmetry gives the right half.
+**Checks:**
+- Section at x = 6 m: moment = 15(6) − 10(3) = 60 kN·m. Top chord = 60/3 = 20 C.
+- Section at x = 3 m: moment = 15(3) = 45 kN·m. Bottom chord = 45/3 = 15 T.
+- Joint L2: the two diagonals give 5 kN up each, which balances the 10 kN load, so U2L2 = 0.
+- Joint U0: 15 kN post push and 21.2 kN diagonal pull balance vertically, and 15 kN top-chord push balances the diagonal horizontally.
+- Joint count: m + r = 17 + 3 = 20 = 2j. The truss is determinate.
 
-**Not checked:** I did not run a software model. I assumed no self-weight and loads only at the bottom joints. If the supports sit at the top chord instead, every result changes.
+I did not include self-weight or any support detail beyond pin and roller. No software check was run. If your truss has no end posts or a different diagonal layout, the table changes.

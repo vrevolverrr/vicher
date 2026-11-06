@@ -10,6 +10,6 @@ export const GraphView: ElementView<NodeOf<'Graph'>, NetworkLayout> = {
   draw(el, graph, ctx) {
     if (!ctx.prepared) return;
     el.className = 'vicher-figure-canvas is-graph';
-    drawGraph(el, graph, ctx.prepared, (id) => ctx.tagOf(id), ctx.markdown);
+    drawGraph(el, graph, ctx.prepared, (id) => ctx.marksOf(id), ctx.markdown);
   },
 };

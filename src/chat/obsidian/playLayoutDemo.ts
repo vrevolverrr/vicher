@@ -11,8 +11,8 @@ export default function () {
     <Diagram width={8} height={top}>
       <Segment from={[0, 0]} to={[8, 0]} />
       <Shape pts={[[0, 0], [3, 0], [3, top], [0, top]]} closed label="tower" />
-      <Points pts={[[5, s.y]]} label={s.y + ' m'} tag="active" />
-      {s.v > 0 && <Vector from={[5, s.y]} to={[5, s.y - s.v / 5]} label="v" tag="active" />}
+      <Points pts={[[5, s.y]]} label={s.y + ' m'} state="active" />
+      {s.v > 0 && <Vector from={[5, s.y]} to={[5, s.y - s.v / 5]} label="v" state="active" />}
     </Diagram>
   )} />;
 }`;
@@ -32,7 +32,7 @@ export default function () {
   }
   return <Figure steps={steps} heading={s => s.heading} caption={s => s.text} render={s => (
     <Seq id="a" items={s.a.map(v => ({ id: 'v' + v, label: v }))} index
-      tags={Object.fromEntries(s.a.map((v, k) => ['v' + v, v === s.key ? 'active' : k < s.sorted ? 'done' : 'dim']))} />
+      states={Object.fromEntries(s.a.map((v, k) => ['v' + v, v === s.key ? 'active' : k < s.sorted ? 'done' : 'dim']))} />
   )} />;
 }`;
 
@@ -62,7 +62,7 @@ const WIDE = String.raw`export default function () {
   const steps = [1, 2, 3].map(n => ({ n }));
   return <Figure steps={steps} caption={s => 'Add $x^' + s.n + '$: each higher power is flatter near 0 and steeper past 1.'} render={s => (
     <Plot id="powers" x={[-1.5, 1.5]} y={[-2, 2]} xLabel="x">
-      {steps.filter(t => t.n <= s.n).map(t => <Fn id={'x' + t.n} f={x => x ** t.n} label={'$x^' + t.n + '$'} tag={t.n === s.n ? 'active' : undefined} />)}
+      {steps.filter(t => t.n <= s.n).map(t => <Fn id={'x' + t.n} f={x => x ** t.n} label={'$x^' + t.n + '$'} state={t.n === s.n ? 'active' : undefined} />)}
     </Plot>
   )} />;
 }`;
@@ -75,7 +75,7 @@ export default function () {
   return <Figure steps={steps} caption={s => 'Powers of ' + s.b + ': the row grows by a factor of ' + s.b + ' each column.'} render={s => (
     <Table id="powers" columns={['n'].concat(powers.map(String))} rowIds={bases.map(b => 'b' + b)}
       rows={bases.map((b, i) => [b + 'ⁿ'].concat(powers.map(n => (i <= s.i ? b ** n : null))))}
-      tags={{ ['b' + s.b]: 'active' }} />
+      states={{ ['b' + s.b]: 'active' }} />
   )} />;
 }`;
 

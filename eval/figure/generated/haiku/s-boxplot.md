@@ -1,32 +1,58 @@
-A has one outlier (40). B and C have none. A's median is higher than B's, and C sits highest overall.
+Group C has the highest median (25). Group A has the widest spread and one outlier, 40.
 
 ```figure
-const groups = [
-  { name: 'A', x: 1, min: 12, q1: 16, med: 19, q3: 23.5, max: 25, out: [40] },
-  { name: 'B', x: 2, min: 8, q1: 10.5, med: 14.5, q3: 15.5, max: 18, out: [] },
-  { name: 'C', x: 3, min: 20, q1: 22, med: 25, q3: 28, max: 31, out: [] },
+const data = [
+  { name: 'Group A', xs: [12, 15, 17, 18, 20, 22, 25, 40] },
+  { name: 'Group B', xs: [8, 10, 11, 14, 15, 15, 16, 18] },
+  { name: 'Group C', xs: [20, 21, 23, 24, 26, 27, 29, 31] },
 ];
-const w = 0.3;
+
+const median = s => {
+  const n = s.length, m = n / 2;
+  return n % 2 ? s[(n - 1) / 2] : (s[m - 1] + s[m]) / 2;
+};
+
+// shortcut: quartile halves assume even n (true here, n = 8), add median-excluded halves for odd n
+const summary = xs => {
+  const s = [...xs].sort((a, b) => a - b), h = s.length / 2;
+  const q1 = median(s.slice(0, h)), q3 = median(s.slice(h));
+  const lo = q1 - 1.5 * (q3 - q1), hi = q3 + 1.5 * (q3 - q1);
+  const inside = s.filter(v => v >= lo && v <= hi);
+  return {
+    min: inside[0], q1, med: median(s), q3, max: inside[inside.length - 1],
+    out: s.filter(v => v < lo || v > hi),
+  };
+};
 
 export default function () {
-  const layers = groups.flatMap(g => [
-    <Shape id={`box-${g.name}`} pts={[[g.x - w, g.q1], [g.x + w, g.q1], [g.x + w, g.q3], [g.x - w, g.q3]]} closed />,
-    <Segment id={`med-${g.name}`} from={[g.x - w, g.med]} to={[g.x + w, g.med]} />,
-    <Segment id={`lo-${g.name}`} from={[g.x, g.min]} to={[g.x, g.q1]} />,
-    <Segment id={`hi-${g.name}`} from={[g.x, g.q3]} to={[g.x, g.max]} />,
-    <Segment id={`mincap-${g.name}`} from={[g.x - w / 2, g.min]} to={[g.x + w / 2, g.min]} />,
-    <Segment id={`maxcap-${g.name}`} from={[g.x - w / 2, g.max]} to={[g.x + w / 2, g.max]} />,
-    <Label at={[g.x, 2]} text={g.name} />,
-    ...g.out.map(v => <Points id={`out-${g.name}-${v}`} pts={[[g.x, v]]} />),
-  ]);
-  return <Plot id="box" x={[0.4, 3.6]} y={[0, 45]} xLabel="Group" yLabel="Value">{layers}</Plot>;
+  const rows = data.map(d => ({ name: d.name, ...summary(d.xs) }));
+  return (
+    <Row gap="lg" align="center">
+      <Plot id="box" x={[0.4, 3.6]} y={[0, 45]} xLabel="Group" yLabel="Value">
+        {rows.map((r, i) => {
+          const x = i + 1, w = 0.2, g = r.name;
+          return (
+            <>
+              <Segment from={[x, r.min]} to={[x, r.q1]} group={g} />
+              <Segment from={[x, r.q3]} to={[x, r.max]} group={g} />
+              <Segment from={[x - 0.1, r.min]} to={[x + 0.1, r.min]} group={g} />
+              <Segment from={[x - 0.1, r.max]} to={[x + 0.1, r.max]} group={g} />
+              <Shape pts={[[x - w, r.q1], [x + w, r.q1], [x + w, r.q3], [x - w, r.q3]]} closed group={g} />
+              <Segment from={[x - w, r.med]} to={[x + w, r.med]} group={g} />
+              {r.out.length > 0 && <Points pts={r.out.map(v => [x, v])} group={g} />}
+              <Label at={[x, 2]} text={r.name} />
+            </>
+          );
+        })}
+      </Plot>
+      <Table id="stats" title="Five-number summary"
+        columns={['Group', 'Min', 'Q1', 'Median', 'Q3', 'Max', 'Outliers']}
+        rows={rows.map(r => [r.name, r.min, r.q1, r.med, r.q3, r.max, r.out.join(', ') || 'none'])} />
+    </Row>
+  );
 }
 ```
 
-| Group | Min | Q1 | Median | Q3 | Max | Outliers |
-|---|---|---|---|---|---|---|
-| A | 12 | 16 | 19 | 23.5 | 25 | 40 |
-| B | 8 | 10.5 | 14.5 | 15.5 | 18 | none |
-| C | 20 | 22 | 25 | 28 | 31 | none |
+Quartiles are the medians of each half. Whiskers reach the furthest value within 1.5 × IQR of the box. Group A's upper fence is 34.75, so 40 is an outlier.
 
-Method: quartiles are medians of the lower and upper halves. Whiskers reach the furthest value inside 1.5 × IQR. A's upper fence is 23.5 + 11.25 = 34.75, so 40 is an outlier.
+Not checked: I have no preview here, so the rendering is unverified.

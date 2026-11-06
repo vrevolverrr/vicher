@@ -4,7 +4,7 @@ export interface Finding { check: string; detail: string }
 
 const EDGE = 1;
 const OVERLAP = 2;
-// Below WCAG's 3:1 for large text on purpose: tag colours on light themes sit near 2.7 and read well; text at 2.3 does not.
+// Below WCAG's 3:1 for large text on purpose: figure colours on light themes sit near 2.7 and read well; text at 2.3 does not.
 const MIN_CONTRAST = 2.5;
 const MIN_TEXT_PX = 9;
 

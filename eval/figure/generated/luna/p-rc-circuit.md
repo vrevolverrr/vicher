@@ -1,2 +1,2 @@
-I can’t draw electrical circuits here. In a series RC circuit, connect the battery, switch, resistor, and capacitor in one loop, with the switch controlling whether current can flow.
+This figure cannot show electrical circuits. Connect the battery, switch, resistor, and capacitor in one series loop. Closing the switch lets the battery charge the capacitor through the resistor.
 

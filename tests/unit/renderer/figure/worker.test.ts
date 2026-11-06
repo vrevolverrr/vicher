@@ -27,9 +27,9 @@ export default function () {
   return <Figure steps={steps} caption={step => step.text} render={step => (
     <Row gap="lg" align="center">
       <Graph id="g" nodes={nodes.map(n => ({ id: \`g-\${n}\`, label: n }))} edges={edges.map(([a, b, w], i) => ({ id: \`e\${i}\`, from: \`g-\${a}\`, to: \`g-\${b}\`, label: w }))}
-        tags={Object.fromEntries(nodes.map(n => [\`g-\${n}\`, n === step.u ? 'active' : step.done.includes(n) ? 'done' : null]))} />
+        states={Object.fromEntries(nodes.map(n => [\`g-\${n}\`, n === step.u ? 'active' : step.done.includes(n) ? 'done' : null]))} />
       <Table id="dist" title="Distance" columns={['Node', 'Distance']} rows={nodes.map(n => [n, show(step.d[n])])} rowIds={nodes.map(n => \`t-\${n}\`)}
-        tags={Object.fromEntries(nodes.map(n => [\`t-\${n}\`, n === step.u ? 'active' : step.done.includes(n) ? 'done' : null]))} />
+        states={Object.fromEntries(nodes.map(n => [\`t-\${n}\`, n === step.u ? 'active' : step.done.includes(n) ? 'done' : null]))} />
     </Row>
   )} />;
 }
@@ -54,6 +54,12 @@ describe('the figure worker', () => {
   it('splices a fragment inside a Diagram, so a map can return two layers', async () => {
     const reply = await run('export default () => <Diagram width={2} height={1}>{[0, 1].map(x => <><Segment from={[x, 0]} to={[x, 1]} /><Points pts={[[x, 1]]} /></>)}</Diagram>;');
     expect(reply.frames![0].root.children.map((child) => (child as { type: string }).type)).toEqual(['Segment', 'Points', 'Segment', 'Points']);
+    expect(validateFigure(reply).ok).toBe(true);
+  });
+
+  it('splices a fragment inside a fragment, so a map can hold another map', async () => {
+    const reply = await run('export default () => <Diagram width={2} height={1}>{[0].map(x => <><Segment from={[x, 0]} to={[x, 1]} />{[1].map(y => <><Points pts={[[x, y]]} /></>)}</>)}</Diagram>;');
+    expect(reply.frames![0].root.children.map((child) => (child as { type: string }).type)).toEqual(['Segment', 'Points']);
     expect(validateFigure(reply).ok).toBe(true);
   });
 

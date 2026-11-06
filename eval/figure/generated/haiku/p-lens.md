@@ -1,57 +1,55 @@
-Drag the **Object distance** slider to move the object. The lens has $f = 10$ cm.
+Drag the slider to move the object. The lens has f = 10 cm.
 
 ```figure
 export const params = {
-  u: { label: 'Object distance', min: 12, max: 40, step: 1, value: 15, unit: 'cm' }
+  u: { label: 'Object distance u', min: 12, max: 45, step: 1, value: 30, unit: 'cm' },
 };
 
+const f = 10;    // focal length (cm)
+const h = 4;     // object height (cm)
+const X0 = 50;   // lens position in the drawing (cm)
+const Y0 = 30;   // principal axis height in the drawing (cm)
+const W = 120;
+const H = 60;
+
 export default function ({ u }) {
-  const f = 10;                       // focal length, cm
-  const h = 5;                        // object height, cm
-  const v = f * u / (u - f);          // image distance, from 1/f = 1/u + 1/v
-  const hi = -h * v / u;              // image height, negative means inverted
-  const I = [v, hi];
-  const X = 65;                       // where the dim extensions stop
-  const top = [-u, h];
-  const O = [0, 0];
+  const v = (u * f) / (u - f);   // image distance, from 1/f = 1/u + 1/v
+  const m = -v / u;              // magnification, negative means inverted
+  const hi = m * h;              // signed image height
+  const P = [X0 - u, Y0 + h];    // object tip
+  const I = [X0 + v, Y0 + hi];   // image tip
+  const T = [X0, Y0 + h];        // parallel ray meets lens
+  const B = [X0, Y0 + hi];       // focal ray meets lens
 
   return (
     <Column gap="md">
-      <Plot x={[-45, 65]} y={[-30, 25]} xLabel="distance from lens (cm)" yLabel="height (cm)">
-        <Segment from={[-45, 0]} to={[65, 0]} />
-        <Segment from={[0, -20]} to={[0, 20]} />
-        <Shape pts={[[-1, 19], [0, 20], [1, 19]]} />
-        <Shape pts={[[-1, -19], [0, -20], [1, -19]]} />
-        <Label at={[-10, -2]} text="$F$" />
-        <Label at={[10, -2]} text="$F'$" />
-        <Label at={[-20, -2]} text="$2F$" />
-        <Label at={[20, -2]} text="$2F'$" />
-        <Vector from={[-u, 0]} to={top} label="object" />
-        <Vector from={[v, 0]} to={I} label="image" />
-        <Segment from={top} to={[0, h]} />
-        <Segment from={[0, h]} to={I} />
-        <Segment from={I} to={along([0, h], I, X / v)} tag="dim" />
-        <Segment from={top} to={O} />
-        <Segment from={O} to={I} />
-        <Segment from={I} to={along(O, I, X / v)} tag="dim" />
-        <Segment from={top} to={[0, hi]} />
-        <Segment from={[0, hi]} to={I} />
-        <Segment from={I} to={[X, hi]} tag="dim" />
-      </Plot>
-      <Row gap="md">
-        <Node label={`${v.toFixed(1)} cm`} sub="image distance v" />
-        <Node label={`${(-v / u).toFixed(2)}×`} sub="magnification" />
+      <Row gap="lg" align="center">
+        <Diagram id="optics" width={W} height={H}>
+          <Segment from={[0, Y0]} to={[W, Y0]} state="dim" />
+          <Segment id="lens" from={[X0, Y0 - 14]} to={[X0, Y0 + 14]} group="lens" />
+          <Points pts={[[X0 - f, Y0], [X0 + f, Y0]]} />
+          <Label at={[X0 - f, Y0 - 3]} text="$F$" />
+          <Label at={[X0 + f, Y0 - 3]} text="$F'$" />
+          <Vector id="object" from={[X0 - u, Y0]} to={P} label="$O$" group="object" />
+          <Segment from={P} to={T} group="parallel" />
+          <Segment from={T} to={I} group="parallel" />
+          <Segment from={P} to={I} group="central" />
+          <Segment from={P} to={B} group="focal" />
+          <Segment from={B} to={I} group="focal" />
+          <Vector id="image" from={[X0 + v, Y0]} to={I} label="$I$" group="image" />
+        </Diagram>
+        <Column gap="md">
+          <Node label={`${v.toFixed(1)} cm`} sub="image distance v" />
+          <Node label={m.toFixed(2)} sub="magnification m" />
+          <Node label="Real, inverted" sub="image type" />
+        </Column>
       </Row>
+      <Tex tex={String.raw`\frac{1}{${f}} = \frac{1}{${u}} + \frac{1}{${v.toFixed(1)}}`} />
     </Column>
   );
 }
 ```
 
-The three rays from the object tip:
-- **Parallel to the axis:** bends through $F'$ on the far side.
-- **Through the lens centre:** goes straight on.
-- **Through $F$ on the near side:** leaves the lens parallel to the axis.
+The three rays from the object tip: the parallel ray bends through $F'$, the central ray goes straight through the lens centre, and the focal ray leaves the lens parallel to the axis. All three meet at the image tip.
 
-The rays meet at the image. Dim lines are extensions past the image, not real light.
-
-Skipped: $u < f$ (virtual image), so the slider starts at 12 cm. Not checked: I have not rendered the figure, so the scaling and label placement are unverified.
+Not checked: how the pane places the Diagram origin. I assumed it starts at bottom-left, so the lens sits at x = 50 cm. Skipped: an object-height slider and 2F markers. The slider starts at 12 cm, because at u = 10 cm the image is at infinity.

@@ -1,6 +1,6 @@
 import type { Fields, Read } from '@/renderer/figure/components/field';
 
-export { field } from '@/renderer/figure/components/field';
+export { field, keyedMarks, marks } from '@/renderer/figure/components/field';
 
 export type Dimension = 2 | 3;
 
@@ -40,6 +40,8 @@ export interface Definition<Name extends string = string, F extends Fields = Fie
   readonly fields?: F;
   readonly variants?: V;
   readonly children?: C;
+  /** Props listing items a model tends to mark one by one; a `group` or `state` on an item is read as if in the element's `groups` or `states`. */
+  readonly markedItems?: readonly string[];
   /** The prop its text children are read into, as `<Text>...</Text>` is. */
   readonly textChildren?: keyof F & string;
   context?(raw: { props: Readonly<Record<string, unknown>>; children: readonly unknown[] }): Context;

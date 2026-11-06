@@ -1,18 +1,18 @@
-import { component, field } from '@/renderer/figure/components/component';
+import { component, field, marks } from '@/renderer/figure/components/component';
 import { LIMITS, type Point3 } from '@/renderer/figure/FigureData';
 
 const SURFACE_SAMPLES = (LIMITS.surfaceCells + 1) ** 2;
 const PARAMETRIC = 'only for a parametric surface, f={(u, v) => [x, y, z]}';
 const isSample = (value: unknown): boolean => Array.isArray(value) && value.length === 2 && typeof value[0] === 'number' && (value[1] === null || typeof value[1] === 'number');
-const marks = { label: field.optional(field.text()), tag: field.optional(field.tag()) };
+const labelled = { label: field.optional(field.text()), ...marks };
 
 export const Fn = component({
   name: 'Fn',
-  signature: '<Fn id f u v from to label tag />',
+  signature: '<Fn id f u v from to label group state />',
   summary: 'sampled by the host. `f={x => ...}` draws a curve; it breaks where it leaves the box through the top and comes back through the bottom, so `tan` and `1/x` draw no false vertical.',
   guidance: [
     '`f={(x, y) => ...}` draws a surface z = f(x, y) over the box\'s x and y, and `f={(u, v) => [x, y, z]}` with `u={[lo, hi]} v={[lo, hi]}` a parametric surface (a sphere, a torus, a cone). Write a surface\'s two parameters plain: a default value, as in `(x, y = 0) =>`, makes it a curve.',
-    '`from` and `to` narrow x; any other domain (a disk, y ≥ 0, a cut-away sphere) returns `NaN` outside it, which leaves a hole. Surfaces are shaded by height and cut at the box; paths, points and vectors are drawn over them. A point meant to lie on a surface uses the same function: `[x, y, f(x, y)]`. Tag a surface `dim` when a path or point on it is the subject.',
+    '`from` and `to` narrow x; any other domain (a disk, y ≥ 0, a cut-away sphere) returns `NaN` outside it, which leaves a hole. Surfaces are shaded by height, in the colour of their group when they have one, and cut at the box. A surface takes only the state `dim`: show progress on a line, a point or a `Node`; paths, points and vectors are drawn over them. A point meant to lie on a surface uses the same function: `[x, y, f(x, y)]`. Give a surface the state `dim` when a path or point on it is the subject.',
   ],
   variants: {
     /** `pts` are the worker's samples of `f`; `y` is null where `f` was not finite. */
@@ -25,7 +25,7 @@ export const Fn = component({
         v: field.unused(`is ${PARAMETRIC}`),
         from: field.optional(field.number()),
         to: field.optional(field.number()),
-        ...marks,
+        ...labelled,
       },
     },
     /** A graph z = f(x, y) sent as `zs`, or a parametric surface sent as `pts`; `surfaceCells + 1` samples a side, row-major, null where `f` was not finite. */
@@ -39,7 +39,8 @@ export const Fn = component({
         v: field.optional(field.range()),
         from: field.optional(field.number()),
         to: field.optional(field.number()),
-        ...marks,
+        ...labelled,
+        state: field.optional(field.state(['dim'])),
       },
     },
   },

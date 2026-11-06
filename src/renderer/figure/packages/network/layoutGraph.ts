@@ -26,8 +26,7 @@ export function layoutGraph(uses: readonly Graph[]): NetworkLayout {
   for (const graph of uses) {
     for (const node of graph.nodes) {
       nodes.add(node.id);
-      // Room for the ▶ an active node shows.
-      nodeLabels.push(`▶ ${nodeText(node)}`);
+      nodeLabels.push(nodeText(node));
     }
     edgeKeys(graph.edges).forEach((key, i) => {
       const edge = graph.edges[i];
