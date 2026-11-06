@@ -8,6 +8,7 @@ export const Graph = component({
     'Keep the same node ids in every step; change labels, groups and states. A binary tree node with one child gets a dimmed `nil` node for the other, so left and right stay apart.',
     'Put a small Graph and its Table side by side in a `Row`; beside a Graph of more than about six nodes, give per-node values as a wide Table, one column per node and one row per quantity, under it in a `Column`.',
   ],
+  markedItems: ['nodes', 'edges'],
   fields: {
     id: field.optional(field.id()),
     nodes: field.list(field.object({ id: field.id(), label: field.optional(field.text()), sub: field.optional(field.text()) }), { min: 1, max: LIMITS.graphNodes }),

@@ -318,7 +318,8 @@ function readElement(raw: unknown, parent: string, depth: number, container: Any
   if (variants.length && !variant) fail(path, `${type} is ${variants.map(([, candidate]) => candidate.dimension).join(' or ')}D only; ${inner.why}`);
   const fields = variant ? variant[1].fields : definition.fields ?? {};
   if (variant) onlyKeys(props, Object.keys(fields), path, `${type} here`);
-  const read = readFields(fields, definition.textChildren ? withTextChildren(props, children, definition.textChildren, path) : props);
+  const given = definition.markedItems ? liftItemMarks(props, definition.markedItems) : props;
+  const read = readFields(fields, definition.textChildren ? withTextChildren(given, children, definition.textChildren, path) : given);
   if (!read.ok) fail(path, `${read.prop} ${read.message}`);
   const node: Node = { type: variant ? variant[0] : type, ...read.value };
 
@@ -331,6 +332,27 @@ function readElement(raw: unknown, parent: string, depth: number, container: Any
   }
   definition.check?.(node, { context: inner, fail: (message) => fail(path, message) });
   return node;
+}
+
+/** `props` with each item's group and state moved to the element's maps, which win. An item with no id has no key, so it keeps them and is refused. */
+function liftItemMarks(props: Plain, lists: readonly string[]): Plain {
+  const groups: Plain = {};
+  const states: Plain = {};
+  const lifted = Object.fromEntries(lists.map((list) => {
+    const items = own(props, list);
+    if (!Array.isArray(items)) return [list, items];
+    return [list, items.map((item: unknown) => {
+      if (!isObject(item) || typeof own(item, 'id') !== 'string') return item;
+      const { group, groups: named, state, ...rest } = item;
+      const name = group ?? named;
+      if (name !== undefined && name !== null) groups[own(item, 'id') as string] = name;
+      if (state !== undefined && state !== null) states[own(item, 'id') as string] = state;
+      return rest;
+    })];
+  }));
+  const merged = (key: string, marks: Plain): Plain => ({ ...marks, ...(isObject(own(props, key)) ? own(props, key) as Plain : {}) });
+  const maps = { ...(Object.keys(groups).length ? { groups: merged('groups', groups) } : {}), ...(Object.keys(states).length ? { states: merged('states', states) } : {}) };
+  return { ...props, ...lifted, ...maps };
 }
 
 /** `<Text>...</Text>`: text children read as the prop `key`. */

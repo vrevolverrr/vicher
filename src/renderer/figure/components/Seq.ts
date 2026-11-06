@@ -4,6 +4,7 @@ import { LIMITS } from '@/renderer/figure/FigureData';
 export const Seq = component({
   name: 'Seq',
   summary: 'a strip of cells for an array, queue or string.',
+  markedItems: ['items'],
   fields: {
     id: field.optional(field.id()),
     title: field.optional(field.text()),
