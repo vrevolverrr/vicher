@@ -8,7 +8,7 @@ export const LIMITS = {
   layers: 256, layerPoints: 2000, shapePoints: 256, params: 8, options: 12, quizOptions: 8,
   depth: 32, cloneDepth: 80, source: 64 * 1024, runMs: 2000, replyWaitMs: 2500, workers: 4,
   figuresPerReply: 4, repairError: 500, fnSamples: 161, cloneVisits: 2_000_000, startMs: 5000,
-  surfaceCells: 48, surfaces: 4, groupName: 60, groups: 8,
+  surfaceCells: 48, surfaces: 4, groupName: 60, groups: 8, diagramTallness: 3,
 } as const;
 
 export type Point = readonly [number, number];

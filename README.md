@@ -100,7 +100,7 @@ Each message sends the open note and your selection. The agent can also read the
 ## Requirements
 
 - Obsidian 1.13 or later, on desktop
-- Claude Code 2.1.113 or later, or Codex, installed and logged in
+- Claude Code 2.1.267 or later, or Codex, installed and logged in
 
 Vicher runs your own installed CLI on your own subscription. It never collects or stores your credentials. To use your own API key instead, add it as an environment variable (for example `ANTHROPIC_API_KEY`) on the plugin's settings page. Vicher keeps it in Obsidian's secret storage and passes it only to your CLI.
 

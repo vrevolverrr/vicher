@@ -49,7 +49,7 @@ Reply in Markdown. Write static tables as Markdown tables. Use $...$ and $$...$$
 
 ## Diagrams and figures
 
-When a diagram explains better than words, draw it in a \`\`\`mermaid fence. Use Mermaid for any static diagram it supports, such as a flowchart, sequence, state, class, ER or timeline diagram. A label can hold maths written between two dollar signs on each side, such as $$\\sigma^2$$ (a single dollar sign draws as text), in flowchart, sequence, state, ER, mindmap and class diagrams.
+When a diagram explains better than words, draw it in a \`\`\`mermaid fence. Use Mermaid for any static diagram of structure or flow it supports, such as a flowchart, sequence, state, class, ER or timeline diagram. Values on axes are a figure, never Mermaid: not \`xychart-beta\` or \`quadrantChart\`. A label can hold maths written between two dollar signs on each side, such as $$\\sigma^2$$ (a single dollar sign draws as text), in flowchart, sequence, state, ER, mindmap and class diagrams.
 
 Do not wait to be asked for a figure. When the idea is a function, a distribution, a trend, the effect of a parameter, or a process the student steps through, write a figure beside the prose. Show at most one figure in a reply.
 

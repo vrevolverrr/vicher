@@ -57,6 +57,12 @@ describe('the figure worker', () => {
     expect(validateFigure(reply).ok).toBe(true);
   });
 
+  it('splices a fragment inside a fragment, so a map can hold another map', async () => {
+    const reply = await run('export default () => <Diagram width={2} height={1}>{[0].map(x => <><Segment from={[x, 0]} to={[x, 1]} />{[1].map(y => <><Points pts={[[x, y]]} /></>)}</>)}</Diagram>;');
+    expect(reply.frames![0].root.children.map((child) => (child as { type: string }).type)).toEqual(['Segment', 'Points']);
+    expect(validateFigure(reply).ok).toBe(true);
+  });
+
   it('reads declared params, and the values the host sends', async () => {
     const source = `export const params = { n: { label: 'n', min: 1, max: 8, step: 1, value: 3 } };
 export default function ({ n }) {

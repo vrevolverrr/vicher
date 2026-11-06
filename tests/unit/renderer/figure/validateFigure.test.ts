@@ -370,6 +370,11 @@ describe('groups and the legend', () => {
     expect(errorOf(plot('active'))).toContain('must be one of dim');
   });
 
+  it('refuses a Diagram too tall for its one scale, and names the Plot', () => {
+    expect(errorOf(figure(el('Diagram', { width: 4, height: 54 })))).toContain('a chart goes in a Plot');
+    expectOk(figure(el('Diagram', { width: 4, height: 12 })));
+  });
+
   it('rejects a name over 60 characters', () => {
     expect(errorOf(steps('x'.repeat(61)))).toContain('group');
   });

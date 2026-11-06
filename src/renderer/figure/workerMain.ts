@@ -163,13 +163,15 @@ function isWire(value: unknown): value is Wire {
   return typeof value === 'object' && value !== null && typeof (value as Wire).type === 'string' && typeof (value as Wire).props === 'object' && Array.isArray((value as Wire).children);
 }
 
+const spliced = (children: readonly unknown[]): unknown[] => children.flatMap((child) => (isWire(child) && child.type === 'Fragment' ? spliced(child.children) : [child]));
+
 /** The tree with Fragments spliced, each Fn sampled, and no function left. */
 function plain(value: unknown, plot: Wire | undefined, prop = ''): unknown {
   if (typeof value === 'function') throw new FigureError(`${prop || 'A value'} is a function; only Fn's f may be one`);
   if (Array.isArray(value)) return value.map((item) => plain(item, plot, prop));
   if (typeof value !== 'object' || value === null) return value;
   if (!isWire(value)) return Object.fromEntries(Object.keys(value).map((key) => [key, plain((value as Record<string, unknown>)[key], plot, key)]));
-  const children = value.children.flatMap((child) => (isWire(child) && child.type === 'Fragment' ? child.children : [child]));
+  const children = spliced(value.children);
   const here = value.type === 'Plot' ? value : plot;
   const props: Record<string, unknown> = {};
   for (const key of Object.keys(value.props)) {

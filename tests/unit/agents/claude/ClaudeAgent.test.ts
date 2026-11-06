@@ -643,6 +643,7 @@ describe('ClaudeAgent session', () => {
 
     expect(resumed.id).toBe(first.id);
     expect(cli.options!.resume).toBe(first.id);
+    expect(cli.options!.extraArgs).toEqual({ 'replay-user-messages': null, 'system-prompt-snapshot': 'off' });
     expect(cli.options!.sessionId).toBeUndefined();
   });
 

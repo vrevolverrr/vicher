@@ -11,7 +11,7 @@ describe('Table', () => {
     [{ columns: [], rows: [] }, 'Step 1 > Table: columns needs at least 1'],
     [{ columns: ['a'], rows: [[{}]] }, 'Step 1 > Table: rows[0][0] must be text, a number or null'],
     [{ columns: ['a'], rows: [['a'.repeat(2001)]] }, 'Step 1 > Table: rows[0][0] is 2,001 characters; the limit is 2,000'],
-    [{ columns: ['a'], rows: [], states: { t: 'red' } }, 'Step 1 > Table: states has a state for "t" that is not one of active, done, dim'],
+    [{ columns: ['a'], rows: [], states: { t: 'red' } }, 'Step 1 > Table: states has a state "red" for "t" that is not one of active, done, dim; a name for a kind of thing goes in groups'],
   ])('refuses %j', (props, message) => {
     expect(read(el('Table', props))).toBe(message);
   });

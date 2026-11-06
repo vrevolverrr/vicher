@@ -94,12 +94,12 @@ const keyed = <T extends string>(kind: Kind, word: string, problem: (name: unkno
   leaf(kind, isObject, `must be an object of id: ${word}`, (value: Record<string, unknown>) => {
     for (const key of Object.keys(value)) {
       const wrong = value[key] === null || value[key] === undefined ? undefined : problem(value[key]);
-      if (wrong) return `has a ${word} for "${key}" that ${wrong}`;
+      if (wrong) return `has a ${word} ${JSON.stringify(value[key])} for "${key}" that ${wrong}`;
     }
     return undefined;
   }, (value: Record<string, unknown>) => new Map(Object.entries(dropAbsent(value)).map(([key, name]) => [key, read(name as never)])));
 
-const stateProblem = (name: unknown): string | undefined => ((STATES as readonly unknown[]).includes(name) ? undefined : `is not one of ${STATES.join(', ')}`);
+const stateProblem = (name: unknown): string | undefined => ((STATES as readonly unknown[]).includes(name) ? undefined : `is not one of ${STATES.join(', ')}; a name for a kind of thing goes in groups`);
 
 export const field = {
   /** 1 to 64 characters matching `[A-Za-z0-9][A-Za-z0-9_.:-]*`, unique in its step. */
