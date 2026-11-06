@@ -1,21 +1,17 @@
-**FIFO: cost of sold shares $3,060, ending inventory 60 shares at $13 ($780).**
-**LIFO: cost of sold shares $3,240, ending inventory 60 shares at $10 ($600).**
+**FIFO:** cost of goods sold $3,060. Ending inventory $780 (60 units at $13).
 
-| Sale | FIFO lots sold | FIFO cost | LIFO lots sold | LIFO cost |
-|---|---|---|---|---|
-| Sell 120 | 100 @ $10 + 20 @ $12 | $1,240 | 120 @ $12 | $1,440 |
-| Sell 150 | 130 @ $12 + 20 @ $13 | $1,820 | 80 @ $13 + 30 @ $12 + 40 @ $10 | $1,800 |
-| **Total** | | **$3,060** | | **$3,240** |
-
-Inventory after each step:
-
-| Step | FIFO inventory | LIFO inventory |
+| Sale | Units sold from | Cost |
 |---|---|---|
-| Buy 100 @ $10, buy 150 @ $12 | 100 @ $10, 150 @ $12 | 100 @ $10, 150 @ $12 |
-| After sell 120 | 130 @ $12 | 100 @ $10, 30 @ $12 |
-| After buy 80 @ $13 | 130 @ $12, 80 @ $13 | 100 @ $10, 30 @ $12, 80 @ $13 |
-| After sell 150 | 60 @ $13 | 60 @ $10 |
+| Sell 120 | 100 @ $10 + 20 @ $12 | $1,240 |
+| Sell 150 | 130 @ $12 + 20 @ $13 | $1,820 |
 
-Check: total purchases are $3,840. FIFO: $3,840 − $3,060 = $780. LIFO: $3,840 − $3,240 = $600.
+**LIFO:** cost of goods sold $3,240. Ending inventory $600 (60 units at $10).
 
-Not computed: realized gain. It needs the sale prices, which you did not give. Send them and I will add gain for each method.
+| Sale | Units sold from | Cost |
+|---|---|---|
+| Sell 120 | 120 @ $12 | $1,440 |
+| Sell 150 | 80 @ $13 + 30 @ $12 + 40 @ $10 | $1,800 |
+
+Check: total purchases are $3,840. FIFO: $3,060 + $780 = $3,840. LIFO: $3,240 + $600 = $3,840.
+
+Sale prices were not given, so revenue and gross profit are not shown. LIFO is not allowed under IFRS, so confirm which rules apply to you.

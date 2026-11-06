@@ -1,82 +1,59 @@
-A mass on a spring swings back and forth, and its position, velocity and energy repeat in a cycle. The time for one full cycle is the period $T$.
+```figure
+const m = 2;                  // kg
+const k = 8;                  // N/m
+const A = 0.5;                // m, released from rest at x = A
+const w = Math.sqrt(k / m);   // 2 rad/s
+const T = 2 * Math.PI / w;    // about 3.14 s
 
-For an ideal spring (Hooke's law, no friction), the position is a cosine:
+const x = t => A * Math.cos(w * t);
+const v = t => -A * w * Math.sin(w * t);
+const KE = t => 0.5 * m * v(t) ** 2;
+const PE = t => 0.5 * k * x(t) ** 2;
 
-$$x(t) = A\cos(\omega t)$$
+export default function () {
+  const steps = [];
+  for (let i = 0; i <= 8; i++) {
+    const t = i * T / 8;
+    steps.push({ t, x: x(t), v: v(t), KE: KE(t), PE: PE(t) });
+  }
+  return (
+    <Figure
+      steps={steps}
+      caption={s => `At $t = ${s.t.toFixed(2)}$ s: $x = ${s.x.toFixed(2)}$ m, $v = ${s.v.toFixed(2)}$ m/s, KE = ${s.KE.toFixed(2)} J, PE = ${s.PE.toFixed(2)} J. $KE + PE = 1$ J.`}
+      render={s => (
+        <Plot id="plot" x={[0, T]} y={[-1.2, 1.2]} xLabel="t (s)" yLabel="value">
+          <Fn id="fx" f={x} label="x (m)" />
+          <Fn id="fv" f={v} label="v (m/s)" />
+          <Fn id="fke" f={KE} label="KE (J)" />
+          <Fn id="fpe" f={PE} label="PE (J)" />
+          <Points id="now" pts={[[s.t, s.x], [s.t, s.v], [s.t, s.KE], [s.t, s.PE]]} />
+        </Plot>
+      )}
+    />
+  );
+}
+```
 
-Here $x$ is the displacement from equilibrium (m), $A$ is the amplitude (m), and $t$ is time (s). The angular frequency $\omega$ (rad/s) and the period $T$ (s) depend only on the mass $m$ (kg) and the spring constant $k$ (N/m):
+A mass on a spring swings back and forth. The spring pulls the mass toward the middle, and the same motion repeats each cycle. Position, velocity and energy all rise and fall in a fixed pattern.
+
+For a mass $m$ on a spring of stiffness $k$, the angular frequency and period are set by the two values:
 
 $$\omega = \sqrt{\frac{k}{m}}$$
 
 $$T = \frac{2\pi}{\omega}$$
 
-Velocity is $v = -A\omega\sin(\omega t)$. The energy has two forms, kinetic $KE = \tfrac{1}{2}mv^2$ and potential (stored in the spring) $PE = \tfrac{1}{2}kx^2$.
+Here $\omega$ is in rad/s, $m$ in kg, $k$ in N/m, and $T$ is the time for one full cycle in seconds. For a mass released from rest at $x = A$, with no friction:
 
-Worked example with $m = 0.5$ kg, $k = 20$ N/m, $A = 0.1$ m:
+$$x(t) = A\cos\omega t$$
 
-- $\omega = \sqrt{20/0.5} = 6.32$ rad/s
-- $T = 2\pi/6.32 = 0.993$ s
-- $v_{\max} = A\omega = 0.1 \times 6.32 = 0.632$ m/s
-- Total energy $E = \tfrac{1}{2}kA^2 = \tfrac{1}{2}(20)(0.1)^2 = 0.1$ J
+$$v(t) = -A\omega\sin\omega t$$
 
-The figure steps through one period in quarter-period jumps. Position and velocity are a quarter period out of step: when $x$ is at its peak, $v$ is zero. KE and PE each peak twice per period, and their sum stays at $E$. The sliders change $m$, $k$ and $A$.
+$$KE = \tfrac{1}{2}mv^2, \qquad PE = \tfrac{1}{2}kx^2$$
 
-Friction shrinks the amplitude over time, and past the elastic limit a real spring no longer follows Hooke's law.
+Take $m = 2$ kg, $k = 8$ N/m, $A = 0.5$ m. Then $\omega = \sqrt{8/2} = 2$ rad/s and $T = 2\pi/2 \approx 3.14$ s. Substituting gives $v = -\sin 2t$ m/s, $KE = \sin^2 2t$ J and $PE = \cos^2 2t$ J.
 
-```figure
-export const params = {
-  m: { label: 'Mass (kg)', min: 0.1, max: 2, step: 0.1, value: 0.5 },
-  k: { label: 'Spring constant (N/m)', min: 5, max: 50, step: 1, value: 20 },
-  A: { label: 'Amplitude (m)', min: 0.05, max: 0.2, step: 0.01, value: 0.1 }
-};
+At $t = 0$, the mass is at its furthest point: $PE = 1$ J, $KE = 0$. At $t = T/4 \approx 0.79$ s, the mass passes the middle: $KE = 1$ J, $PE = 0$. The energy moves between the two forms, and their sum stays 1 J.
 
-const fmt = n => Number(n.toFixed(3));
+The formulas assume an ideal spring: no friction, and the stretch stays within the elastic limit.
 
-export default function ({ m, k, A }) {
-  const w = Math.sqrt(k / m);                  // angular frequency (rad/s)
-  const T = 2 * Math.PI / w;                   // period (s)
-  const x = t => A * Math.cos(w * t);          // position (m)
-  const v = t => -A * w * Math.sin(w * t);     // velocity (m/s)
-  const ke = t => 0.5 * m * v(t) * v(t);       // kinetic energy (J)
-  const pe = t => 0.5 * k * x(t) * x(t);       // potential energy (J)
-  const E = 0.5 * k * A * A;                   // total energy (J)
-
-  const names = ['Start at maximum extension', 'Pass equilibrium', 'Maximum compression', 'Pass equilibrium', 'One full period'];
-  const steps = [0, 0.25, 0.5, 0.75, 1].map((frac, i) => {
-    const t = frac * T;
-    return {
-      t,
-      name: names[i],
-      text: `$x = ${fmt(x(t))}$ m, $v = ${fmt(v(t))}$ m/s, $KE = ${fmt(ke(t))}$ J, $PE = ${fmt(pe(t))}$ J.`
-    };
-  });
-
-  return (
-    <Figure steps={steps} heading={st => st.name} caption={st => st.text} render={st => (
-      <Column gap="md">
-        <Panel title="Position">
-          <Plot id="pos" x={[0, T]} xLabel="t (s)" yLabel="x (m)">
-            <Fn id="x-curve" f={x} from={0} to={T} label="x(t)" />
-            <Points pts={[[st.t, x(st.t)]]} tag="active" />
-          </Plot>
-        </Panel>
-        <Panel title="Velocity">
-          <Plot id="vel" x={[0, T]} xLabel="t (s)" yLabel="v (m/s)">
-            <Fn id="v-curve" f={v} from={0} to={T} label="v(t)" />
-            <Points pts={[[st.t, v(st.t)]]} tag="active" />
-          </Plot>
-        </Panel>
-        <Panel title="Energy (J)">
-          <Plot id="energy" x={[0, T]} xLabel="t (s)" yLabel="E (J)">
-            <Fn id="ke-curve" f={ke} from={0} to={T} label="KE" />
-            <Fn id="pe-curve" f={pe} from={0} to={T} label="PE" />
-            <Fn id="e-total" f={() => E} from={0} to={T} label="Total" />
-            <Points pts={[[st.t, ke(st.t)]]} tag="active" />
-            <Points pts={[[st.t, pe(st.t)]]} tag="active" />
-          </Plot>
-        </Panel>
-      </Column>
-    )} />
-  );
-}
-```
+Skipped: damping and a slider for $m$, $k$ and $A$. Not checked: how the figure renders in the app.

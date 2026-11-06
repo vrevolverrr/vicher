@@ -1,31 +1,54 @@
-Assume the mass starts at its furthest point, so its initial velocity is zero. Over one period, its position and velocity follow cosine and negative sine curves. The spring’s potential energy is greatest at the ends of the motion; kinetic energy is greatest as the mass passes equilibrium.
+I’ll show the motion and both energy curves across a full cycle, using a simple normalized spring so the curves are easy to compare.
 
-For an ideal spring with amplitude $A$, mass $m$, spring constant $k$, and angular frequency $\omega=\sqrt{k/m}$:
+A spring’s motion repeats: the mass is slowest at either end and fastest as it passes the centre. Its energy shifts between spring potential energy and kinetic energy; their sum stays constant if there’s no friction.
 
-$$
-x(t)=A\cos(\omega t)
-$$
+For mass $m$, spring stiffness $k$, and amplitude $A$, the angular frequency and period are:
 
 $$
-v(t)=-\omega A\sin(\omega t)
+\omega = \sqrt{\frac{k}{m}}
 $$
 
 $$
-U(t)=\frac12 kx(t)^2,\qquad K(t)=\frac12 mv(t)^2
+T = \frac{2\pi}{\omega}
 $$
 
-The period is $T=2\pi/\omega$. In the figure, position and velocity are scaled by their maximum magnitudes, and energy by the constant total energy $E=\frac12 kA^2$.
+Taking the centre as $x=0$, the position and velocity are:
+
+$$
+x(t) = A\cos(\omega t)
+$$
+
+$$
+v(t) = -A\omega\sin(\omega t)
+$$
+
+The kinetic energy $K$ and spring potential energy $U$ are:
+
+$$
+K(t) = \frac{1}{2}mv(t)^2
+$$
+
+$$
+U(t) = \frac{1}{2}kx(t)^2
+$$
+
+For the curves below, take $m=k=A=1$ in SI units, so $\omega=1$ and $T=2\pi$. At one quarter period, $t=T/4=\pi/2$: the mass passes the centre, so $x=0$, $v=-1$, $U=0$, and $K=1/2$ joule. At the endpoints, it momentarily stops and all the energy is potential.
 
 ```figure
 export default function () {
   return (
-    <Plot id="motion" x={[0, 2 * Math.PI]} y={[-1.1, 1.1]}
-      xLabel="Phase $\\omega t$" yLabel="Normalized value">
-      <Fn id="position" f={q => Math.cos(q)} from={0} to={2 * Math.PI} label="$x/A$" />
-      <Fn id="velocity" f={q => -Math.sin(q)} from={0} to={2 * Math.PI} label="$v/(\\omega A)$" />
-      <Fn id="potential" f={q => Math.cos(q) ** 2} from={0} to={2 * Math.PI} label="$U/E$" />
-      <Fn id="kinetic" f={q => Math.sin(q) ** 2} from={0} to={2 * Math.PI} label="$K/E$" />
-    </Plot>
+    <Column gap="md">
+      <Plot x={[0, 2 * Math.PI]} y={[-1, 1]} xLabel="Time $t$ (s)" yLabel="Position $x$ (m)">
+        <Fn f={t => Math.cos(t)} from={0} to={2 * Math.PI} label="$x(t)$" />
+      </Plot>
+      <Plot x={[0, 2 * Math.PI]} y={[-1, 1]} xLabel="Time $t$ (s)" yLabel="Velocity $v$ (m/s)">
+        <Fn f={t => -Math.sin(t)} from={0} to={2 * Math.PI} label="$v(t)$" />
+      </Plot>
+      <Plot x={[0, 2 * Math.PI]} y={[0, 0.5]} xLabel="Time $t$ (s)" yLabel="Energy (J)">
+        <Fn f={t => 0.5 * Math.sin(t) ** 2} from={0} to={2 * Math.PI} label="$K(t)$" />
+        <Fn f={t => 0.5 * Math.cos(t) ** 2} from={0} to={2 * Math.PI} label="$U(t)$" />
+      </Plot>
+    </Column>
   );
 }
 ```

@@ -1,35 +1,36 @@
-Adjust the object distance to see how the real image’s position and size change.
-
 ```figure
 export const params = {
-  d: { label: 'Object distance', min: 12, max: 30, step: 1, value: 20, unit: 'cm' }
+  u: { label: 'Object distance', min: 16, max: 30, step: 1, value: 20, unit: 'cm' }
 };
 
-export default function ({ d }) {
+export default function ({ u }) {
   const f = 10;
-  const h = 2.5;
-  const axisY = 20;
-  const lensX = 35;
-  const objectX = lensX - d;
-  const imageDistance = f * d / (d - f);
-  const imageX = lensX + imageDistance;
-  const imageY = axisY - h * f / (d - f);
+  const v = (f * u) / (u - f);
+  const lensX = 40;
+  const axisY = 9;
+  const objectX = lensX - u;
+  const imageX = lensX + v;
+  const imageY = axisY - (v / u) * 4;
 
   return (
-    <Diagram id="lens" width={105} height={40}>
-      <Segment id="axis" from={[3, axisY]} to={[102, axisY]} />
-      <Segment id="lens-line" from={[lensX, 14]} to={[lensX, 26]} />
-      <Label at={[lensX, 27]} text="Converging lens" />
-
-      <Circle id="focus-left" at={[lensX - f, axisY]} r={0.35} label="F" />
-      <Circle id="focus-right" at={[lensX + f, axisY]} r={0.35} label="F" />
-
-      <Vector from={[objectX, axisY]} to={[objectX, axisY + h]} label="Object" />
-      <Shape id="parallel-ray" pts={[[objectX, axisY + h], [lensX, axisY + h]]} />
-      <Shape id="refracted-ray" pts={[[lensX, axisY + h], [imageX, imageY]]} />
-      <Shape id="central-ray" pts={[[objectX, axisY + h], [lensX, axisY], [imageX, imageY]]} />
-      <Vector from={[imageX, axisY]} to={[imageX, imageY]} label="Image" />
-    </Diagram>
+    <Column gap="md">
+      <Text>{`Focal length: **10 cm**. The image is real and inverted.`}</Text>
+      <Diagram width={80} height={18}>
+        <Segment from={[0, axisY]} to={[80, axisY]} label="optical axis" />
+        <Shape
+          pts={[[40, 3], [38.8, 5], [38, 9], [38.8, 13], [40, 15], [41.2, 13], [42, 9], [41.2, 5], [40, 3]]}
+          closed
+          label="converging lens"
+          group="lens"
+        />
+        <Points pts={[[30, axisY], [50, axisY]]} label="F" group="focus" />
+        <Vector from={[objectX, axisY]} to={[objectX, 13]} label="object" group="object" />
+        <Vector from={[imageX, axisY]} to={[imageX, imageY]} label="image" group="image" />
+        <Segment from={[objectX, 13]} to={[lensX, 13]} label="parallel ray" group="ray" />
+        <Segment from={[lensX, 13]} to={[imageX, imageY]} group="ray" />
+        <Segment from={[objectX, 13]} to={[imageX, imageY]} label="through lens centre" group="ray" />
+      </Diagram>
+    </Column>
   );
 }
 ```

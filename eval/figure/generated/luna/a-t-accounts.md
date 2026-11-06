@@ -1,23 +1,50 @@
-### T-accounts
+Debits go on the left side of each T-account; credits go on the right.
 
-| Account | Debit | Credit | Balance |
-|---|---:|---:|---:|
-| Cash | $10,000 + $2,000 | $4,000 + $300 | $7,700 Dr |
-| Equipment | $4,000 |  | $4,000 Dr |
-| Supplies | $500 |  | $500 Dr |
-| Accounts Payable | $300 | $500 | $200 Cr |
-| Owner’s Capital |  | $10,000 | $10,000 Cr |
-| Revenue |  | $2,000 | $2,000 Cr |
+| Cash | Debit | Credit |
+|---|---:|---:|
+| Owner investment | $10,000 | |
+| Cash revenue | 2,000 | |
+| Equipment purchase | | 4,000 |
+| Payment on payable | | 300 |
+| **Balance** | **7,700** | |
+
+| Equipment | Debit | Credit |
+|---|---:|---:|
+| Equipment purchase | $4,000 | |
+| **Balance** | **4,000** | |
+
+| Supplies | Debit | Credit |
+|---|---:|---:|
+| Supplies bought on credit | $500 | |
+| **Balance** | **500** | |
+
+| Accounts payable | Debit | Credit |
+|---|---:|---:|
+| Payment | $300 | |
+| Supplies bought on credit | | 500 |
+| **Balance** | | **200** |
+
+| Owner’s capital | Debit | Credit |
+|---|---:|---:|
+| Owner investment | | $10,000 |
+| **Balance** | | **10,000** |
+
+| Revenue | Debit | Credit |
+|---|---:|---:|
+| Cash revenue | | $2,000 |
+| **Balance** | | **2,000** |
 
 ### Trial balance
 
 | Account | Debit | Credit |
 |---|---:|---:|
-| Cash | $7,700 |  |
-| Equipment | $4,000 |  |
-| Supplies | $500 |  |
-| Accounts Payable |  | $200 |
-| Owner’s Capital |  | $10,000 |
-| Revenue |  | $2,000 |
-| **Totals** | **$12,200** | **$12,200** |
+| Cash | $7,700 | |
+| Equipment | 4,000 | |
+| Supplies | 500 | |
+| Accounts payable | | $200 |
+| Owner’s capital | | 10,000 |
+| Revenue | | 2,000 |
+| **Total** | **$12,200** | **$12,200** |
+
+The trial balance balances.
 

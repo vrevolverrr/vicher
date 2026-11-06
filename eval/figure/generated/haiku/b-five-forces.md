@@ -1,22 +1,16 @@
 ```mermaid
-flowchart LR
-    NE["Threat of new entrants<br/>Medium"]
-    SU["Supplier power<br/>Medium"]
-    BU["Buyer power<br/>High"]
-    SB["Threat of substitutes<br/>High"]
-    RI["Rivalry among existing firms<br/>High"]
-    NE --> RI
-    SU --> RI
-    BU --> RI
-    SB --> RI
+flowchart TB
+  NE["Threat of new entrants: HIGH<br/>Low cost to open a café"]
+  SUP["Supplier power: MEDIUM<br/>Beans, milk, rent, equipment"]
+  BUY["Buyer power: HIGH<br/>Customers switch cheaply"]
+  SUB["Threat of substitutes: HIGH<br/>Tea, energy drinks, home brewing"]
+  RIV["Competitive rivalry: HIGH<br/>Dense chains and independents"]
+  NE --> RIV
+  SUP --> RIV
+  BUY --> RIV
+  SUB --> RIV
 ```
 
-| Force | Strength | Coffee-chain driver |
-|---|---|---|
-| New entrants | Medium | Independent cafés open cheaply, but prime sites, brand, and scale raise the bar. |
-| Supplier power | Medium | Beans are a commodity with volatile prices. Few large roasters and espresso-machine makers. |
-| Buyer power | High | Switching cost is near zero. Customers compare prices and nearby options. |
-| Substitutes | High | Home brewing, instant coffee, tea, convenience-store coffee, and drive-thrus. |
-| Rivalry | High | Chains, independents, fast food, and convenience stores compete for the same sites and hours. |
+Ratings are typical for a coffee chain. Re-rate them with your city's café density and bean-price data.
 
-Not checked: real market data for any named chain. The ratings are judgment, so they may differ by city or country. Test them against local sales and lease data before you use them for a decision.
+Skipped: market-specific figures. Risk: the ratings are generic, not from your numbers.

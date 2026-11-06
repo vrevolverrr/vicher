@@ -1,34 +1,27 @@
-A **standing wave** is a pattern that stays in place. The string swings up and down, but the wave does not travel along it. On a string fixed at both ends, the ends cannot move, so they must be points of zero motion, called **nodes**. The points of largest motion are **antinodes**. Only patterns that fit a whole number of half-wavelengths between the ends can form, and each one is a **harmonic**.
+A **standing wave** is a wave pattern that stays in place. It forms when two identical waves travel in opposite directions and add together. On a string fixed at both ends, the ends cannot move, so each end must be a **node** (a point of zero motion). Only some wavelengths fit that rule. The **harmonics** are these allowed patterns, numbered by $n$, the number of loops.
 
-For a string of length $L$ with wave speed $v$, the allowed wavelengths and frequencies follow these rules:
+For a string of length $L$, the allowed wavelengths are:
 
-$$\lambda_n = \frac{2L}{n}$$
+$$\lambda_n = \frac{2L}{n}, \qquad n = 1, 2, 3, \dots$$
+
+Here $\lambda_n$ is the wavelength of harmonic $n$. Each harmonic has a frequency:
 
 $$f_n = \frac{n\,v}{2L}$$
 
-Here $n = 1, 2, 3, \dots$ is the harmonic number, $\lambda_n$ is the wavelength of harmonic $n$, and $f_n$ is its frequency. Harmonic $n = 1$ is the **fundamental**.
+Here $v$ is the wave speed on the string. $f_1$ is the **fundamental**, and every other harmonic is a whole multiple of it.
 
 ```figure
-const steps = [];
-for (let n = 1; n <= 4; n++) {
-  const nodes = [];
-  for (let k = 0; k <= n; k++) nodes.push([k / n, 0]);
-  const antis = [];
-  for (let k = 0; k < n; k++) antis.push([(2 * k + 1) / (2 * n), k % 2 === 0 ? 1 : -1]);
-  steps.push({ n, nodes, antis });
-}
-
 export default function () {
+  const steps = [1, 2, 3, 4].map(n => ({ n }));
   return (
     <Figure
       steps={steps}
-      heading={step => `Harmonic n = ${step.n}`}
-      caption={step => `$\\lambda_n = 2L/${step.n}$: the string holds ${step.n} loop${step.n > 1 ? 's' : ''}, with nodes at both ends.`}
+      heading={step => `Harmonic ${step.n}`}
+      caption={step => String.raw`$\lambda = \frac{2L}{${step.n}}$. Dots mark the nodes, where the string stays still.`}
       render={step => (
-        <Plot id="string" x={[0, 1]} y={[-1.4, 1.4]} xLabel="x / L" yLabel="displacement">
-          <Fn id="shape" f={x => Math.sin(step.n * Math.PI * x)} from={0} to={1} />
-          <Points pts={step.nodes} />
-          <Points pts={step.antis} />
+        <Plot id="string" x={[0, 1]} y={[-1.2, 1.2]} xLabel="x / L" yLabel="y">
+          <Fn id="mode" f={x => Math.sin(step.n * Math.PI * x)} label={`n = ${step.n}`} />
+          <Points pts={Array.from({ length: step.n + 1 }, (_, k) => [k / step.n, 0])} />
         </Plot>
       )}
     />
@@ -36,10 +29,16 @@ export default function () {
 }
 ```
 
-Example: a string 0.65 m long with wave speed 130 m/s. The fundamental is
+**Worked example.** A string is 0.65 m long, under tension $T = 80$ N, with mass per length $\mu = 2.5$ g/m $= 2.5 \times 10^{-3}$ kg/m.
 
-$$f_1 = \frac{1 \times 130}{2 \times 0.65} = 100\ \text{Hz}$$
+1. Wave speed: $v = \sqrt{T/\mu} = \sqrt{80 / 0.0025} \approx 178.9$ m/s.
+2. Fundamental: $f_1 = \dfrac{v}{2L} = \dfrac{178.9}{1.3} \approx 138$ Hz.
+3. Higher harmonics: $f_2 = 2f_1 \approx 275$ Hz and $f_3 = 3f_1 \approx 413$ Hz.
 
-The next harmonics are 200 Hz and 300 Hz. To find which harmonic gives 700 Hz, rearrange the rule: $n = 2L f_n / v = (1.30 \times 700)/130 = 7$. So 700 Hz is the seventh harmonic, with $\lambda_7 = 1.30/7 \approx 0.186$ m.
+| $n$ | $\lambda_n$ (m) | $f_n$ (Hz) |
+|---|---|---|
+| 1 | 1.30 | 138 |
+| 2 | 0.650 | 275 |
+| 3 | 0.433 | 413 |
 
-The rules assume an ideal string: small swings and uniform tension. Real stiff strings push the higher harmonics slightly sharp.
+The model assumes an ideal string. A real string is stiff and damped, so its harmonics drift slightly from exact whole multiples.

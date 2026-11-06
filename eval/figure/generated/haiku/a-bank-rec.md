@@ -1,20 +1,29 @@
-A bank reconciliation explains why the bank balance and the book balance differ. It lists the timing gaps and fixes the book errors, so both sides end at the same adjusted cash figure.
+A bank reconciliation finds why the bank balance and the book (ledger) cash balance differ on the same date. You list each timing item and error, then adjust each balance until both show the true cash amount.
 
-The differences fall into two groups:
+**Items by side:**
+- **Bank-side items** change the bank balance. They are timing items the bank has not processed yet, such as outstanding cheques (subtract) and deposits in transit (add).
+- **Book-side items** change the book balance. They are items the bank recorded but the books did not, and errors in the books. Bank fees and NSF cheques are subtracted. A recording error is corrected by its difference.
 
-- **Bank-side items:** you recorded these, but the bank has not yet. Only the bank balance changes.
-- **Book-side items:** the bank acted, or your books contain an error, and your books do not show it yet. Only the book balance changes.
+**Your figures:**
 
-| Bank side | Amount | Book side | Amount |
+| Item | Side | Bank | Books |
 |---|---|---|---|
-| Balance per bank | 8,400 | Balance per books | 7,950 |
-| Add: deposit in transit | +900 | Less: bank fee | -50 |
-| Less: outstanding cheques | -1,200 | Less: NSF cheque | -200 |
-| | | Add: cheque recorded as 540, should be 450 | +90 |
-| **Adjusted bank balance** | **8,100** | **Adjusted book balance** | **7,790** |
+| Balance as given | | 8,400 | 7,950 |
+| Outstanding cheques | Bank | −1,200 | |
+| Deposit in transit | Bank | +900 | |
+| Bank fee | Books | | −50 |
+| NSF cheque | Books | | −200 |
+| Cheque recorded as 540, should be 450 | Books | | +90 |
+| **Adjusted balance** | | **8,100** | **7,790** |
 
-The NSF cheque is a customer cheque you deposited that bounced. The bank took the 200 back, so cash is lower. The 540 entry overstates the payment by 90, so the books add 90 back.
+The $450 cheque was recorded at $540, so the books credited cash $90 too much. Adding $90 back corrects the book balance.
 
-The adjusted balances do not agree. 8,100 less 7,790 leaves **310 unexplained**. The figures given do not include the item or error that causes it. A bank credit of 310, such as interest or a collection, that the books have not recorded would close the gap. Another source is a wrong balance figure. Check the bank statement and cash book for a 310 item before you post any entries.
+**Result: the two adjusted balances differ by $310, so the reconciliation does not close.** Your list is missing an item or a figure is wrong. Two items would close it:
+- An outstanding cheque of $310 not on your list. It lowers the bank side to $7,790.
+- A $310 bank credit not in the books, such as interest or a collection. It raises the book side to $8,100.
 
-Not checked: whether a source exists for the 310. Risk: posting the entries now would hide a real difference.
+Check the cheque register and the bank statement for these. Do not post a $310 plug to force a match, because it hides a real error.
+
+Bank errors are not booked in your books. Notify the bank instead.
+
+Not checked: I have only your figures, not the statement or ledger, so the $310 gap is unverified.

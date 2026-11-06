@@ -1,47 +1,48 @@
-The **shear force diagram** shows how internal shear changes along the beam; the **bending moment diagram** shows the beam’s internal bending moment. For a simply supported 6 m beam with a 12 kN point load, moving the load changes the support reactions and both diagrams.
+I’ll make the load position adjustable and plot both diagrams from the corresponding support reactions.
 
-Let $a$ be the load’s distance from the left support. The reactions are:
+The slider moves the 12 kN load along the beam. The diagrams update with it: shear is constant between supports and the load, while bending moment rises to a peak directly under the load.
 
-$$R_A = 12\frac{6-a}{6}, \qquad R_B = 12\frac{a}{6}$$
+For a load at distance $a$ metres from the left support, the support reactions are:
 
-Using positive shear upward on the left face, the shear is $R_A$ before the load and drops by 12 kN at the load. The bending moment is zero at both supports and reaches its maximum directly under the load:
+$$
+R_A = 12 - 2a \text{ kN}, \qquad R_B = 2a \text{ kN}
+$$
 
-$$M_{\max} = R_A a = R_B(6-a)$$
-
-For example, with the load at $a=3$ m, each support reaction is 6 kN. Shear is +6 kN to the load, then −6 kN after it; the maximum moment is $6 \times 3 = 18$ kN·m.
-
-Move the slider to see the diagrams and reactions update.
+The bending moment is zero at both supports and reaches $R_Aa = 2a(6-a)$ kN·m under the load. At the starting position $a=2.5$ m, the reactions are 7 kN and 5 kN, and the peak moment is 17.5 kN·m.
 
 ```figure
 export const params = {
-  a: { label: 'Load position from left support', min: 0, max: 6, step: 0.1, value: 3, unit: 'm' }
+  a: { label: 'Load position from left support', min: 0, max: 6, step: 0.1, value: 2.5, unit: 'm' }
 };
 
 export default function ({ a }) {
-  const L = 6;
-  const P = 12;
-  const RA = P * (L - a) / L;
-  const RB = P * a / L;
-  const Mmax = RA * a;
+  const RA = 12 - 2 * a;
+  const RB = 2 * a;
+  const peak = RA * a;
 
   return (
     <Column gap="md">
-      <Row gap="md" align="start">
-        <Plot id="shear" x={[0, L]} y={[-P, P]} xLabel="Distance along beam (m)" yLabel="Shear V (kN)">
-          <Shape id="shear-line" pts={[[0, RA], [a, RA], [a, RA - P], [L, RA - P]]} label="Shear force" />
-        </Plot>
-        <Plot id="moment" x={[0, L]} y={[0, 18]} xLabel="Distance along beam (m)" yLabel="Moment M (kN·m)">
-          <Shape id="moment-line" pts={[[0, 0], [a, Mmax], [L, 0]]} label="Bending moment" />
-          <Circle id="moment-peak" at={[a, Mmax]} r={0.08} label="Maximum moment" />
-        </Plot>
+      <Row gap="md">
+        <Node label={`${RA.toFixed(1)} kN`} sub="Left reaction $R_A$" />
+        <Node label={`${RB.toFixed(1)} kN`} sub="Right reaction $R_B$" />
+        <Node label={`${peak.toFixed(1)} kN·m`} sub="Peak moment" />
       </Row>
-      <Row gap="md" align="center">
-        <Node id="left-reaction" label={`${RA} kN`} sub="Left reaction, R_A" />
-        <Node id="right-reaction" label={`${RB} kN`} sub="Right reaction, R_B" />
-        <Node id="peak-moment" label={`${Mmax} kN·m`} sub="Maximum moment under load" />
-      </Row>
+      <Text>**Shear force diagram**</Text>
+      <Plot id="shear" x={[0, 6]} y={[-12, 12]} xLabel="Position along beam (m)" yLabel="Shear force (kN)">
+        <Shape id="shear-zero" pts={[[0, 0], [6, 0]]} />
+        <Shape id="shear-line" pts={[[0, RA], [a, RA], [a, -RB], [6, -RB]]} label="Shear force" />
+        <Label at={[a, 11]} text={`Load at $x=${a.toFixed(1)}$ m`} />
+      </Plot>
+      <Text>**Bending moment diagram**</Text>
+      <Plot id="moment" x={[0, 6]} y={[0, 20]} xLabel="Position along beam (m)" yLabel="Bending moment (kN·m)">
+        <Shape id="moment-zero" pts={[[0, 0], [6, 0]]} />
+        <Shape id="moment-line" pts={[[0, 0], [a, peak], [6, 0]]} label="Bending moment" />
+        <Points id="moment-peak" pts={[[a, peak]]} label={`${peak.toFixed(1)} kN·m`} />
+      </Plot>
     </Column>
   );
 }
 ```
+
+The shear jumps down by 12 kN at the load; the moment stays continuous and forms two straight segments.
 

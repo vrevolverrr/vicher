@@ -1,9 +1,9 @@
-Monthly payment: **$1,063.69** (rate 0.5% per month, 24 payments).
+Monthly payment: **$1,063.69**, at 0.5% interest per month over 24 payments.
 
-Each month, interest = previous balance × 0.005, and principal = payment − interest.
+$$PMT = \frac{P\,r}{1-(1+r)^{-n}} = \frac{24000 \times 0.005}{1-1.005^{-24}} \approx 1063.69$$
 
 | Month | Payment | Interest | Principal | Balance |
-|---:|---:|---:|---:|---:|
+|---|---|---|---|---|
 | 1 | 1,063.69 | 120.00 | 943.69 | 23,056.31 |
 | 2 | 1,063.69 | 115.28 | 948.41 | 22,107.90 |
 | 3 | 1,063.69 | 110.54 | 953.15 | 21,154.75 |
@@ -29,6 +29,14 @@ Each month, interest = previous balance × 0.005, and principal = payment − in
 | 23 | 1,063.69 | 10.56 | 1,053.13 | 1,058.52 |
 | 24 | 1,063.81 | 5.29 | 1,058.52 | 0.00 |
 
-Total interest: $1,528.68. The final payment is $1,063.81 because each month's interest is rounded to the cent.
+Total interest: $1,528.68. Total paid: $25,528.68. The final payment is $0.12 higher to clear the rounding.
 
-I worked this by hand and rechecked each row. I did not run it in a spreadsheet or calculator, so compare the total interest with one before you rely on it.
+```mermaid
+xychart-beta
+    title "Loan balance by month"
+    x-axis "Month" [0, 3, 6, 9, 12, 15, 18, 21, 24]
+    y-axis "Balance ($)" 0 --> 25000
+    line [24000, 21155, 18267, 15335, 12359, 9338, 6272, 3160, 0]
+```
+
+Not checked: your lender's rounding and day-count rules. Risk: if the lender uses a different rate basis, every row changes.

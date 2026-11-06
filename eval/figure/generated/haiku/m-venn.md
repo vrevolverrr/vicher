@@ -1,16 +1,30 @@
-Shade the part of circle A that lies outside circle B. This is the crescent on the left side of the diagram.
+Shade the part of circle A that lies outside circle B. That is the left crescent below.
 
-$A \cap B^c$ is the set of elements that are in $A$ and not in $B$. It is also written $A \setminus B$, read "A minus B". Formally, $A \cap B^c = \{x : x \in A \text{ and } x \notin B\}$.
+$$A \cap B^c = \{x : x \in A \text{ and } x \notin B\}$$
 
-Draw two overlapping circles. Shade only the part of A that does not overlap B:
+$B^c$ is every element outside $B$. Intersecting with $A$ keeps only the elements that are in $A$ and not in $B$. This is the same as $A \setminus B$.
 
-| Region | In A | In B | Shade? |
-|---|---|---|---|
-| A only | yes | no | **yes** |
-| A and B (overlap) | yes | yes | no |
-| B only | no | yes | no |
-| Outside both | no | no | no |
+Example: $A = \{1, 2, 3, 4\}$ and $B = \{3, 4, 5\}$. $B^c$ holds every element except 3, 4 and 5, so $A \cap B^c = \{1, 2\}$. Shade 1 and 2 only.
 
-Example: $U=\{1,\dots,8\}$, $A=\{1,2,3,4,5\}$, $B=\{4,5,6,7\}$. Then $B^c=\{1,2,3,8\}$, so $A \cap B^c=\{1,2,3\}$. Points 1, 2 and 3 fall in the A-only region and are shaded. Points 4 and 5 lie in the overlap, so they stay unshaded.
+```figure
+const cA = [3.6, 3], cB = [6.4, 3], r = 2.6;
+const inCircle = (p, c) => Math.hypot(p[0] - c[0], p[1] - c[1]) <= r;
+const pts = [];
+for (let x = 0.6; x <= 9.4; x += 0.25)
+  for (let y = 0.4; y <= 5.6; y += 0.25) {
+    const p = [x, y];
+    if (inCircle(p, cA) && !inCircle(p, cB)) pts.push(p);
+  }
 
-Skipped: a drawn figure. The figure tool here cannot fill a region, so the table and example carry the answer.
+export default function () {
+  return (
+    <Diagram id="venn" width={10} height={6}>
+      <Circle id="A" at={cA} r={r} label="A" />
+      <Circle id="B" at={cB} r={r} label="B" />
+      <Points id="shade" pts={pts} label="A ∩ Bᶜ" />
+    </Diagram>
+  );
+}
+```
+
+Not checked: the shading is a grid of dots, so it shows the region at this spacing, not a solid fill. I did not run the figure.

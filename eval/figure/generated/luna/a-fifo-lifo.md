@@ -1,9 +1,9 @@
-| Transaction | FIFO | LIFO |
-|---|---|---|
-| Buy 100 at $10; buy 150 at $12 | Layers: 100 @ $10, 150 @ $12 | Layers: 100 @ $10, 150 @ $12 |
-| Sell 120 | Cost: $1,240 (100 @ $10 + 20 @ $12). Remaining: 130 @ $12 | Cost: $1,440 (120 @ $12). Remaining: 100 @ $10, 30 @ $12 |
-| Buy 80 at $13 | Layers: 130 @ $12, 80 @ $13 | Layers: 100 @ $10, 30 @ $12, 80 @ $13 |
-| Sell 150 | Cost: $1,820 (130 @ $12 + 20 @ $13). Remaining: 60 @ $13 | Cost: $1,720 (80 @ $13 + 30 @ $12 + 40 @ $10). Remaining: 60 @ $10 |
+**FIFO** sells the oldest inventory first; **LIFO** sells the newest first. Applying each rule to the sales:
 
-**Totals:** FIFO cost of goods sold is **$3,060**, with **$780** ending inventory. LIFO cost of goods sold is **$3,160**, with **$600** ending inventory.
+| Sale | FIFO cost | LIFO cost |
+|---|---:|---:|
+| Sell 120 | $1,240 (100 × $10 + 20 × $12) | $1,440 (120 × $12) |
+| Sell 150 | $1,820 (130 × $12 + 20 × $13) | $1,880 (80 × $13 + 70 × $12) |
+| **Total cost of goods sold** | **$3,060** | **$3,320** |
+| **Ending inventory** | **60 at $13 = $780** | **100 at $10 = $1,000** |
 

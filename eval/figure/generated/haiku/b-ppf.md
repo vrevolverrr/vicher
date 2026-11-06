@@ -1,60 +1,47 @@
-A production possibilities frontier (PPF) shows every mix of two goods an economy can make when all its resources are in use. Points inside the curve leave resources idle. Points outside the curve cannot be reached yet.
+A **production possibilities frontier (PPF)** shows every mix of two goods that an economy can make with all its resources and technology. **Opportunity cost** is what you give up to get one more unit of a good.
 
-**Opportunity cost** is what you give up to get one more unit of a good. On a PPF, it is the amount of cloth lost to make one more tonne of food. That amount is the slope of the curve.
+On a bowed PPF, the opportunity cost of a good rises as you make more of it. Resources are not equally good at making both goods. The best land goes to wheat first. Later, poorer land moves to wheat, so each extra tonne of wheat costs more cloth.
 
-Opportunity cost rises when the curve bows outward. Resources are not equally suited to both goods. The best land goes to food first. Each later tonne needs land that is worse at growing food, so it costs more cloth.
+The opportunity cost of wheat is the cloth lost per extra tonne of wheat:
 
-The frontier in this example is
+$$\text{Opportunity cost of wheat} = \frac{\text{cloth lost}}{\text{wheat gained}}$$
 
-$$C = 100 - \frac{F^2}{20}$$
+Let $W$ be tonnes of wheat and $C$ be metres of cloth. The frontier is $C = 50 - \frac{W^2}{32}$. Moving from 0 t to 40 t of wheat in 8 t steps:
 
-Here $F$ is tonnes of food and $C$ is metres of cloth. Each step below moves 10 t of food along the curve:
+| Move | Wheat gained (t) | Cloth lost (m) | Opportunity cost (m per t) |
+|---|---|---|---|
+| A → B | 8 | 2 | 0.25 |
+| B → C | 8 | 6 | 0.75 |
+| C → D | 8 | 10 | 1.25 |
+| D → E | 8 | 14 | 1.75 |
+| E → F | 8 | 18 | 2.25 |
 
 ```figure
+const frontier = x => 50 - x * x / 32;
+const xs = [0, 8, 16, 24, 32, 40];
+const pts = xs.map(x => [x, frontier(x)]);
+
 export default function () {
-  const f = F => 100 - (F * F) / 20;   // cloth (m) left after making F tonnes of food
-  const pts = [0, 10, 20, 30, 40];
-  const rows = pts.map((F, i) => [
-    F,
-    f(F),
-    i < 4 ? f(F) - f(pts[i + 1]) : null,
-    i < 4 ? (f(F) - f(pts[i + 1])) / 10 : null
-  ]);
-  const steps = [0, 1, 2, 3].map(i => ({
-    i,
-    a: pts[i],
-    b: pts[i + 1],
-    ca: f(pts[i]),
-    cb: f(pts[i + 1]),
-    per: (f(pts[i]) - f(pts[i + 1])) / 10
-  }));
+  const steps = [];
+  for (let i = 0; i < 5; i++) {
+    steps.push({ i, from: pts[i], to: pts[i + 1], lost: pts[i][1] - pts[i + 1][1] });
+  }
   return (
     <Figure
       steps={steps}
-      heading={s => `Move ${s.i + 1}: ${s.a} to ${s.b} t`}
-      caption={s => `Food rises from ${s.a} to ${s.b} t. Cloth falls from ${s.ca} m to ${s.cb} m, so each extra tonne costs ${s.per} m of cloth on average.`}
-      render={s => (
-        <Row gap="lg" align="center">
-          <Plot id="ppf" x={[0, 50]} y={[0, 110]} xLabel="Food (t)" yLabel="Cloth (m)">
-            <Fn id="curve" f={f} from={0} to={44.7} label="PPF" />
-            <Segment from={[s.a, s.ca]} to={[s.b, s.cb]} label={`${s.ca - s.cb} m`} tag="new" />
-            <Points pts={[[s.a, s.ca], [s.b, s.cb]]} />
-          </Plot>
-          <Table
-            id="tbl"
-            title="Frontier points"
-            columns={['Food (t)', 'Cloth (m)', 'Cloth cost of next 10 t (m)', 'Cost per tonne (m)']}
-            rows={rows}
-            rowIds={pts.map((_, i) => `r${i}`)}
-            tags={{ [`r${s.i}`]: 'active' }}
-          />
-        </Row>
+      caption={step => `Move ${step.i + 1}, from ${'ABCDEF'[step.i]} to ${'ABCDEF'[step.i + 1]}: 8 t of wheat costs ${step.lost} m of cloth. Cost per tonne: ${step.lost / 8} m.`}
+      render={step => (
+        <Plot id="plot" x={[0, 44]} y={[0, 56]} xLabel="Wheat (t)" yLabel="Cloth (m)">
+          <Fn id="ppf" f={frontier} from={0} to={40} label="PPF" />
+          <Points id="pts" pts={pts} />
+          <Segment id="move" from={step.from} to={step.to} label={`${step.lost} m`} state="active" />
+        </Plot>
       )}
     />
   );
 }
 ```
 
-The cost of each extra 10 t of food rises from 5 m to 15 m to 25 m to 35 m of cloth. Cost per tonne rises from 0.5 m to 3.5 m. That increase is what makes the curve bow outward.
+Each move gives 8 t of wheat, but costs more cloth than the one before. The slope of the frontier is the opportunity cost, and it gets steeper as wheat rises.
 
-The model assumes fixed resources and fixed technology. A new technology or more resources shifts the whole curve outward.
+If every tonne cost the same cloth, the PPF would be a straight line and the opportunity cost would stay constant.

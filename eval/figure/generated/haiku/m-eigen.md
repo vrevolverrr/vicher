@@ -1,40 +1,50 @@
-$A$ maps the unit square to a parallelogram with corners $(0,0)$, $(2,1)$, $(3,3)$ and $(1,2)$. Its eigenvectors are $(1,1)$, with eigenvalue $3$, and $(1,-1)$, with eigenvalue $1$.
+The matrix turns the unit square into a parallelogram of area 3. Two directions stay on their own line: $v_1 = (1,1)$, stretched by 3, and $v_2 = (1,-1)$, unchanged.
 
 ```figure
-const A = [[2, 1], [1, 2]];
-const apply = p => [A[0][0] * p[0] + A[0][1] * p[1], A[1][0] * p[0] + A[1][1] * p[1]];
+const S = 1.5;                                   // shift so every point sits inside the drawing
+const P = ([x, y]) => [x + S, y + S];
+const A = ([x, y]) => [2 * x + y, x + 2 * y];    // the map (x, y) to A(x, y)
 const square = [[0, 0], [1, 0], [1, 1], [0, 1]];
-const image = square.map(apply);
 
 export default function () {
   const steps = [
-    { heading: 'Unit square', text: 'The unit square has corners $(0,0)$, $(1,0)$, $(1,1)$ and $(0,1)$.', orig: 'active', img: null, eig: false },
-    { heading: 'Image under A', text: 'Each corner $p$ moves to $Ap$. The square becomes a parallelogram with corners $(0,0)$, $(2,1)$, $(3,3)$ and $(1,2)$.', orig: 'dim', img: 'active', eig: false },
-    { heading: 'Eigenvectors', text: 'Along $v_1=(1,1)$, $A$ stretches by $3$. Along $v_2=(1,-1)$, $A$ leaves the vector unchanged, so its eigenvalue is $1$.', orig: 'dim', img: 'done', eig: true },
+    { on: ['sq'], text: String.raw`The unit square has corners $(0,0)$, $(1,0)$, $(1,1)$ and $(0,1)$. Its area is $1$.` },
+    { on: ['img'], text: String.raw`$A$ sends the corners to $(0,0)$, $(2,1)$, $(3,3)$ and $(1,2)$. The square becomes a parallelogram of area $3$.` },
+    { on: ['img', 'v1'], text: String.raw`The corner $(1,1)$ goes to $(3,3)$. The direction $v_1 = (1,1)$ keeps its line and is stretched by $\lambda = 3$.` },
+    { on: ['v2'], text: String.raw`The direction $v_2 = (1,-1)$ keeps its line and is not stretched: $\lambda = 1$.` },
   ];
   return (
-    <Figure steps={steps} caption={step => step.text} heading={step => step.heading} render={step => (
-      <Plot id="plane" x={[-0.5, 3.5]} y={[-1.5, 3.5]} xLabel="x" yLabel="y">
-        <Shape id="orig" pts={square} closed label="unit square" tag={step.orig} />
-        {step.img && <Shape id="image" pts={image} closed label="image of square" tag={step.img} />}
-        {step.eig && <Vector id="v1" from={[0, 0]} to={[1, 1]} label="$v_1$, eigenvalue $3$" tag="match" />}
-        {step.eig && <Vector id="v2" from={[0, 0]} to={[1, -1]} label="$v_2$, eigenvalue $1$" tag="match" />}
-      </Plot>
-    )} />
+    <Figure steps={steps} caption={step => step.text} render={(step, i) => {
+      const st = id => (step.on.includes(id) ? 'active' : 'dim');
+      return (
+        <Diagram id="plane" width={5} height={5}>
+          <Shape id="sq" pts={square.map(P)} closed group="input" state={st('sq')} />
+          <Shape id="img" pts={i >= 1 ? square.map(A).map(P) : []} closed group="output" state={st('img')} />
+          <Segment id="e1" from={P([-1.5, -1.5])} to={P([3.5, 3.5])} group="eigenvector" state={st('v1')} />
+          <Segment id="e2" from={P([-1.5, 1.5])} to={P([1.5, -1.5])} group="eigenvector" state={st('v2')} />
+          <Vector id="v1" from={P([0, 0])} to={P([3, 3])} label="$3v_1$" group="eigenvector" state={st('v1')} />
+          <Vector id="v2" from={P([0, 0])} to={P([1, -1])} label="$v_2$" group="eigenvector" state={st('v2')} />
+          <Label id="lab" at={P([3, 3])} text={i >= 1 ? '$(3,3)$' : ''} state={st('img')} />
+        </Diagram>
+      );
+    }} />
   );
 }
 ```
 
-An eigenvector of $A$ is a nonzero vector $v$ whose direction does not change when $A$ acts on it. Only its length changes, by a factor $\lambda$ called the eigenvalue:
+An **eigenvector** is a direction that a matrix only stretches or flips. It does not turn. Formally, a nonzero vector $\mathbf{v}$ is an eigenvector of $A$ when
 
-$$Av = \lambda v$$
+$$A\mathbf{v} = \lambda\mathbf{v}$$
 
-Here $A$ is the matrix, $v$ the vector and $\lambda$ a number. Check $v_1=(1,1)$:
+for some number $\lambda$, the **eigenvalue**. Here $A$ is the matrix, and $\lambda$ is the factor by which $\mathbf{v}$ is scaled.
 
-$$A v_1 = \begin{pmatrix}2&1\\1&2\end{pmatrix}\begin{pmatrix}1\\1\end{pmatrix} = \begin{pmatrix}3\\3\end{pmatrix} = 3\,v_1$$
+Find the eigenvalues of $A = \begin{pmatrix}2&1\\1&2\end{pmatrix}$ first. They solve $\det(A - \lambda I) = 0$:
 
-Check $v_2=(1,-1)$: $Av_2 = (2-1,\ 1-2) = (1,-1) = 1\cdot v_2$.
+$$\begin{aligned} (2-\lambda)^2 - 1 &= 0 \\ (\lambda-1)(\lambda-3) &= 0 \end{aligned}$$
 
-The area scales by $\det A = 2\cdot 2 - 1\cdot 1 = 3$. The unit square has area $1$, and the parallelogram has area $3$.
+So $\lambda = 1$ or $\lambda = 3$.
 
-Skipped: no code was run and no tests were added. The figure coordinates were checked by hand, not rendered.
+- For $\lambda = 3$: $(A - 3I)\mathbf{v} = 0$ gives $-x + y = 0$, so $y = x$. Take $\mathbf{v} = (1,1)$. Check: $A(1,1) = (3,3) = 3(1,1)$.
+- For $\lambda = 1$: $(A - I)\mathbf{v} = 0$ gives $x + y = 0$, so $y = -x$. Take $\mathbf{v} = (1,-1)$. Check: $A(1,-1) = (1,-1)$.
+
+The concept stops at some matrices. A 90° rotation, $\begin{pmatrix}0&-1\\1&0\end{pmatrix}$, keeps no real direction, so it has no real eigenvectors.

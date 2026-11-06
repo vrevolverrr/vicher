@@ -1,28 +1,35 @@
-**Result:** Pratt diagonals and end posts carry the load. Positive = tension, negative = compression.
+**Result:** Top chord and end posts are in compression. Bottom chord, diagonals and interior verticals are in tension. The centre vertical is zero.
 
-**Setup:** Bottom joints B0 to B4 sit at x = 0, 3, 6, 9, 12 m (y = 0). Top joints T0 to T4 sit at y = 3 m. Pin at B0, roller at B4. Each of B1, B2, B3 carries 10 kN down.
+Assumed: pin at L0, roller at L4, span 12 m, height 3 m. Bottom joints L0 to L4 sit at x = 0, 3, 6, 9, 12 m. Top joints U1, U2, U3 sit at x = 3, 6, 9 m, y = 3 m. Loads are 10 kN down at L1, L2, L3.
 
-**Reactions:** Load is symmetric, total 30 kN, so R_A = R_B = 15 kN up.
+**Reactions:** R_A = R_E = 15 kN up, by symmetry (total load 30 kN). H_A = 0.
+
+**Member forces** (tension positive, compression negative):
 
 | Member | Force (kN) | Type |
 |---|---|---|
-| Top chord T0-T1, T3-T4 | −15 | Compression |
-| Top chord T1-T2, T2-T3 | −20 | Compression |
-| Bottom chord B0-B1, B3-B4 | 0 | Zero-force |
-| Bottom chord B1-B2, B2-B3 | +15 | Tension |
-| End posts V0, V4 | −15 | Compression |
-| Verticals V1, V3 | −5 | Compression |
-| Centre vertical V2 | 0 | Zero-force |
-| End diagonals D1 (T0-B1), D4 (T4-B3) | +21.2 | Tension |
-| Inner diagonals D2 (T1-B2), D3 (T3-B2) | +7.07 | Tension |
+| L0–U1 (end post) | 21.2 | Compression |
+| U1–U2 | 20.0 | Compression |
+| U2–U3 | 20.0 | Compression |
+| U3–L4 (end post) | 21.2 | Compression |
+| L0–L1 | 15.0 | Tension |
+| L1–L2 | 15.0 | Tension |
+| L2–L3 | 15.0 | Tension |
+| L3–L4 | 15.0 | Tension |
+| L1–U1 (vertical) | 10.0 | Tension |
+| L3–U3 (vertical) | 10.0 | Tension |
+| L2–U2 (centre vertical) | 0 | Zero force |
+| U1–L2 (diagonal) | 7.07 | Tension |
+| U3–L2 (diagonal) | 7.07 | Tension |
 
-**Key steps:**
-1. Joint B0: ΣFy gives V0 = −15. ΣFx gives B0-B1 = 0.
-2. Joint T0: ΣFy gives 15 − D1/√2 = 0, so D1 = 15√2 = 21.2 (T). ΣFx gives T0-T1 = −15.
-3. Joint B1: ΣFy gives 15 + V1 − 10 = 0, so V1 = −5. ΣFx gives B1-B2 = +15.
-4. Section at x = 4.5 m, moments about T1: B1-B2 = 15 (T).
-5. Same section, moments about B2: T1-T2 = −20 (C).
-6. Same section, ΣFy: D2 = 5√2 = 7.07 (T).
-7. Joint T2: ΣFy gives V2 = 0. Symmetry gives the right half.
+The verticals are in tension because the loads hang from the bottom chord and the verticals carry them up to the top chord.
 
-**Not checked:** I did not run a software model. I assumed no self-weight and loads only at the bottom joints. If the supports sit at the top chord instead, every result changes.
+**Joint solution, left half** (right half by symmetry):
+1. **L0:** ΣF_y gives end post = 15√2 = 21.2 kN compression. ΣF_x gives L0–L1 = 15 kN tension.
+2. **L1:** ΣF_y gives L1–U1 = 10 kN tension. ΣF_x gives L1–L2 = 15 kN tension.
+3. **U1:** ΣF_y gives U1–L2 × (1/√2) = 15 − 10, so U1–L2 = 7.07 kN tension. ΣF_x gives U1–U2 = −15 − 5 = −20 kN, so 20 kN compression.
+4. **L2:** ΣF_y gives L2–U2 + 2(5) − 10 = 0, so L2–U2 = 0. ΣF_x gives L2–L3 = 15 kN tension.
+
+**Check:** Moments about L2 of the left part: 15(6) − 10(3) = 60 kN·m. Top chord force × h = 20 × 3 = 60 kN·m. ✓
+
+Not checked: self-weight, member sizing, and buckling of the 21.2 kN end posts and 20 kN top chord members, which are the governing compression checks. Changing the supports changes the reactions and all forces.

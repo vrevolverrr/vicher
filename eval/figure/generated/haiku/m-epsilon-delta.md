@@ -1,41 +1,45 @@
-The limit of $f(x)=2x+1$ at $x=1$ is $3$. The epsilon-delta definition says that $f(x)$ can be kept within any distance $\varepsilon$ of $3$ if $x$ stays within some distance $\delta$ of $1$. The slider sets $\varepsilon$, the output tolerance. For each $\varepsilon$, you must find a $\delta$ that works.
+The limit of $2x + 1$ as $x \to 1$ is $3$. The epsilon-delta definition makes "close" exact. $\varepsilon$ is how close $f(x)$ must be to $3$. $\delta$ is how close $x$ must be to $1$ to guarantee it.
 
-For every $\varepsilon>0$ there is a $\delta>0$ such that
+**Definition.** The limit is $3$ when, for every $\varepsilon > 0$, some $\delta > 0$ exists such that
 
-$$0<|x-1|<\delta \implies |f(x)-3|<\varepsilon$$
+$$0 < |x - 1| < \delta \implies |f(x) - 3| < \varepsilon$$
 
-The condition $0<|x-1|$ excludes $x=1$ itself.
+Here $\varepsilon$ is the allowed error in the output. $\delta$ is the allowed distance in the input that keeps the error inside $\varepsilon$.
 
-To find $\delta$, simplify the output distance first: $|f(x)-3|=|2x-2|=2|x-1|$. Requiring $2|x-1|<\varepsilon$ gives $|x-1|<\varepsilon/2$, so $\delta=\varepsilon/2$ works. For $\varepsilon=0.5$, $\delta=0.25$: every $x$ in $(0.75,\,1.25)$ gives $f(x)$ in $(2.5,\,3.5)$, and $|f(x)-3|<0.5$.
+**Worked example.** Take $\varepsilon = 0.4$. Then $|f(x) - 3| = |2x - 2| = 2|x - 1|$. We need $2|x - 1| < 0.4$, so $|x - 1| < 0.2$. Pick $\delta = 0.2$.
+
+- Check $x = 1.15$: $f(1.15) = 3.3$, and $|3.3 - 3| = 0.3 < 0.4$. It works.
+- Check $x = 1.2$: it sits on the edge of $\delta$, so it is excluded. The inequality is strict.
+
+For any $\varepsilon$, $\delta = \varepsilon/2$ works, because $2|x - 1| < 2\delta = \varepsilon$.
+
+Drag the slider. The shaded box is $2\varepsilon$ tall and $2\delta$ wide. The bold part of the curve inside the strip stays inside the horizontal band.
 
 ```figure
-export const params = { eps: { label: 'ε', min: 0.1, max: 2, step: 0.05, value: 0.5 } };
+export const params = { eps: { label: 'ε', min: 0.05, max: 2, step: 0.05, value: 0.5 } };
 
 export default function ({ eps }) {
-  const d = eps / 2;                       // delta = eps / 2, since |f(x) - 3| = 2|x - 1|
-  const lo = 3 - eps, hi = 3 + eps;
-  const xl = 1 - d, xr = 1 + d;
+  const L = 3, a = 1;
+  const d = eps / 2;
+  const curve = x => 2 * x + 1;
+  const st = { eps, d };
   return (
-    <Column gap="md">
-      <Plot id="plot" x={[0, 2]} y={[0, 6]} xLabel="x" yLabel="y">
-        <Fn id="f" f={x => 2 * x + 1} from={0} to={2} label="f(x) = 2x + 1" />
-        <Region id="box" top={hi} base={lo} from={xl} to={xr} tag="active" />
-        <Segment id="band-lo" from={[0, lo]} to={[2, lo]} />
-        <Segment id="band-hi" from={[0, hi]} to={[2, hi]} />
-        <Segment id="left" from={[xl, 0]} to={[xl, 6]} />
-        <Segment id="right" from={[xr, 0]} to={[xr, 6]} />
-        <Label at={[0.05, hi + 0.2]} text={`$3+\\varepsilon$`} />
-        <Label at={[0.05, lo - 0.35]} text={`$3-\\varepsilon$`} />
-        <Label at={[xl, 0.3]} text={`$1-\\delta$`} />
-        <Label at={[xr, 0.3]} text={`$1+\\delta$`} />
-        <Points pts={[[1, 3]]} label="limit at x = 1" />
-      </Plot>
-      <Text>{`$\\delta = \\varepsilon / 2 = ${+d.toPrecision(4)}$`}</Text>
-    </Column>
+    <Figure
+      steps={[st]}
+      caption={s => String.raw`With $\varepsilon = ${s.eps.toFixed(2)}$, choose $\delta = \varepsilon/2 = ${s.d.toFixed(3)}$. The bold part of the curve inside the box stays inside the band.`}
+      render={s => (
+        <Plot id="plot" x={[0, 2]} y={[1, 5]} xLabel="x" yLabel="y">
+          <Region id="box" top={L + s.eps} base={L - s.eps} from={a - s.d} to={a + s.d} />
+          <Fn id="curve" f={curve} label="f(x) = 2x + 1" />
+          <Fn id="near" f={curve} from={a - s.d} to={a + s.d} state="active" />
+          <Segment id="hi" from={[0, L + s.eps]} to={[2, L + s.eps]} label={String.raw`$3+\varepsilon$`} state="dim" />
+          <Segment id="lo" from={[0, L - s.eps]} to={[2, L - s.eps]} label={String.raw`$3-\varepsilon$`} state="dim" />
+          <Segment id="left" from={[a - s.d, 1]} to={[a - s.d, 5]} label={String.raw`$1-\delta$`} state="dim" />
+          <Segment id="right" from={[a + s.d, 1]} to={[a + s.d, 5]} label={String.raw`$1+\delta$`} state="dim" />
+          <Points id="pt" pts={[[a, L]]} label="(1, 3)" />
+        </Plot>
+      )}
+    />
   );
 }
 ```
-
-Drag $\varepsilon$ down and the shaded box shrinks, but the line still crosses it corner to corner, so $\delta=\varepsilon/2$ always works.
-
-Not checked: I did not render the figure, so the slider and the shaded box are untested in the pane.

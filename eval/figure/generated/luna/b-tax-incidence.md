@@ -1,28 +1,31 @@
-I’ll calculate both equilibria, then show the $20 supply shift and the lost-surplus triangle.
+A $20 per-unit tax raises the price buyers pay above the price sellers receive by $20. On a supply-and-demand graph, it shifts the supply curve up by $20, from $P=20+Q$ to $P=40+Q$.
 
-A per-unit tax raises the price buyers must pay at every quantity, shifting the supply curve up by $20. Before the tax, demand and supply meet at $Q=40$, $P=60$.
-
-After the tax, buyers pay $20$ more than sellers receive. The buyer price is $P_b=40+Q$, so equilibrium satisfies $100-Q=40+Q$. This gives $Q=30$, with buyers paying $70$ and sellers receiving $50$.
-
-The tax reduces trade from 40 units to 30. The missed trades between those quantities create deadweight loss: at 30 units, the gap between demand and supply is $20$, shrinking to zero at 40.
+Before the tax, set demand equal to supply:
 
 $$
-\text{DWL}=\frac{1}{2}(40-30)(20)=100
+100-Q=20+Q
 $$
+
+So $Q=40$ and $P=60$. After the tax, buyers pay $P_b=100-Q$ while sellers receive $P_s=20+Q$. The $20 gap gives:
+
+$$
+100-Q=(20+Q)+20
+$$
+
+Now $Q=30$: buyers pay $70$, and sellers receive $50$. The tax cuts trade by 10 units. Those lost trades would have created surplus, shown by the shaded triangle:
 
 ```figure
 export default function () {
   return (
-    <Plot id="tax-plot" x={[0, 80]} y={[0, 110]} xLabel="Quantity" yLabel="Price">
-      <Fn id="demand" f={q => 100 - q} from={0} to={80} label="Demand: P = 100 − Q" />
-      <Fn id="supply" f={q => 20 + q} from={0} to={80} label="Supply: P = 20 + Q" />
-      <Fn id="taxed-supply" f={q => 40 + q} from={0} to={80} label="Supply with tax: P = 40 + Q" />
-      <Region top="demand" base="supply" from={30} to={40} label="Deadweight loss" tag="bad" />
-      <Points id="before" pts={[[40, 60]]} label="Before tax (40, 60)" tag="dim" />
-      <Points id="buyer" pts={[[30, 70]]} label="Buyer pays 70" tag="active" />
-      <Points id="seller" pts={[[30, 50]]} label="Seller receives 50" tag="new" />
+    <Plot id="tax-graph" x={[0, 50]} y={[0, 110]} xLabel="Quantity $Q$" yLabel="Price $P$">
+      <Fn id="demand" f={q => 100 - q} from={0} to={50} label="Demand: $100-Q$" />
+      <Fn id="supply" f={q => 20 + q} from={0} to={50} label="Supply: $20+Q$" />
+      <Fn id="taxed-supply" f={q => 40 + q} from={0} to={50} label="Supply with tax: $40+Q$" />
+      <Region id="deadweight-loss" top="demand" base="supply" from={30} to={40} label="Deadweight loss" />
     </Plot>
   );
 }
 ```
+
+The triangle has base 10 units and height $20, so deadweight loss is $\frac12(10)(20)=100$. This is the surplus lost because of trades that no longer happen.
 

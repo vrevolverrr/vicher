@@ -1,39 +1,56 @@
-Level curves of $f(x,y)=x^2-y^2$ are hyperbolas, with the two lines $y=\pm x$ at level 0. The arrows are gradients.
+Level curves: $c=0$ gives the lines $y=\pm x$, $c\neq 0$ gives hyperbolas. Gradient: $\nabla f=(2x,\,-2y)$.
 
 ```figure
-const curve = (c) => {
-  // the level set x² − y² = c, clipped to the box [-3, 3]²
-  const t = Math.sqrt(9 - Math.abs(c));
-  const u = [];
-  for (let i = 0; i <= 80; i++) u.push(-t + (2 * t * i) / 80);
-  if (c > 0) return [u.map(v => [Math.sqrt(c + v * v), v]), u.map(v => [-Math.sqrt(c + v * v), v])];
-  return [u.map(v => [v, Math.sqrt(v * v - c)]), u.map(v => [v, -Math.sqrt(v * v - c)])];
-};
+const levels = [-4, -1, 0, 1, 4];
+const pts = [[1, 0], [0, 1], [2, 1], [1, 2]];
+const k = 0.25;                       // arrow length per unit of gradient
+const grad = (x, y) => [2 * x, -2 * y];
 
 export default function () {
-  const levels = [-4, -3, -2, -1, 0, 1, 2, 3, 4];
-  const probes = [[1, 0], [0, 1], [2, 1], [-1, 2]];
-  const k = 0.2;   // arrow length per unit of gradient
   return (
     <Plot id="plot" x={[-3, 3]} y={[-3, 3]} xLabel="x" yLabel="y">
-      {levels.flatMap(c => curve(c).map((pts, j) => (
-        <Shape pts={pts} label={j === 0 ? `$x^2-y^2=${c}$` : undefined} />
-      )))}
-      {probes.map(([x, y]) => <Points pts={[[x, y]]} label={`(${x}, ${y})`} />)}
-      {probes.map(([x, y]) => <Vector from={[x, y]} to={[x + k * 2 * x, y - k * 2 * y]} label={`$\\nabla f=(${2 * x},${-2 * y})$`} />)}
+      {levels.map(c => {
+        const g = c < 0 ? 'f < 0' : c === 0 ? 'f = 0' : 'f > 0';
+        return (
+          <>
+            <Fn id={`up${c}`} f={x => Math.sqrt(x * x - c)} label={`$f=${c}$`} group={g} />
+            <Fn id={`down${c}`} f={x => -Math.sqrt(x * x - c)} group={g} />
+          </>
+        );
+      })}
+      <Points id="base" pts={pts} />
+      {pts.map(([x, y], i) => {
+        const [gx, gy] = grad(x, y);
+        return <Vector id={`g${i}`} from={[x, y]} to={[x + k * gx, y + k * gy]} label="$\nabla f$" group="gradient" />;
+      })}
     </Plot>
   );
 }
 ```
 
-A level curve joins every point where $f$ has the same value $c$:
+**Level curves.** A level curve is the set of points where $f(x,y)=c$ for one fixed value $c$. Different level curves never cross. For this $f$:
 
-$$\{(x,y) : f(x,y) = c\}$$
+$$x^2-y^2=c$$
 
-The gradient collects the two partial derivatives. It points in the direction in which $f$ rises fastest, and it is perpendicular to the level curve through the point:
+- $c=0$: the lines $y=x$ and $y=-x$, which cross at the origin.
+- $c>0$: two branches opening left and right, with vertices at $(\pm\sqrt{c},\,0)$.
+- $c<0$: two branches opening up and down, with vertices at $(0,\,\pm\sqrt{-c})$.
 
-$$\nabla f = \left(\frac{\partial f}{\partial x},\ \frac{\partial f}{\partial y}\right) = (2x,\ -2y)$$
+**Gradient.** The gradient collects the partial derivatives. It points in the direction in which $f$ increases fastest:
 
-Take $(2,1)$. Here $f = 4 - 1 = 3$, so the point lies on the level curve $c = 3$. The gradient is $\nabla f = (4, -2)$. The curve's tangent there is $(1, 2)$, found from $4\,dx - 2\,dy = 0$. Their dot product is $4\cdot 1 + (-2)\cdot 2 = 0$, so the gradient is perpendicular to the curve.
+$$\nabla f=\left(\frac{\partial f}{\partial x},\ \frac{\partial f}{\partial y}\right)$$
 
-At the origin $\nabla f = (0,0)$, so no direction rises. The level curves cross there, which makes it a saddle point.
+Here $\partial f/\partial x=2x$ and $\partial f/\partial y=-2y$, so $\nabla f=(2x,\,-2y)$.
+
+Worked example at $(2,1)$: $f(2,1)=4-1=3$, so the point lies on the curve $c=3$. The gradient is $\nabla f(2,1)=(4,\,-2)$. The tangent to that curve has slope $y'=x/y=2$, so the tangent direction is $(1,2)$. Check: $(4,-2)\cdot(1,2)=4-4=0$. The gradient is perpendicular to the level curve.
+
+| Point | $f$ | $\nabla f$ |
+|---|---|---|
+| $(1,0)$ | $1$ | $(2,\,0)$ |
+| $(0,1)$ | $-1$ | $(0,\,-2)$ |
+| $(2,1)$ | $3$ | $(4,\,-2)$ |
+| $(1,2)$ | $-3$ | $(2,\,-4)$ |
+
+The gradient is zero only at the origin. There the level curves cross, so the perpendicular rule gives no direction.
+
+Not checked: the figure has not been rendered in the pane. I did not verify the Fn branch joins at $c=0$ visually.

@@ -1,35 +1,26 @@
-Shade the part **inside A but outside B**.
+$A \cap B^{c}$ means the part that is in $A$ and not in $B$.
 
 ```figure
-const left = [-0.8, 0];
-const right = [0.8, 0];
-const r = 1.2;
-const h = Math.sqrt(r * r - 0.8 * 0.8);
-const alpha = Math.acos(0.8 / r);
-const lowerB = Math.atan2(-h, -0.8);
-const pts = [];
-
-for (let i = 0; i <= 40; i++) {
-  const t = alpha + (2 * Math.PI - 2 * alpha) * i / 40;
-  pts.push([left[0] + r * Math.cos(t), r * Math.sin(t)]);
-}
-for (let i = 0; i <= 20; i++) {
-  const t = lowerB - (Math.PI - 2 * alpha) * i / 20;
-  pts.push([right[0] + r * Math.cos(t), r * Math.sin(t)]);
-}
+const r = 1;
+const h = Math.sqrt(3) / 2;
+const arc = (cx, start, end, count) =>
+  Array.from({ length: count + 1 }, (_, i) => {
+    const a = (start + (end - start) * i / count) * Math.PI / 180;
+    return [cx + r * Math.cos(a), r * Math.sin(a)];
+  });
 
 export default function () {
+  const crescent = [
+    ...arc(-0.5, 60, 300, 48),
+    ...arc(0.5, 240, 120, 24).slice(1)
+  ];
   return (
-    <Diagram id="venn" width={5} height={3}>
-      <Shape id="shade" pts={pts} closed tag="good" />
-      <Circle id="circleA" at={left} r={r} />
-      <Circle id="circleB" at={right} r={r} />
-      <Label at={[-1.35, 0.95]} text="A" />
-      <Label at={[1.15, 0.95]} text="B" />
+    <Diagram width={3.5} height={2.5}>
+      <Shape pts={crescent} closed label="$A \cap B^c$" />
+      <Circle at={[-0.5, 0]} r={1} label="A" />
+      <Circle at={[0.5, 0]} r={1} label="B" />
     </Diagram>
   );
 }
 ```
-
-The shaded crescent is $A \cap B^{c}$: elements that belong to $A$ and do not belong to $B$.
 

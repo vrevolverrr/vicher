@@ -1,36 +1,38 @@
-Here’s a three-year dashboard. I used Year 1–3 because no calendar years were given. Liabilities are calculated as total assets minus equity; ROA and ROE use year-end balances.
+A ratio dashboard compares related financial statement values over time. Each ratio divides one measure by another. The current ratio, for example, is current assets divided by current liabilities: in Year 1, $400 / 200 = 2.00$.
 
-| Ratio | Year 1 | Year 2 | Year 3 |
-|---|---:|---:|---:|
-| Current ratio | 2.00 | 1.50 | 1.31 |
-| Quick ratio | 1.25 | 0.83 | 0.69 |
-| Net profit margin | 10.00% | 6.92% | 3.13% |
-| Return on assets (ROA) | 6.67% | 4.50% | 1.90% |
-| Return on equity (ROE) | 12.00% | 8.65% | 3.92% |
-| Asset turnover | 0.67× | 0.65× | 0.61× |
-| Debt ratio | 44.44% | 48.00% | 51.43% |
-| Debt-to-equity | 0.80× | 0.92× | 1.06× |
-
-Current ratio is current assets divided by current liabilities. Quick ratio uses current assets minus inventory, divided by current liabilities. The remaining ratios compare income, revenue, assets, and equity; debt ratios use liabilities derived from assets less equity.
+| Ratio | Calculation | Year 1 | Year 2 | Year 3 |
+|---|---|---:|---:|---:|
+| Current ratio | Current assets ÷ current liabilities | 2.00 | 1.50 | 1.31 |
+| Quick ratio | (Current assets − inventory) ÷ current liabilities | 1.25 | 0.83 | 0.69 |
+| Net profit margin | Net income ÷ revenue | 10.00% | 6.92% | 3.13% |
+| Return on assets | Net income ÷ total assets | 6.67% | 4.50% | 1.90% |
+| Return on equity | Net income ÷ equity | 12.00% | 8.65% | 3.92% |
 
 ```figure
+function interpolate(x, values) {
+  const i = Math.max(0, Math.min(1, Math.floor(x) - 1));
+  const t = x - (i + 1);
+  return values[i] + t * (values[i + 1] - values[i]);
+}
+
 export default function () {
   return (
-    <Row gap="lg">
-      <Plot id="liquidity" x={[1, 3]} y={[0, 2.2]} xLabel="Year" yLabel="Ratio">
-        <Shape id="current" label="Current ratio" pts={[[1, 2], [2, 1.5], [3, 1.31]]} />
-        <Shape id="quick" label="Quick ratio" pts={[[1, 1.25], [2, 0.83], [3, 0.69]]} />
-      </Plot>
-      <Plot id="profitability" x={[1, 3]} y={[0, 13]} xLabel="Year" yLabel="Percent">
-        <Shape id="margin" label="Net profit margin" pts={[[1, 10], [2, 6.92], [3, 3.13]]} />
-        <Shape id="roa" label="ROA" pts={[[1, 6.67], [2, 4.5], [3, 1.9]]} />
-        <Shape id="roe" label="ROE" pts={[[1, 12], [2, 8.65], [3, 3.92]]} />
-      </Plot>
-    </Row>
+    <Figure steps={[{}]} title="Three-year ratio trends" render={() => (
+      <Row gap="lg">
+        <Plot id="liquidity" x={[1, 3]} y={[0, 2.1]} xLabel="Year" yLabel="Ratio (times)">
+          <Fn id="current" f={x => interpolate(x, [2, 1.5, 1.31])} from={1} to={3} label="Current ratio" />
+          <Fn id="quick" f={x => interpolate(x, [1.25, 0.83, 0.69])} from={1} to={3} label="Quick ratio" />
+        </Plot>
+        <Plot id="profitability" x={[1, 3]} y={[0, 12]} xLabel="Year" yLabel="Percent">
+          <Fn id="margin" f={x => interpolate(x, [10, 6.92, 3.13])} from={1} to={3} label="Net profit margin" />
+          <Fn id="roa" f={x => interpolate(x, [6.67, 4.5, 1.9])} from={1} to={3} label="Return on assets" />
+          <Fn id="roe" f={x => interpolate(x, [12, 8.65, 3.92])} from={1} to={3} label="Return on equity" />
+        </Plot>
+      </Row>
+    )} />
   );
 }
 ```
 
-Both liquidity ratios and profitability declined across the period, while the debt ratio and debt-to-equity rose. ROA and ROE based on average balances may differ; average balances were not provided.
+All five ratios declined across the three years. The quick ratio fell below 1 in Year 2, meaning quick assets were less than current liabilities.
 
-  

@@ -1,17 +1,19 @@
-**Launch.** Expected value is **+$48k**, versus $0 for not launching.
+**Launch.** Expected value is 48k, against 0 for not launching.
 
-I read the $150k and $20k as gross receipts, with the $50k cost paid either way. Net outcomes are +$100k (60%) and -$30k (40%).
+I read the $150k and $20k as gross returns, with the $50k cost paid up front. All values below are in thousands of dollars.
+
+EV(launch) = 0.6 × 150 + 0.4 × 20 − 50 = 90 + 8 − 50 = **48**
 
 ```mermaid
 flowchart LR
-  D{Launch?} -->|No, $0| N["EV: $0"]
-  D -->|Yes, pay $50k| C(("Market: EV $48k"))
-  C -->|"60%: gross $150k"| S["Net +$100k"]
-  C -->|"40%: gross $20k"| F["Net -$30k"]
+    D{"Decide<br/>Launch EV 48 vs Do not EV 0"} -->|"Launch: pay 50"| C(("Market<br/>EV 48"))
+    D -->|"Do not launch"| N["Net 0<br/>EV 0"]
+    C -->|"60%"| A["Net +100<br/>(150 - 50)"]
+    C -->|"40%"| B["Net -30<br/>(20 - 50)"]
 ```
 
-$$EV_{\text{launch}} = 0.6(+100) + 0.4(-30) = 60 - 12 = 48\ \text{($k)}$$
+Launch stays positive while the chance of the $150k outcome is at least 23%. Solve 130p - 30 = 0 for p.
 
-$48k > $0, so launch.
+If the $150k and $20k are already net of the $50k, EV is 98k and the verdict does not change.
 
-Not checked: time value of money, risk aversion, and whether the $150k and $20k already net out the $50k. If they do, EV is $98k and the decision is unchanged.
+Not checked: the 60/40 odds are taken as given, and the EV assumes you are risk-neutral. The main risk is the 40% chance of a net loss of 30k.

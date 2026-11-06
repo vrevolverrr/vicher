@@ -1,31 +1,34 @@
-Using positive shear upward, the two stress points are $(80,30)$ and $(-20,-30)$ MPa. Their midpoint is the circle’s center, and the radius is the distance from that center to either point:
+Mohr’s circle shows how the normal stress $\sigma$ and shear stress $\tau$ on a plane change as the plane rotates. Using the convention that positive $\tau_{xy}$ plots upward, the two stress points are $(\sigma_x,\tau_{xy})=(80,30)$ MPa and $(\sigma_y,-\tau_{xy})=(-20,-30)$ MPa.
+
+The center lies halfway between the normal stresses, and the radius combines half their difference with the shear stress:
 
 $$
-C=\left(\frac{\sigma_x+\sigma_y}{2},0\right)=(30,0)\text{ MPa}
+C=\frac{\sigma_x+\sigma_y}{2}
 $$
 
 $$
 R=\sqrt{\left(\frac{\sigma_x-\sigma_y}{2}\right)^2+\tau_{xy}^2}
-=\sqrt{50^2+30^2}\approx58.31\text{ MPa}
 $$
 
-```figure
-const c = 30;
-const r = Math.sqrt(50 * 50 + 30 * 30);
+Here, $C=(80-20)/2=30$ MPa and $R=\sqrt{50^2+30^2}\approx58.3$ MPa. So the principal stresses, where shear stress is zero, are $C\pm R\approx88.3$ MPa and $-28.3$ MPa.
 
+```figure
 export default function () {
+  const cx = 30, cy = 0, r = Math.sqrt(50 ** 2 + 30 ** 2);
+  const circle = Array.from({ length: 81 }, (_, i) => {
+    const a = 2 * Math.PI * i / 80;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  });
   return (
-    <Plot id="mohr" x={[-40, 100]} y={[-70, 70]} xLabel="Normal stress, σ (MPa)" yLabel="Shear stress, τ (MPa)">
-      <Fn id="upper" f={x => Math.sqrt(Math.max(0, r * r - (x - c) * (x - c)))} from={c - r} to={c + r} label="Mohr's circle" />
-      <Fn id="lower" f={x => -Math.sqrt(Math.max(0, r * r - (x - c) * (x - c)))} from={c - r} to={c + r} />
-      <Points id="xface" pts={[[80, 30]]} label="x-face (80, 30)" />
-      <Points id="yface" pts={[[-20, -30]]} label="y-face (−20, −30)" />
-      <Points id="center" pts={[[30, 0]]} label="center (30, 0)" />
-      <Points id="principal" pts={[[c + r, 0], [c - r, 0]]} label="principal stresses" />
+    <Plot x={[-40, 100]} y={[-70, 70]} xLabel="Normal stress, $\\sigma$ (MPa)" yLabel="Shear stress, $\\tau$ (MPa)">
+      <Shape id="circle" pts={circle} closed label="Mohr’s circle" />
+      <Points id="stress-points" pts={[[80, 30], [-20, -30]]} label="Stress points" />
+      <Points id="center" pts={[[30, 0]]} label="Center $C=(30,0)$" />
+      <Label at={[80, 30]} text="$X=(80,30)$" />
+      <Label at={[-20, -30]} text="$Y=(-20,-30)$" />
     </Plot>
   );
 }
 ```
 
-The principal stresses are approximately $88.31$ MPa and $-28.31$ MPa.
 
