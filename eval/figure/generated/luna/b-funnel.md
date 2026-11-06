@@ -1,20 +1,33 @@
+A conversion rate is the share of people at one stage who reach the next:
+
+$$\text{Conversion rate}=\frac{\text{next stage count}}{\text{current stage count}}\times100\%$$
+
+For example, $2{,}400 \div 10{,}000 = 24\%$ of visitors signed up. Overall, $120$ of $10{,}000$ visitors renewed, a $1.2\%$ conversion.
+
 ```figure
 export default function () {
   return (
-    <Column gap="md">
-      <Table
-        title="Sales funnel"
-        columns={["Stage", "People", "Conversion from previous stage"]}
-        rows={[
-          ["Visitors", "10,000", "—"],
-          ["Sign-ups", "2,400", "24%"],
-          ["Trials", "900", "37.5%"],
-          ["Customers", "300", "33.3%"],
-          ["Renewals", "120", "40%"],
-        ]}
-      />
-      <Text>Overall: **3%** of visitors become customers; **1.2%** become renewals.</Text>
-    </Column>
+    <Figure
+      steps={[{ visitors: 10000, signups: 2400, trials: 900, customers: 300, renewals: 120 }]}
+      render={() => (
+        <Graph
+          title="Sales funnel"
+          nodes={[
+            { id: "visitors", label: "10,000", sub: "Visitors" },
+            { id: "signups", label: "2,400", sub: "Sign-ups" },
+            { id: "trials", label: "900", sub: "Trials" },
+            { id: "customers", label: "300", sub: "Customers" },
+            { id: "renewals", label: "120", sub: "Renewals" }
+          ]}
+          edges={[
+            { id: "e1", from: "visitors", to: "signups", label: "24%" },
+            { id: "e2", from: "signups", to: "trials", label: "37.5%" },
+            { id: "e3", from: "trials", to: "customers", label: "33.3%" },
+            { id: "e4", from: "customers", to: "renewals", label: "40%" }
+          ]}
+        />
+      )}
+    />
   );
 }
 ```

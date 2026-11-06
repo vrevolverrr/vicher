@@ -1,59 +1,75 @@
+Released from rest at $x = A$, the mass completes one period $T = 2\pi\sqrt{m/k}$. The figure shows $x$, $v$, $K$ and $U$ at 9 instants across one period. The sliders change $A$ and $k$.
+
 ```figure
-const m = 2;                  // kg
-const k = 8;                  // N/m
-const A = 0.5;                // m, released from rest at x = A
-const w = Math.sqrt(k / m);   // 2 rad/s
-const T = 2 * Math.PI / w;    // about 3.14 s
+export const params = {
+  A: { label: 'Amplitude', min: 0.05, max: 0.2, step: 0.01, value: 0.1, unit: 'm' },
+  k: { label: 'Stiffness', min: 5, max: 50, step: 1, value: 20, unit: 'N/m' },
+};
 
-const x = t => A * Math.cos(w * t);
-const v = t => -A * w * Math.sin(w * t);
-const KE = t => 0.5 * m * v(t) ** 2;
-const PE = t => 0.5 * k * x(t) ** 2;
-
-export default function () {
+export default function ({ A, k }) {
+  const m = 0.5;                          // mass in kg, fixed
+  const w = Math.sqrt(k / m);             // angular frequency in rad/s
+  const T = 2 * Math.PI / w;              // period in s
+  const pos = t => A * Math.cos(w * t);
+  const vel = t => -A * w * Math.sin(w * t);
+  const ke = t => 0.5 * m * vel(t) ** 2;
+  const pe = t => 0.5 * k * pos(t) ** 2;
+  const E = 0.5 * k * A * A;              // total energy in J
+  const N = 8;                            // intervals per period
   const steps = [];
-  for (let i = 0; i <= 8; i++) {
-    const t = i * T / 8;
-    steps.push({ t, x: x(t), v: v(t), KE: KE(t), PE: PE(t) });
+  for (let i = 0; i <= N; i++) {
+    const t = T * i / N;
+    steps.push({ t, x: pos(t), v: vel(t), ke: ke(t), pe: pe(t) });
   }
   return (
     <Figure
       steps={steps}
-      caption={s => `At $t = ${s.t.toFixed(2)}$ s: $x = ${s.x.toFixed(2)}$ m, $v = ${s.v.toFixed(2)}$ m/s, KE = ${s.KE.toFixed(2)} J, PE = ${s.PE.toFixed(2)} J. $KE + PE = 1$ J.`}
-      render={s => (
-        <Plot id="plot" x={[0, T]} y={[-1.2, 1.2]} xLabel="t (s)" yLabel="value">
-          <Fn id="fx" f={x} label="x (m)" />
-          <Fn id="fv" f={v} label="v (m/s)" />
-          <Fn id="fke" f={KE} label="KE (J)" />
-          <Fn id="fpe" f={PE} label="PE (J)" />
-          <Points id="now" pts={[[s.t, s.x], [s.t, s.v], [s.t, s.KE], [s.t, s.PE]]} />
-        </Plot>
+      caption={step => `At $t = ${step.t.toFixed(3)}$ s: $x = ${step.x.toFixed(3)}$ m, $v = ${step.v.toFixed(3)}$ m/s, $K = ${step.ke.toFixed(3)}$ J, $U = ${step.pe.toFixed(3)}$ J.`}
+      render={step => (
+        <Column gap="md">
+          <Plot id="pos" x={[0, T]} xLabel="$t$ (s)" yLabel="$x$ (m)">
+            <Fn id="pos-curve" f={pos} label="$x(t)$" />
+            <Points id="pos-now" pts={[[step.t, step.x]]} />
+          </Plot>
+          <Plot id="vel" x={[0, T]} xLabel="$t$ (s)" yLabel="$v$ (m/s)">
+            <Fn id="vel-curve" f={vel} label="$v(t)$" />
+            <Points id="vel-now" pts={[[step.t, step.v]]} />
+          </Plot>
+          <Plot id="en" x={[0, T]} xLabel="$t$ (s)" yLabel="Energy (J)">
+            <Fn id="ke-curve" f={ke} label="$K$" />
+            <Fn id="pe-curve" f={pe} label="$U$" />
+            <Fn id="e-curve" f={() => E} label="$E$" />
+            <Points id="ke-now" pts={[[step.t, step.ke]]} />
+            <Points id="pe-now" pts={[[step.t, step.pe]]} />
+          </Plot>
+        </Column>
       )}
     />
   );
 }
 ```
 
-A mass on a spring swings back and forth. The spring pulls the mass toward the middle, and the same motion repeats each cycle. Position, velocity and energy all rise and fall in a fixed pattern.
+For a mass on a spring with no damping:
 
-For a mass $m$ on a spring of stiffness $k$, the angular frequency and period are set by the two values:
+$$x(t) = A\cos(\omega t)$$
+
+$$v(t) = -A\omega\sin(\omega t)$$
 
 $$\omega = \sqrt{\frac{k}{m}}$$
 
-$$T = \frac{2\pi}{\omega}$$
+Here $A$ is the amplitude in m, $\omega$ is the angular frequency in rad/s, $k$ is the stiffness in N/m, and $m$ is the mass in kg. The energies are:
 
-Here $\omega$ is in rad/s, $m$ in kg, $k$ in N/m, and $T$ is the time for one full cycle in seconds. For a mass released from rest at $x = A$, with no friction:
+$$K = \tfrac{1}{2}mv^2$$
 
-$$x(t) = A\cos\omega t$$
+$$U = \tfrac{1}{2}kx^2$$
 
-$$v(t) = -A\omega\sin\omega t$$
+**Worked example:** $m = 0.5$ kg, $k = 20$ N/m, $A = 0.10$ m.
 
-$$KE = \tfrac{1}{2}mv^2, \qquad PE = \tfrac{1}{2}kx^2$$
+- $\omega = \sqrt{20/0.5} \approx 6.32$ rad/s
+- $T = 2\pi/\omega \approx 0.994$ s
+- $v_{max} = A\omega \approx 0.632$ m/s, at $x = 0$
+- $E = \tfrac{1}{2}kA^2 = 0.1$ J
 
-Take $m = 2$ kg, $k = 8$ N/m, $A = 0.5$ m. Then $\omega = \sqrt{8/2} = 2$ rad/s and $T = 2\pi/2 \approx 3.14$ s. Substituting gives $v = -\sin 2t$ m/s, $KE = \sin^2 2t$ J and $PE = \cos^2 2t$ J.
+$K$ is largest where $x = 0$. $U$ is largest where $x = \pm A$, and there $v = 0$. $K + U$ stays at 0.1 J at every instant. That is conservation of energy.
 
-At $t = 0$, the mass is at its furthest point: $PE = 1$ J, $KE = 0$. At $t = T/4 \approx 0.79$ s, the mass passes the middle: $KE = 1$ J, $PE = 0$. The energy moves between the two forms, and their sum stays 1 J.
-
-The formulas assume an ideal spring: no friction, and the stretch stays within the elastic limit.
-
-Skipped: damping and a slider for $m$, $k$ and $A$. Not checked: how the figure renders in the app.
+Not modelled: damping and friction. Mass is fixed at 0.5 kg in the figure.

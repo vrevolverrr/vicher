@@ -1,12 +1,8 @@
-A figure cannot draw electrical circuits, so draw it yourself with standard symbols, using this layout:
+The figure tool cannot draw electrical circuits, so the diagram is described in words. Trace one closed loop with four elements in series:
 
-1. **Battery** (long and short parallel lines): voltage $V$. Its positive terminal connects to the switch.
-2. **Switch** $S$: an open gap in the wire.
-3. **Resistor** $R$ (zigzag): connects after the switch.
-4. **Capacitor** $C$ (two parallel plates): connects after the resistor and returns to the battery's negative terminal.
+1. **Battery** $V$: positive terminal to the switch.
+2. **Switch** $S$.
+3. **Resistor** $R$.
+4. **Capacitor** $C$, then back to the battery's negative terminal.
 
-The four parts form one closed series loop. Their order around the loop does not change the behaviour.
-
-When $S$ closes, the capacitor charges through $R$. Its voltage rises toward $V$ with time constant $\tau = RC$.
-
-Not done: a drawn schematic. Not checked: whether your course uses different symbols.
+The loop has no branches. Opening the switch breaks the loop and stops the current. The capacitor starts uncharged, and closing the switch starts it charging through $R$.

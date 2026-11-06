@@ -1,11 +1,12 @@
+A PID loop compares the setpoint with the measured output, then uses the error to adjust the plant.
+
 ```mermaid
 flowchart LR
-    R["Setpoint r(t)"] --> SUM((Σ))
-    SUM -->|"Error e(t)"| PID["PID controller<br/>P + I + D"]
-    PID -->|"Control u(t)"| PLANT["Plant"]
-    PLANT -->|"Output y(t)"| Y["Output"]
-    Y --> FB["Sensor"]
-    FB -->|"Feedback"| SUM
-    SUM -. "−" .-> SUM
+    r["Setpoint r"] --> sum(("Σ"))
+    sum -->|"Error e"| pid["PID controller<br/>Kₚ + Kᵢ/s + Kᴅs"]
+    pid -->|"Control u"| plant["Plant G(s)"]
+    plant --> y["Output y"]
+    y --> sensor["Sensor H(s)"]
+    sensor -->|"-"| sum
 ```
 

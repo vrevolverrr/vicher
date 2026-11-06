@@ -1,30 +1,25 @@
-Shade the part of circle A that lies outside circle B. That is the left crescent below.
+$A \cap B^c$ is the part of $A$ that is outside $B$: the elements in $A$ that are not in $B$. The shaded crescent is that region.
 
-$$A \cap B^c = \{x : x \in A \text{ and } x \notin B\}$$
-
-$B^c$ is every element outside $B$. Intersecting with $A$ keeps only the elements that are in $A$ and not in $B$. This is the same as $A \setminus B$.
-
-Example: $A = \{1, 2, 3, 4\}$ and $B = \{3, 4, 5\}$. $B^c$ holds every element except 3, 4 and 5, so $A \cap B^c = \{1, 2\}$. Shade 1 and 2 only.
+For example, with $A = \{1, 2, 3, 4\}$ and $B = \{3, 4, 5\}$, the elements of $A$ that are not in $B$ are $1$ and $2$, so $A \cap B^c = \{1, 2\}$.
 
 ```figure
-const cA = [3.6, 3], cB = [6.4, 3], r = 2.6;
-const inCircle = (p, c) => Math.hypot(p[0] - c[0], p[1] - c[1]) <= r;
-const pts = [];
-for (let x = 0.6; x <= 9.4; x += 0.25)
-  for (let y = 0.4; y <= 5.6; y += 0.25) {
-    const p = [x, y];
-    if (inCircle(p, cA) && !inCircle(p, cB)) pts.push(p);
-  }
+const inA = (x, y) => (x - 1.4) ** 2 + (y - 1.5) ** 2 <= 1;
+const inB = (x, y) => (x - 2.6) ** 2 + (y - 1.5) ** 2 <= 1;
 
 export default function () {
+  const pts = [];
+  for (let x = 0; x <= 4.001; x += 0.1)
+    for (let y = 0; y <= 3.001; y += 0.1)
+      if (inA(x, y) && !inB(x, y)) pts.push([x, y]);
   return (
-    <Diagram id="venn" width={10} height={6}>
-      <Circle id="A" at={cA} r={r} label="A" />
-      <Circle id="B" at={cB} r={r} label="B" />
-      <Points id="shade" pts={pts} label="A ∩ Bᶜ" />
+    <Diagram id="venn" width={4} height={3}>
+      <Circle id="A" at={[1.4, 1.5]} r={1} label="A" />
+      <Circle id="B" at={[2.6, 1.5]} r={1} label="B" />
+      <Points id="shade" pts={pts} />
+      <Label id="name" at={[1.0, 2.75]} text="$A \cap B^c$" />
     </Diagram>
   );
 }
 ```
 
-Not checked: the shading is a grid of dots, so it shows the region at this spacing, not a solid fill. I did not run the figure.
+Not run here: the figure renders only in the Vicher pane.

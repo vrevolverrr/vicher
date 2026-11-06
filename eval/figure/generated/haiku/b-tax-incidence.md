@@ -1,61 +1,72 @@
-A 20 per-unit tax makes buyers pay 70, lets sellers keep 50, and cuts trade from 40 to 30 units. The tax shifts the supply curve up by 20. The trades that no longer happen cost surplus that nobody receives. That lost surplus is the **deadweight loss (DWL)**.
+A per-unit tax adds a cost to every unit a seller sells. Sellers need a higher price for the same sale, so the supply curve shifts up by the tax. Buyers pay more, sellers keep less, and some trades stop happening. The lost surplus from those trades is the deadweight loss.
 
-**The tax wedge**
+### Tax shifts supply
 
-A **per-unit tax** $t$ is a fixed amount collected on each unit sold. It splits the price into two parts: the price buyers pay, $P_b$, and the price sellers keep, $P_s$. Their gap is the tax:
+Sellers keep $P_s$, and buyers pay $P_b$. The tax $t$ is the gap between them:
 
-$$P_b - P_s = t$$
+$$P_b = P_s + t$$
 
-**Supply shifts up**
+Supply is $P_s = 20 + Q$, so with the tax, supply in buyer prices is $P_b = 20 + t + Q = 40 + Q$.
 
-Supply says sellers accept $P_s = 20 + Q$. Buyers now face $P_b = P_s + 20 = 40 + Q$. Demand is unchanged at $P_b = 100 - Q$.
+### Worked example
 
-**Worked example**
+Without the tax, demand meets supply: $100 - Q = 20 + Q$, so $Q = 40$ and $P = 60$.
 
-Find the new quantity where buyer demand meets the taxed supply:
+With the tax of 20, demand meets the shifted supply: $100 - Q = 40 + Q$, so $2Q = 60$ and $Q = 30$.
 
-$$100 - Q = 40 + Q \quad\Rightarrow\quad Q = 30$$
+- Buyers pay $P_b = 100 - 30 = 70$.
+- Sellers keep $P_s = 70 - 20 = 50$. Check: $20 + 30 = 50$.
+- Tax revenue is $t \cdot Q = 20 \cdot 30 = 600$.
 
-Then $P_b = 100 - 30 = 70$ and $P_s = 70 - 20 = 50$. Check: $20 + 30 = 50$, which matches supply.
+### Deadweight loss
 
-Before the tax, $100 - Q = 20 + Q$ gives $Q = 40$ and $P = 60$. Surplus for each case:
+The 10 lost units form a triangle. Its base is the tax wedge of 20 and its height is the drop in quantity, $40 - 30 = 10$:
 
-| | No tax | With tax 20 |
-|---|---|---|
-| Quantity $Q$ | 40 | 30 |
-| Buyer price $P_b$ | 60 | 70 |
-| Seller price $P_s$ | 60 | 50 |
-| Consumer surplus | 800 | 450 |
-| Producer surplus | 800 | 450 |
-| Tax revenue | 0 | 600 |
-| Total | 1600 | 1500 |
+$$\text{DWL} = \tfrac{1}{2} \cdot 20 \cdot 10 = 100$$
 
-The loss is $1600 - 1500 = 100$. The same result comes from the triangle formula:
-
-$$DWL = \tfrac{1}{2}\, t\, (Q_0 - Q_1) = \tfrac{1}{2}(20)(40 - 30) = 100$$
-
-The figure shows this triangle. Its corners are $(30, 50)$, $(30, 70)$ and $(40, 60)$. Its base is the tax wedge of 20, and its height is the 10 units of trade lost.
+Check: consumers lose 350 and producers lose 350, so the total loss of 700 equals the revenue of 600 plus the deadweight loss of 100.
 
 ```figure
+const a = 100, c = 20, t = 20;        // demand intercept, supply intercept, tax per unit
+const q0 = (a - c) / 2;               // 40
+const p0 = a - q0;                    // 60
+const q1 = (a - c - t) / 2;           // 30
+const pb = a - q1;                    // 70, buyers pay
+const ps = pb - t;                    // 50, sellers keep
+const revenue = t * q1;               // 600
+const dwl = 0.5 * t * (q0 - q1);      // 100
+
 export default function () {
+  const steps = [
+    { stage: 0, text: String.raw`No tax. Demand $P = ${a} - Q$ meets supply $P = ${c} + Q$ at $Q = ${q0}$, $P = ${p0}$.` },
+    { stage: 1, text: String.raw`The tax adds $${t}$ to seller cost. Supply shifts up to $P = ${c + t} + Q$. The new equilibrium is $Q = ${q1}$.` },
+    { stage: 2, text: String.raw`Buyers pay $${pb}$, sellers keep $${ps}$. The lost trades form a triangle with area $\tfrac{1}{2} \cdot ${t} \cdot ${q0 - q1} = ${dwl}$.` },
+  ];
   return (
-    <Figure steps={[1]} title="Per-unit tax of 20: supply shifts up by 20" render={() => (
-      <Plot x={[0, 100]} y={[0, 110]} xLabel="Q" yLabel="P">
-        <Fn f={q => 100 - q} from={0} to={100} label="Demand" />
-        <Fn f={q => 20 + q} from={0} to={90} label="Supply before tax" />
-        <Fn f={q => 40 + q} from={0} to={60} label="Supply with tax (buyer price)" />
-        <Shape pts={[[30, 70], [40, 60], [30, 50]]} closed group="Deadweight loss" />
-        <Segment from={[30, 50]} to={[30, 70]} group="Tax wedge" label="t = 20" />
-        <Points pts={[[40, 60], [30, 70], [30, 50]]} />
-        <Label at={[41, 63]} text="$E_0 = (40, 60)$" />
-        <Label at={[31, 73]} text="$P_b = 70$" />
-        <Label at={[31, 46]} text="$P_s = 50$" />
-      </Plot>
+    <Figure steps={steps} caption={step => step.text} render={step => (
+      <Row gap="lg" align="center">
+        <Plot id="market" x={[0, 100]} y={[0, 100]} xLabel="Q" yLabel="P">
+          <Fn id="demand" f={x => a - x} from={0} to={100} label="Demand" />
+          <Fn id="supply" f={x => c + x} from={0} to={100} label="Supply" state={step.stage ? 'dim' : undefined} />
+          <Fn id="supplyTax" f={x => c + t + x} from={0} to={100} label="Supply + tax" state={step.stage ? undefined : 'dim'} />
+          <Segment id="wedge" from={[q1, ps]} to={[q1, pb]} label={`tax ${t}`} state={step.stage ? 'active' : 'dim'} />
+          <Points id="eq0" pts={[[q0, p0]]} label="no tax" state={step.stage ? 'dim' : 'active'} />
+          <Points id="eq1" pts={[[q1, pb], [q1, ps]]} label="with tax" state={step.stage ? 'active' : 'dim'} />
+          <Shape id="dwl" pts={[[q1, pb], [q1, ps], [q0, p0]]} closed label="DWL" state={step.stage === 2 ? 'active' : 'dim'} />
+        </Plot>
+        <Table id="values" title="Values" columns={['', 'No tax', 'With tax']} rows={[
+          ['Quantity Q', q0, q1],
+          ['Buyer price', p0, pb],
+          ['Seller price', p0, ps],
+          ['Tax revenue', 0, revenue],
+          ['Deadweight loss', 0, dwl],
+        ]} />
+      </Row>
     )} />
   );
 }
 ```
 
-This triangle formula holds for straight-line curves. With perfectly inelastic demand, $Q$ does not fall, so the loss is zero.
+The triangle is exact here because both curves are straight lines. With curved lines, the same loss needs the area between the curves, found by integration.
 
-Not checked: I did not render the figure here. Skipped: elasticities and a tax levied on buyers, which gives the same equilibrium.
+Not covered: how the tax burden splits between buyers and sellers in general, and any curved supply or demand.

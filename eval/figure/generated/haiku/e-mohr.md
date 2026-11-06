@@ -1,41 +1,40 @@
-Mohr's circle for this stress state has center $C = (30, 0)$ MPa and radius $R = 58.3$ MPa. It plots normal stress $\sigma$ (horizontal) against shear stress $\tau$ (vertical). Each point on the circle gives the stress on one plane through the point.
+Mohr's circle for σx = 80, σy = −20, τxy = 30 MPa:
 
 ```figure
+const sx = 80, sy = -20, t = 30;
+const c = (sx + sy) / 2;
+const r = Math.sqrt(((sx - sy) / 2) ** 2 + t ** 2);
+const s1 = c + r, s2 = c - r;
+
 export default function () {
   return (
-    <Row gap="lg" align="center">
-      <Plot id="mohr" x={[-40, 100]} y={[-70, 70]} xLabel="$\sigma$ (MPa)" yLabel="$\tau$ (MPa)" equal>
-        <Circle id="circ" at={[30, 0]} r={58.31} />
-        <Segment id="diam" from={[80, 30]} to={[-20, -30]} />
-        <Points id="faces" pts={[[80, 30], [-20, -30]]} />
-        <Points id="principal" pts={[[88.31, 0], [-28.31, 0], [30, 58.31], [30, -58.31]]} />
-        <Label id="c" at={[30, 0]} text="C" />
-        <Label id="x" at={[80, 30]} text="X (80, 30)" />
-        <Label id="y" at={[-20, -30]} text="Y (-20, -30)" />
-        <Label id="s1" at={[88.31, 0]} text="σ1 = 88.3" />
-        <Label id="s2" at={[-28.31, 0]} text="σ2 = -28.3" />
-        <Label id="tm" at={[30, 58.31]} text="τmax = 58.3" />
-      </Plot>
-      <Column gap="sm">
-        <Node id="s1card" label="88.3 MPa" sub="σ1, max normal" />
-        <Node id="s2card" label="-28.3 MPa" sub="σ2, min normal" />
-        <Node id="tcard" label="58.3 MPa" sub="τmax, max shear" />
-      </Column>
-    </Row>
+    <Plot id="mohr" x={[-40, 100]} y={[-70, 70]} xLabel="$\sigma$ (MPa)" yLabel="$\tau$ (MPa)" equal>
+      <Circle id="circle" at={[c, 0]} r={r} />
+      <Segment id="diam" from={[sx, t]} to={[sy, -t]} />
+      <Points id="faces" pts={[[sx, t], [sy, -t]]} group="face points" />
+      <Points id="principal" pts={[[s1, 0], [s2, 0]]} group="principal" />
+      <Points id="shear" pts={[[c, r], [c, -r]]} group="max shear" />
+      <Label id="lA" at={[sx, t]} text="A (80, 30)" />
+      <Label id="lB" at={[sy, -t]} text="B (−20, −30)" />
+      <Label id="l1" at={[s1, 0]} text="$\sigma_1 = 88.3$" />
+      <Label id="l2" at={[s2, 0]} text="$\sigma_2 = -28.3$" />
+      <Label id="lT" at={[c, r]} text="$\tau_{max} = 58.3$" />
+      <Label id="lC" at={[c, 0]} text="C" />
+    </Plot>
   );
 }
 ```
 
-The circle comes from the stress components. Point X is the x-face $(\sigma_x, \tau_{xy}) = (80, 30)$, and point Y is the y-face $(\sigma_y, -\tau_{xy}) = (-20, -30)$. The diameter XY passes through the center.
+| Quantity | Formula | Value |
+|---|---|---|
+| Center C | $\frac{\sigma_x+\sigma_y}{2}$ | 30 MPa |
+| Radius R | $\sqrt{\left(\frac{\sigma_x-\sigma_y}{2}\right)^2+\tau_{xy}^2}$ | 58.3 MPa |
+| Principal σ₁ | $C+R$ | 88.3 MPa |
+| Principal σ₂ | $C-R$ | −28.3 MPa |
+| Max shear τmax | $R$ | 58.3 MPa, on faces where σ = 30 MPa |
+| Principal angle θp | $\tfrac12\arctan\frac{2\tau_{xy}}{\sigma_x-\sigma_y}$ | 15.5° counterclockwise |
+| Max-shear angle θs | $\theta_p - 45^\circ$ | 29.5° clockwise |
 
-$$C = \frac{\sigma_x + \sigma_y}{2}$$
+Each face becomes one point: A = (σx, τxy) = (80, 30) and B = (σy, −τxy) = (−20, −30). AB is a diameter of the circle, and the centre C sits on the σ axis.
 
-$$R = \sqrt{\left(\frac{\sigma_x - \sigma_y}{2}\right)^2 + \tau_{xy}^2}$$
-
-- $C = \frac{80 + (-20)}{2} = 30$ MPa
-- $R = \sqrt{50^2 + 30^2} = \sqrt{3400} = 58.3$ MPa
-- $\sigma_1 = C + R = 88.3$ MPa, $\sigma_2 = C - R = -28.3$ MPa
-- $\tau_{max} = R = 58.3$ MPa, at $\sigma = 30$ MPa
-- $\tan 2\theta_p = \frac{2\tau_{xy}}{\sigma_x - \sigma_y} = \frac{60}{100} = 0.6$, so $2\theta_p = 31.0^\circ$ and $\theta_p = 15.5^\circ$ counterclockwise from the x-axis
-
-This drawing plots positive $\tau_{xy}$ upward. Some textbooks plot it downward. The circle is the same, but X and Y swap places.
+Not checked: how the figure renders in your pane. Risk: the angle signs assume the standard convention, where τxy is positive when it acts counterclockwise on the element. A text with the opposite convention flips the signs of θp and θs.

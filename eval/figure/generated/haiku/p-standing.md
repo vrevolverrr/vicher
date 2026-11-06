@@ -1,44 +1,43 @@
-A **standing wave** is a wave pattern that stays in place. It forms when two identical waves travel in opposite directions and add together. On a string fixed at both ends, the ends cannot move, so each end must be a **node** (a point of zero motion). Only some wavelengths fit that rule. The **harmonics** are these allowed patterns, numbered by $n$, the number of loops.
+Only some wavelengths fit on a string fixed at both ends. Each one is a **harmonic**. A wave reflects at each end and overlaps with the waves travelling the other way. Only certain wavelengths give a standing wave, where the ends stay still (**nodes**) and the string swings in loops between them.
 
-For a string of length $L$, the allowed wavelengths are:
+For a string of length $L$ and wave speed $v$:
 
-$$\lambda_n = \frac{2L}{n}, \qquad n = 1, 2, 3, \dots$$
-
-Here $\lambda_n$ is the wavelength of harmonic $n$. Each harmonic has a frequency:
+$$\lambda_n = \frac{2L}{n}$$
 
 $$f_n = \frac{n\,v}{2L}$$
 
-Here $v$ is the wave speed on the string. $f_1$ is the **fundamental**, and every other harmonic is a whole multiple of it.
+Here $n = 1, 2, 3, \dots$ is the harmonic number, $\lambda_n$ is the wavelength in metres, and $f_n$ is the frequency in hertz.
+
+Example: $L = 0.90$ m and $v = 60$ m/s. Find $f_1$:
+
+$$f_1 = \frac{1 \times 60}{2 \times 0.90} = \frac{60}{1.8} = 33.3 \text{ Hz}$$
+
+Each higher harmonic is a whole multiple of this, so $f_3 = 3f_1 = 100$ Hz and $\lambda_3 = \frac{2(0.90)}{3} = 0.60$ m.
+
+The figure shows the first three shapes. Harmonic 1 has one loop, harmonic 2 has two, and harmonic 3 has three. The dots mark the nodes.
 
 ```figure
+const L = 0.9;   // string length, m
+const v = 60;    // wave speed, m/s
+
 export default function () {
-  const steps = [1, 2, 3, 4].map(n => ({ n }));
+  const steps = [1, 2, 3].map(n => ({
+    n,
+    lam: 2 * L / n,
+    f: n * v / (2 * L),
+    nodes: Array.from({ length: n + 1 }, (_, k) => [k / n, 0]),
+  }));
   return (
-    <Figure
-      steps={steps}
-      heading={step => `Harmonic ${step.n}`}
-      caption={step => String.raw`$\lambda = \frac{2L}{${step.n}}$. Dots mark the nodes, where the string stays still.`}
+    <Figure steps={steps}
+      caption={step => String.raw`**Harmonic ${step.n}**: $\lambda_{${step.n}} = ${step.lam.toFixed(2)}$ m, $f_{${step.n}} = ${step.f.toFixed(1)}$ Hz`}
       render={step => (
         <Plot id="string" x={[0, 1]} y={[-1.2, 1.2]} xLabel="x / L" yLabel="y">
-          <Fn id="mode" f={x => Math.sin(step.n * Math.PI * x)} label={`n = ${step.n}`} />
-          <Points pts={Array.from({ length: step.n + 1 }, (_, k) => [k / step.n, 0])} />
+          <Fn id="wave" f={x => Math.sin(step.n * Math.PI * x)} from={0} to={1} label="mode shape" />
+          <Points id="nodes" pts={step.nodes} label="nodes" />
         </Plot>
-      )}
-    />
+      )} />
   );
 }
 ```
 
-**Worked example.** A string is 0.65 m long, under tension $T = 80$ N, with mass per length $\mu = 2.5$ g/m $= 2.5 \times 10^{-3}$ kg/m.
-
-1. Wave speed: $v = \sqrt{T/\mu} = \sqrt{80 / 0.0025} \approx 178.9$ m/s.
-2. Fundamental: $f_1 = \dfrac{v}{2L} = \dfrac{178.9}{1.3} \approx 138$ Hz.
-3. Higher harmonics: $f_2 = 2f_1 \approx 275$ Hz and $f_3 = 3f_1 \approx 413$ Hz.
-
-| $n$ | $\lambda_n$ (m) | $f_n$ (Hz) |
-|---|---|---|
-| 1 | 1.30 | 138 |
-| 2 | 0.650 | 275 |
-| 3 | 0.433 | 413 |
-
-The model assumes an ideal string. A real string is stiff and damped, so its harmonics drift slightly from exact whole multiples.
+The formula assumes an ideal string with small swings. Stiffness or large amplitude shifts the frequencies.

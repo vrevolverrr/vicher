@@ -1,55 +1,32 @@
-A 95% confidence interval is made by a method that captures the true mean in about 95% of repeated samples. With known population standard deviation, the interval is:
-
-$$
-\bar{x} \pm 1.96\frac{\sigma}{\sqrt{n}}
-$$
-
-Here $\bar{x}$ is the sample mean, $\sigma$ the population standard deviation, and $n$ the sample size. The figure simulates 20 samples of size 25 from a population with mean 50 and standard deviation 10. The vertical line marks the true mean; × marks intervals that miss it.
+A 95% confidence interval is made by a method that captures the true mean in about 95% of repeated samples. The mean is fixed; the intervals change from sample to sample. Here, 19 of the 20 intervals contain the true mean, and the one that misses is marked orange.
 
 ```figure
-const trueMean = 50;
-const sigma = 10;
-const n = 25;
-const margin = 1.96 * sigma / Math.sqrt(n);
-
-function makeSamples() {
-  let seed = 2026;
-  const uniform = () => {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-    return (seed + 1) / 4294967297;
-  };
-  const normal = () => {
-    const u1 = uniform();
-    const u2 = uniform();
-    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-  };
-
-  return Array.from({ length: 20 }, () => {
-    const mean = trueMean + sigma * Array.from({ length: n }, normal).reduce((a, b) => a + b, 0) / n;
-    return { mean, low: mean - margin, high: mean + margin };
-  });
-}
+const intervals = [
+  [47, 53], [46, 52], [49, 54], [45, 51], [48, 52],
+  [47, 55], [46, 50.5], [48, 54], [44, 49], [47.5, 52],
+  [46, 53], [48, 51], [45, 54], [47, 50.8], [46, 52],
+  [49, 55], [48, 53], [45.5, 51], [47, 54], [46, 51],
+];
 
 export default function () {
-  const samples = makeSamples();
   return (
-    <Plot x={[40, 60]} y={[0, 21]} xLabel="Measurement" yLabel="Sample">
-      <Shape id="true-mean" pts={[[trueMean, 0], [trueMean, 21]]} group="True mean" />
-      {samples.map((sample, i) => {
-        const y = i + 1;
-        const misses = sample.low > trueMean || sample.high < trueMean;
-        return (
-          <>
-            <Shape
-              id={`interval-${i}`}
-              pts={[[sample.low, y], [sample.high, y]]}
-              group={misses ? "Misses" : "Covers mean"}
-            />
-            {misses && <Label id={`miss-${i}`} at={[sample.mean, y]} text="×" group="Misses" />}
-          </>
-        );
-      })}
-    </Plot>
+    <Figure steps={[{ intervals }]} legend={{
+      hit: 'contains true mean',
+      miss: 'misses true mean',
+      truth: 'true mean',
+    }} render={step => (
+      <Plot x={[43, 56]} y={[0, 21]} xLabel="Mean" yLabel="Sample">
+        {step.intervals.map(([lo, hi], i) => (
+          <Segment
+            id={`ci${i + 1}`}
+            from={[lo, i + 1]}
+            to={[hi, i + 1]}
+            group={lo <= 50 && 50 <= hi ? 'hit' : 'miss'}
+          />
+        ))}
+        <Segment id="trueMean" from={[50, 0]} to={[50, 21]} group="truth" />
+      </Plot>
+    )} />
   );
 }
 ```

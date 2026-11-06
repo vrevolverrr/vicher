@@ -1,19 +1,20 @@
 ```mermaid
 flowchart LR
-  r["Setpoint r(t)"] --> e(("Σ"))
-  y(("y(t)")) -- "− feedback" --> e
-  e -- "error e(t) = r − y" --> P["P: Kp · e"]
-  e --> I["I: Ki · ∫e dt"]
-  e --> D["D: Kd · de/dt"]
-  P --> u(("Σ"))
-  I --> u
-  D --> u
-  u -- "control u(t)" --> G["Plant G(s)"]
-  G --> y
+    r["Setpoint $$r(t)$$"] -->|"+"| e(("Σ"))
+    y["Output $$y(t)$$"] -->|"−"| e
+    e -->|"error $$e(t)$$"| P["Proportional $$K_p\,e(t)$$"]
+    e --> I["Integral $$K_i\int e\,dt$$"]
+    e --> D["Derivative $$K_d\,\frac{de}{dt}$$"]
+    P -->|"+"| u(("Σ"))
+    I -->|"+"| u
+    D -->|"+"| u
+    u -->|"control $$u(t)$$"| G["Plant $$G(s)$$"]
+    G --> y
 ```
 
-The first Σ forms the error. The P, I and D terms each act on that error. Their outputs add at the second Σ, which gives the control signal. The plant output y(t) returns to the first Σ.
+The controller output is the sum of three terms:
 
-$$u(t) = K_p\,e(t) + K_i\int_0^t e(\tau)\,d\tau + K_d\,\frac{de(t)}{dt}$$
+$$u(t) = K_p\,e(t) + K_i \int_0^t e(\tau)\,d\tau + K_d\,\frac{de(t)}{dt}$$
 
-Skipped: the disturbance input into the plant, and integral anti-windup for actuator saturation. Both change the diagram if your system has them.
+- $e(t) = r(t) - y(t)$ is the error.
+- $K_p$, $K_i$, $K_d$ are the gains.

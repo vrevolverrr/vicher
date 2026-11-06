@@ -1,44 +1,55 @@
-Drag the slider to change the cutoff. The slider sets $e$ where $f_c = 10^{e}$ Hz, so each step is a fixed ratio.
+A first-order low-pass filter passes low frequencies and attenuates high ones. Its cutoff $\omega_c$ is where the gain falls 3 dB. Move the slider to change $\omega_c$.
 
 ```figure
 export const params = {
-  e: { label: 'Cutoff exponent e, fc = 10^e Hz', min: 1, max: 4.5, step: 0.05, value: 3 }
+  lc: { label: 'Cutoff exponent x, ωc = 10^x rad/s', min: 0, max: 3, step: 0.05, value: 2 }
 };
 
-export default function ({ e }) {
-  const fc = Math.pow(10, e);
-  const mag = u => -10 * Math.log10(1 + Math.pow(10, 2 * (u - e)));
-  const phase = u => -Math.atan(Math.pow(10, u - e)) * 180 / Math.PI;
-
+export default function ({ lc }) {
+  const u = lc;                        // log10 of the cutoff
+  const wc = Math.pow(10, lc);         // cutoff in rad/s
+  const xe = Math.min(4, u + 2);       // end of the -20 dB/decade asymptote
+  const gain = x => -10 * Math.log10(1 + Math.pow(10, 2 * (x - u)));
+  const phase = x => -Math.atan(Math.pow(10, x - u)) * 180 / Math.PI;
   return (
-    <Column gap="md">
-      <Plot id="mag" x={[0, 5]} y={[-60, 5]} xLabel="log10(f / Hz)" yLabel="Gain (dB)">
-        <Fn id="gain" f={mag} label="$|H|$" />
-        <Segment id="fc-mag" from={[e, -60]} to={[e, 5]} state="dim" />
-        <Points id="pt-mag" pts={[[e, -10 * Math.log10(2)]]} label="-3 dB" />
-      </Plot>
-      <Plot id="ph" x={[0, 5]} y={[-100, 5]} xLabel="log10(f / Hz)" yLabel="Phase (deg)">
-        <Fn id="phi" f={phase} label="phase" />
-        <Segment id="fc-ph" from={[e, -100]} to={[e, 5]} state="dim" />
-        <Points id="pt-ph" pts={[[e, -45]]} label="-45°" />
-      </Plot>
-      <Node id="fc" label={`${Number(fc.toPrecision(3))} Hz`} sub="cutoff frequency" />
-    </Column>
+    <Figure
+      steps={[{ wc }]}
+      caption={step => String.raw`Cutoff $\omega_c = ${step.wc.toPrecision(3)}$ rad/s. At $\omega_c$ the gain is $-3$ dB and the phase is $-45^\circ$.`}
+      render={() => (
+        <Column gap="md">
+          <Plot id="mag" x={[-1, 4]} y={[-40, 5]} xLabel="$\log_{10}\omega$" yLabel="Gain (dB)">
+            <Fn id="gain" f={gain} label="gain" />
+            <Shape id="asym" pts={[[-1, 0], [u, 0], [xe, -20 * (xe - u)]]} state="dim" />
+            <Segment id="cm" from={[u, -40]} to={[u, 5]} state="dim" />
+            <Points id="cp" pts={[[u, -3.01]]} />
+            <Label id="cl" at={[u + 0.1, -8]} text="$\omega_c$" />
+          </Plot>
+          <Plot id="ph" x={[-1, 4]} y={[-100, 5]} xLabel="$\log_{10}\omega$" yLabel="Phase (deg)">
+            <Fn id="pha" f={phase} label="phase" />
+            <Shape id="pasym" pts={[[-1, 0], [u - 1, 0], [u + 1, -90], [4, -90]]} state="dim" />
+            <Segment id="pm" from={[u, -100]} to={[u, 5]} state="dim" />
+            <Points id="pp" pts={[[u, -45]]} />
+          </Plot>
+        </Column>
+      )}
+    />
   );
 }
 ```
 
-The gain and phase of the filter, where $f$ is the input frequency in Hz and $f_c$ is the cutoff frequency in Hz:
+With $\omega$ in rad/s, the filter law is:
 
-$$|H|_{\text{dB}} = -10\log_{10}\left(1+\left(\frac{f}{f_c}\right)^2\right)$$
+$$H(j\omega)=\frac{1}{1+j\omega/\omega_c}$$
 
-$$\varphi = -\arctan\left(\frac{f}{f_c}\right)$$
+Gain in dB and phase follow from it:
 
-Well below $f_c$ the gain is 0 dB. Well above it, the gain falls 20 dB per decade. At $f = f_c$ the gain is $-3.01$ dB and the phase is $-45^\circ$.
+$$|H|_{\text{dB}}=-10\log_{10}\!\left(1+\frac{\omega^2}{\omega_c^2}\right)\qquad \angle H=-\arctan\frac{\omega}{\omega_c}$$
 
-Worked example, with $f_c = 1$ kHz and $f = 10$ kHz:
+Example with $\omega_c = 100$ rad/s:
 
-- $|H|_{\text{dB}} = -10\log_{10}(1+10^2) = -20.04$ dB
-- $\varphi = -\arctan(10) = -84.3^\circ$
+- At $\omega = 100$: $|H|_{\text{dB}} = -10\log_{10}2 \approx -3.01$ dB, and $\angle H = -\arctan 1 = -45^\circ$.
+- At $\omega = 1000$: $|H|_{\text{dB}} = -10\log_{10}101 \approx -20.04$ dB, and $\angle H = -\arctan 10 \approx -84.3^\circ$. Above the cutoff, the gain falls 20 dB per decade.
 
-Not checked: how your viewer draws the figure. The horizontal axis is linear in $\log_{10} f$, because `Plot` has no log scale, so the tick labels are exponents.
+The law holds only for a first-order filter with no load.
+
+Skipped: the `Plot` axes are linear, so the frequency axis is $\log_{10}\omega$, not a log scale. Not checked: the rendered output in the app, including how the asymptote lines clip at the box edge.

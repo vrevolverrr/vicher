@@ -1,45 +1,37 @@
-The limit of $2x + 1$ as $x \to 1$ is $3$. The epsilon-delta definition makes "close" exact. $\varepsilon$ is how close $f(x)$ must be to $3$. $\delta$ is how close $x$ must be to $1$ to guarantee it.
+Drag the ε slider to see the rule at work. The box is the target: every x within δ of 1 (other than 1 itself) must send f(x) within ε of 3.
 
-**Definition.** The limit is $3$ when, for every $\varepsilon > 0$, some $\delta > 0$ exists such that
+The formal definition:
 
-$$0 < |x - 1| < \delta \implies |f(x) - 3| < \varepsilon$$
+$$\lim_{x\to 1} f(x) = 3 \iff \forall\,\varepsilon>0\ \exists\,\delta>0:\ 0<|x-1|<\delta \Rightarrow |f(x)-3|<\varepsilon$$
 
-Here $\varepsilon$ is the allowed error in the output. $\delta$ is the allowed distance in the input that keeps the error inside $\varepsilon$.
+Find δ for a given ε:
 
-**Worked example.** Take $\varepsilon = 0.4$. Then $|f(x) - 3| = |2x - 2| = 2|x - 1|$. We need $2|x - 1| < 0.4$, so $|x - 1| < 0.2$. Pick $\delta = 0.2$.
+$$|f(x)-3| = |2x-2| = 2|x-1|$$
 
-- Check $x = 1.15$: $f(1.15) = 3.3$, and $|3.3 - 3| = 0.3 < 0.4$. It works.
-- Check $x = 1.2$: it sits on the edge of $\delta$, so it is excluded. The inequality is strict.
-
-For any $\varepsilon$, $\delta = \varepsilon/2$ works, because $2|x - 1| < 2\delta = \varepsilon$.
-
-Drag the slider. The shaded box is $2\varepsilon$ tall and $2\delta$ wide. The bold part of the curve inside the strip stays inside the horizontal band.
+So $2|x-1|<\varepsilon$ exactly when $|x-1|<\varepsilon/2$. Choose $\delta=\varepsilon/2$. For $\varepsilon=1$, $\delta=0.5$: any $x$ in $(0.5,\,1.5)$ gives $f(x)$ in $(2,\,4)$.
 
 ```figure
-export const params = { eps: { label: 'ε', min: 0.05, max: 2, step: 0.05, value: 0.5 } };
+export const params = { eps: { label: 'ε', min: 0.05, max: 2, step: 0.05, value: 1 } };
 
 export default function ({ eps }) {
-  const L = 3, a = 1;
-  const d = eps / 2;
-  const curve = x => 2 * x + 1;
-  const st = { eps, d };
+  const x0 = 1, L = 3;
+  const delta = eps / 2;   // 2|x-1| < eps exactly when |x-1| < eps/2
+  const box = [[x0 - delta, L - eps], [x0 + delta, L - eps], [x0 + delta, L + eps], [x0 - delta, L + eps]];
   return (
-    <Figure
-      steps={[st]}
-      caption={s => String.raw`With $\varepsilon = ${s.eps.toFixed(2)}$, choose $\delta = \varepsilon/2 = ${s.d.toFixed(3)}$. The bold part of the curve inside the box stays inside the band.`}
-      render={s => (
-        <Plot id="plot" x={[0, 2]} y={[1, 5]} xLabel="x" yLabel="y">
-          <Region id="box" top={L + s.eps} base={L - s.eps} from={a - s.d} to={a + s.d} />
-          <Fn id="curve" f={curve} label="f(x) = 2x + 1" />
-          <Fn id="near" f={curve} from={a - s.d} to={a + s.d} state="active" />
-          <Segment id="hi" from={[0, L + s.eps]} to={[2, L + s.eps]} label={String.raw`$3+\varepsilon$`} state="dim" />
-          <Segment id="lo" from={[0, L - s.eps]} to={[2, L - s.eps]} label={String.raw`$3-\varepsilon$`} state="dim" />
-          <Segment id="left" from={[a - s.d, 1]} to={[a - s.d, 5]} label={String.raw`$1-\delta$`} state="dim" />
-          <Segment id="right" from={[a + s.d, 1]} to={[a + s.d, 5]} label={String.raw`$1+\delta$`} state="dim" />
-          <Points id="pt" pts={[[a, L]]} label="(1, 3)" />
-        </Plot>
-      )}
-    />
+    <Row gap="lg" align="center">
+      <Plot id="plot" x={[0, 2]} y={[0, 6]} xLabel="x" yLabel="f(x)">
+        <Fn id="line" f={x => 2 * x + 1} label="f(x) = 2x + 1" />
+        <Shape id="box" pts={box} closed label="ε and δ box" />
+        <Segment id="d" from={[x0, 0.4]} to={[x0 + delta, 0.4]} label="δ" />
+        <Points id="pt" pts={[[x0, L]]} label="L = 3" state="dim" />
+      </Plot>
+      <Column gap="md">
+        <Node id="eps" label={`ε = ${eps}`} sub="allowed error in f(x)" />
+        <Node id="delta" label={`δ = ε/2 = ${delta}`} sub="allowed distance from x = 1" />
+      </Column>
+    </Row>
   );
 }
 ```
+
+Not checked: I did not render the figure, so the layout and label placement are unverified.

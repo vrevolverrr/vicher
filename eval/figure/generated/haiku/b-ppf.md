@@ -1,47 +1,46 @@
-A **production possibilities frontier (PPF)** shows every mix of two goods that an economy can make with all its resources and technology. **Opportunity cost** is what you give up to get one more unit of a good.
+A production possibilities frontier (PPF) is the curve of the most output of two goods an economy can make with its workers, machines and technology. Points on the curve use all resources. Points inside it waste resources. Points outside it cannot be reached yet.
 
-On a bowed PPF, the opportunity cost of a good rises as you make more of it. Resources are not equally good at making both goods. The best land goes to wheat first. Later, poorer land moves to wheat, so each extra tonne of wheat costs more cloth.
+Opportunity cost is what you give up of one good to get one more unit of the other. On the frontier, it is the slope of the curve, read as a positive number:
 
-The opportunity cost of wheat is the cloth lost per extra tonne of wheat:
+$$\text{Opportunity cost of one more } X = -\frac{\Delta Y}{\Delta X}$$
 
-$$\text{Opportunity cost of wheat} = \frac{\text{cloth lost}}{\text{wheat gained}}$$
-
-Let $W$ be tonnes of wheat and $C$ be metres of cloth. The frontier is $C = 50 - \frac{W^2}{32}$. Moving from 0 t to 40 t of wheat in 8 t steps:
-
-| Move | Wheat gained (t) | Cloth lost (m) | Opportunity cost (m per t) |
-|---|---|---|---|
-| A → B | 8 | 2 | 0.25 |
-| B → C | 8 | 6 | 0.75 |
-| C → D | 8 | 10 | 1.25 |
-| D → E | 8 | 14 | 1.75 |
-| E → F | 8 | 18 | 2.25 |
+This frontier is a model: $Y = 12 - 0.75X^2$ for $0 \le X \le 4$, where $X$ is food and $Y$ is cloth. Step through the trades:
 
 ```figure
-const frontier = x => 50 - x * x / 32;
-const xs = [0, 8, 16, 24, 32, 40];
-const pts = xs.map(x => [x, frontier(x)]);
+const frontier = x => 12 - 0.75 * x * x;   // cloth Y for food X
 
 export default function () {
-  const steps = [];
-  for (let i = 0; i < 5; i++) {
-    steps.push({ i, from: pts[i], to: pts[i + 1], lost: pts[i][1] - pts[i + 1][1] });
-  }
+  const steps = [
+    { a: 0, b: 0, row: null, text: 'Start at $X=0$, $Y=12$. Only cloth is made.' },
+    { a: 0, b: 2, row: 'r1', text: 'Trade in 2 food: cloth falls from $12$ to $9$. Each food costs $3/2 = 1.5$ cloth.' },
+    { a: 2, b: 4, row: 'r2', text: 'Trade in the next 2 food: cloth falls from $9$ to $0$. Each food costs $9/2 = 4.5$ cloth.' },
+  ];
   return (
     <Figure
       steps={steps}
-      caption={step => `Move ${step.i + 1}, from ${'ABCDEF'[step.i]} to ${'ABCDEF'[step.i + 1]}: 8 t of wheat costs ${step.lost} m of cloth. Cost per tonne: ${step.lost / 8} m.`}
+      caption={step => step.text}
       render={step => (
-        <Plot id="plot" x={[0, 44]} y={[0, 56]} xLabel="Wheat (t)" yLabel="Cloth (m)">
-          <Fn id="ppf" f={frontier} from={0} to={40} label="PPF" />
-          <Points id="pts" pts={pts} />
-          <Segment id="move" from={step.from} to={step.to} label={`${step.lost} m`} state="active" />
-        </Plot>
+        <Row gap="lg" align="center">
+          <Plot id="ppf" x={[0, 5]} y={[0, 13]} xLabel="Food (X)" yLabel="Cloth (Y)">
+            <Fn id="curve" f={frontier} from={0} to={4} label="Frontier" />
+            <Segment id="trade" from={[step.a, frontier(step.a)]} to={[step.b, frontier(step.b)]} />
+            <Points id="pa" pts={[[step.a, frontier(step.a)]]} />
+            <Points id="pb" pts={[[step.b, frontier(step.b)]]} />
+          </Plot>
+          <Table
+            id="tbl"
+            columns={["Trade", "Cloth lost", "Cloth per food"]}
+            rows={[["X: 0 to 2", "3", "1.5"], ["X: 2 to 4", "9", "4.5"]]}
+            rowIds={["r1", "r2"]}
+            states={step.row ? { [step.row]: "active" } : {}}
+          />
+        </Row>
       )}
     />
   );
 }
 ```
 
-Each move gives 8 t of wheat, but costs more cloth than the one before. The slope of the frontier is the opportunity cost, and it gets steeper as wheat rises.
+The curve bows outward, so opportunity cost rises. The cost per food goes from 1.5 cloth to 4.5 cloth. The first food uses the land and workers best suited to farming. Later food must draw on resources better suited to cloth, so each extra unit costs more cloth.
 
-If every tonne cost the same cloth, the PPF would be a straight line and the opportunity cost would stay constant.
+This holds while resources and technology stay fixed. Better technology shifts the whole frontier outward.

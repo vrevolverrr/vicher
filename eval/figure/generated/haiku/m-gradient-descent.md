@@ -1,73 +1,74 @@
-Gradient descent finds a low point by walking downhill. At each point it measures the slope, then moves a fixed fraction of that slope the opposite way. That fraction is the learning rate.
+Gradient descent finds the lowest point of a function by walking downhill. At each point it reads the slope, then moves a small step the opposite way. The **learning rate** $\eta$ sets how large each step is.
 
-For a function $f$, the gradient $\nabla f$ is the vector of partial derivatives. Each step is:
+## The update rule
+
+The **gradient** $\nabla f$ is the vector of slopes, and it points uphill. Gradient descent moves against it. For a point $\mathbf{p}_k = (x_k, y_k)$ at step $k$:
 
 $$\mathbf{p}_{k+1} = \mathbf{p}_k - \eta\,\nabla f(\mathbf{p}_k)$$
 
-Here $\mathbf{p}_k$ is the point at step $k$, $\nabla f$ is the gradient, and $\eta > 0$ is the learning rate.
+The rule needs $\eta > 0$ and a small enough value, or the steps overshoot.
 
-For $f = x^2 + 3y^2$, the gradient is $\nabla f = (2x,\ 6y)$. Each coordinate shrinks by its own factor:
+For $f(x, y) = x^2 + 3y^2$, the gradient is $(2x,\ 6y)$, so each coordinate updates on its own:
 
-$$x_{k+1} = (1-2\eta)\,x_k$$
+$$\begin{aligned} x_{k+1} &= (1 - 2\eta)\,x_k \\ y_{k+1} &= (1 - 6\eta)\,y_k \end{aligned}$$
 
-$$y_{k+1} = (1-6\eta)\,y_k$$
+## Worked step with $\eta = 0.1$
 
-Example with $\eta = 0.1$ from $(2.5,\ 1.5)$:
+Start at $(2.5,\ 1.5)$, where $f = 6.25 + 6.75 = 13$.
 
-1. Gradient: $(2 \cdot 2.5,\ 6 \cdot 1.5) = (5,\ 9)$.
-2. Step: $(2.5 - 0.1 \cdot 5,\ 1.5 - 0.1 \cdot 9) = (2.0,\ 0.6)$.
-3. Value: $f$ falls from $13$ to $2.0^2 + 3 \cdot 0.6^2 = 5.08$.
+1. Gradient: $\nabla f = (2 \cdot 2.5,\ 6 \cdot 1.5) = (5,\ 9)$.
+2. Move: $x_1 = 2.5 - 0.1 \cdot 5 = 2.0$ and $y_1 = 1.5 - 0.1 \cdot 9 = 0.6$.
+3. New height: $f = 4 + 3(0.36) = 5.08$.
 
-The $y$ factor is $0.4$ and the $x$ factor is $0.8$. The steep $y$ direction settles fast, and the flat $x$ direction settles slowly.
+The height drops from 13 to 5.08 in one step.
 
-The steep direction limits the learning rate. Convergence needs $|1-6\eta| < 1$, so $\eta < 1/3$. At $\eta = 1/3$, $y$ flips sign each step without shrinking. Above it, the path grows and diverges.
+## The learning rate limit
+
+Each step multiplies $x$ by $1 - 2\eta$ and $y$ by $1 - 6\eta$. A factor smaller than 1 in size shrinks that coordinate. The steep direction $y$ sets the limit: $|1 - 6\eta| < 1$ needs $\eta < \tfrac{1}{3}$. At $\eta = \tfrac{1}{3}$, $y$ flips sign each step without shrinking. Above $\tfrac{1}{3}$, $y$ grows and the steps diverge.
+
+Use the **Learning rate** slider above the figure. Try 0.05, 0.1, 0.3 and 0.5.
+
+Not checked: I did not run the figure. The $\tfrac{1}{3}$ limit comes from hand derivation.
 
 ```figure
-export const params = {
-  eta: { label: 'Learning rate η', min: 0.01, max: 0.35, step: 0.01, value: 0.1 },
-  n: { label: 'Steps', min: 1, max: 15, step: 1, value: 8 }
-};
+export const params = { lr: { label: 'Learning rate', min: 0.01, max: 0.6, step: 0.01, value: 0.1 } };
 
-const fmt = v => String(Number(v.toPrecision(4)));
-
-export default function ({ eta, n }) {
-  const ring = c => Array.from({ length: 120 }, (_, i) => {
-    const t = (2 * Math.PI * i) / 120;
+export default function ({ lr }) {
+  const r = v => Number(v.toFixed(4));
+  const height = (x, y) => x * x + 3 * y * y;
+  const ellipse = c => Array.from({ length: 121 }, (_, i) => {
+    const t = (i / 120) * 2 * Math.PI;
     return [Math.sqrt(c) * Math.cos(t), Math.sqrt(c / 3) * Math.sin(t)];
   });
-
   const pts = [[2.5, 1.5]];
-  for (let k = 0; k < n; k++) {
+  for (let k = 0; k < 8; k++) {
     const [x, y] = pts[k];
-    pts.push([x - eta * 2 * x, y - eta * 6 * y]);
+    pts.push([r(x - lr * 2 * x), r(y - lr * 6 * y)]);
   }
-  const steps = pts.map(([x, y], k) => ({ k, x, y, f: x * x + 3 * y * y }));
+  const steps = pts.map((p, k) => ({ k, p, path: pts.slice(0, k + 1), h: r(height(p[0], p[1])) }));
 
   return (
     <Figure
       steps={steps}
-      caption={s => `Step ${s.k}: x = ${fmt(s.x)}, y = ${fmt(s.y)}, f = ${fmt(s.f)}`}
-      render={s => (
-        <Row gap="lg" align="center">
-          <Plot id="plot" x={[-4, 4]} y={[-4, 4]} xLabel="x" yLabel="y" equal>
-            {[1, 4, 13].map(c => <Shape key={c} pts={ring(c)} closed label={`f = ${c}`} />)}
-            <Shape id="path" pts={pts.slice(0, s.k + 1)} />
-            <Points id="min" pts={[[0, 0]]} label="minimum" />
-            <Points id="cur" pts={[[s.x, s.y]]} label={`k = ${s.k}`} state="active" />
-          </Plot>
-          <Table
-            id="tbl"
-            title="Iterates"
-            columns={['k', 'x', 'y', 'f']}
-            rows={pts.slice(0, s.k + 1).map((p, k) => [k, p[0], p[1], p[0] * p[0] + 3 * p[1] * p[1]])}
-          />
-        </Row>
-      )}
+      caption={step => `Step ${step.k}: $x = ${step.p[0]}$, $y = ${step.p[1]}$, height $f = ${step.h}$.`}
+      render={step => {
+        const states = {};
+        pts.forEach((_, i) => { states[`r${i}`] = i < step.k ? 'done' : i === step.k ? 'active' : 'dim'; });
+        return (
+          <Row gap="lg" align="center">
+            <Plot id="plot" xLabel="x" yLabel="y">
+              <Shape pts={ellipse(1)} closed state="dim" />
+              <Shape pts={ellipse(4)} closed state="dim" />
+              <Shape pts={ellipse(13)} closed state="dim" />
+              <Points pts={[[0, 0]]} label="minimum" />
+              <Shape pts={step.path} />
+              <Points pts={[step.p]} state="active" />
+            </Plot>
+            <Table id="tbl" columns={['k', 'x', 'y', 'f(x, y)']} rows={pts.map((p, i) => [i, p[0], p[1], r(height(p[0], p[1]))])} rowIds={pts.map((_, i) => `r${i}`)} states={states} />
+          </Row>
+        );
+      }}
     />
   );
 }
 ```
-
-Change $\eta$ and the step count with the sliders. Above $\eta = 0.33$, the path spirals outward.
-
-Not checked: I did not run the figure code here.

@@ -1,28 +1,17 @@
-Because the disease is rare, the many healthy people tested produce more false positives than the few sick people produce true positives.
+Imagine testing 10,000 people. With 1% prevalence, 100 have the disease and 9,900 do not.
 
-Imagine testing 10,000 people:
+| Group | Test positive | Test negative |
+|---|---:|---:|
+| Have disease (100) | 95 | 5 |
+| Don’t have disease (9,900) | 990 | 8,910 |
 
-```figure
-export default function () {
-  return (
-    <Table
-      title="10,000 people tested"
-      columns={["", "Positive test", "Negative test", "Total"]}
-      rows={[
-        ["Have disease", 95, 5, 100],
-        ["No disease", 990, 8910, 9900],
-        ["Total", 1085, 8915, 10000],
-      ]}
-    />
-  );
-}
-```
+Sensitivity means 95% of people with the disease test positive. Specificity means 90% of people without it test negative, so 10% of them test positive by mistake.
 
-Of the 100 people with the disease, 95 test positive. Of the 9,900 without it, 10% test positive too, giving 990 false alarms. So only 95 of the 1,085 positive results are true positives:
+That gives 1,085 positive results, but only 95 are true positives. So about **91% of positive tests are false alarms**:
 
 $$
-\frac{95}{95+990} \approx 8.8\%
+\frac{990}{95 + 990} \approx 91.2\%
 $$
 
-Thus, a positive test is about **91.2% likely to be a false alarm** in this population. This assumes the test’s sensitivity and specificity apply to the people being tested.
+The key is that the disease is rare: the much larger group without the disease produces more false positives, even though each person in that group has only a 10% chance of one.
 

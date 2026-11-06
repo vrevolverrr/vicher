@@ -1,71 +1,76 @@
-Field lines for equal and opposite charges, +q on the left and −q on the right:
+Field lines leave a positive charge and enter a negative charge. The figure shows each case, then the equal pair.
 
 ```figure
-const Q = [{ at: [-1.5, 0], q: 1 }, { at: [1.5, 0], q: -1 }];  // equal size, opposite sign
-const N = 8;      // start points per charge
-const h = 0.05;   // step length
+const W = 8, H = 6, h = 0.05;
+const P = { at: [2.5, 3], q: 1 };
+const N = { at: [5.5, 3], q: -1 };
 
-// Total field: sum of Coulomb fields, constant k dropped
-const field = p => Q.reduce((E, c) => {
-  const dx = p[0] - c.at[0], dy = p[1] - c.at[1];
-  const r3 = Math.pow(dx * dx + dy * dy, 1.5);
-  return [E[0] + c.q * dx / r3, E[1] + c.q * dy / r3];
-}, [0, 0]);
-
-const unit = p => {
-  const E = field(p), m = Math.hypot(E[0], E[1]);
-  return [E[0] / m, E[1] / m];
-};
-
-// Follow the field (dir = 1) or against it (dir = -1) until a charge or the box edge
-function trace(start, dir) {
-  const pts = [start];
-  let p = start, end = 'out';
-  for (let i = 0; i < 800; i++) {
-    const d1 = unit(p);
-    const mid = [p[0] + dir * h / 2 * d1[0], p[1] + dir * h / 2 * d1[1]];
-    const d2 = unit(mid);
-    p = [p[0] + dir * h * d2[0], p[1] + dir * h * d2[1]];
-    pts.push(p);
-    const hit = Q.find(c => Math.hypot(p[0] - c.at[0], p[1] - c.at[1]) < 0.12);
-    if (hit) { end = hit.q > 0 ? 'pos' : 'neg'; break; }
-    if (Math.abs(p[0]) > 3 || Math.abs(p[1]) > 2) break;
+function field(r, cs) {
+  let ex = 0, ey = 0;
+  for (const c of cs) {
+    const dx = r[0] - c.at[0], dy = r[1] - c.at[1];
+    const d3 = Math.hypot(dx, dy) ** 3;
+    ex += c.q * dx / d3;
+    ey += c.q * dy / d3;
   }
-  return { pts, end };
+  const m = Math.hypot(ex, ey);
+  return [ex / m, ey / m];
 }
 
-const lines = [];
-for (let k = 0; k < N; k++) {
-  const a = 2 * Math.PI * k / N;
-  lines.push(trace([Q[0].at[0] + 0.2 * Math.cos(a), Q[0].at[1] + 0.2 * Math.sin(a)], 1));
-  const back = trace([Q[1].at[0] + 0.2 * Math.cos(a), Q[1].at[1] + 0.2 * Math.sin(a)], -1);
-  if (back.end === 'out') lines.push(back);   // skip lines that duplicate the +q lines
+function trace(start, cs, sign) {
+  const pts = [start];
+  let r = start;
+  for (let s = 0; s < 800; s++) {
+    const [ux, uy] = field(r, cs);
+    r = [r[0] + sign * h * ux, r[1] + sign * h * uy];
+    pts.push(r);
+    const out = r[0] < 0 || r[0] > W || r[1] < 0 || r[1] > H;
+    const hit = cs.some(c => Math.hypot(r[0] - c.at[0], r[1] - c.at[1]) < 0.15);
+    if (out || hit) break;
+  }
+  return sign < 0 ? pts.reverse() : pts;
 }
 
 export default function () {
+  const steps = [
+    { name: 'Positive charge alone', src: P, cs: [P], sign: 1, text: 'Lines leave the positive charge and point **away** from it. Arrows show the direction.' },
+    { name: 'Negative charge alone', src: N, cs: [N], sign: -1, text: 'Lines point **toward** the negative charge, so the arrows point inward.' },
+    { name: 'Equal pair', src: P, cs: [P, N], sign: 1, text: 'Each line starts on $+q$ and ends on $-q$. Lines that do not reach $-q$ leave the frame.' },
+  ];
   return (
-    <Diagram width={6} height={4}>
-      {lines.map((L, i) => {
-        const p = L.pts[Math.floor(L.pts.length / 2)], u = unit(p);
+    <Figure
+      steps={steps}
+      heading={s => s.name}
+      caption={s => s.text}
+      render={s => {
+        const lines = [];
+        for (let k = 0; k < 8; k++) {
+          const a = k * Math.PI / 4;
+          lines.push(trace([s.src.at[0] + 0.3 * Math.cos(a), s.src.at[1] + 0.3 * Math.sin(a)], s.cs, s.sign));
+        }
         return (
-          <>
-            <Shape key={i} pts={L.pts} />
-            <Vector key={`a${i}`} from={p} to={[p[0] + 0.3 * u[0], p[1] + 0.3 * u[1]]} />
-          </>
+          <Diagram width={W} height={H}>
+            {lines.map((pts, k) => {
+              const m = Math.floor(pts.length / 2);
+              return (
+                <>
+                  <Shape id={`line${k}`} pts={pts} />
+                  {m + 6 < pts.length && <Vector id={`arrow${k}`} from={pts[m]} to={pts[m + 6]} />}
+                </>
+              );
+            })}
+            {s.cs.includes(P) && <Circle id="pos" at={P.at} r={0.25} group="Positive charge" />}
+            {s.cs.includes(P) && <Label id="pos-label" at={[P.at[0], P.at[1] + 0.5]} text="$+q$" group="Positive charge" />}
+            {s.cs.includes(N) && <Circle id="neg" at={N.at} r={0.25} group="Negative charge" />}
+            {s.cs.includes(N) && <Label id="neg-label" at={[N.at[0], N.at[1] + 0.5]} text="$-q$" group="Negative charge" />}
+          </Diagram>
         );
-      })}
-      <Circle at={Q[0].at} r={0.2} group="positive charge" label="+" />
-      <Circle at={Q[1].at} r={0.2} group="negative charge" label="−" />
-    </Diagram>
+      }}
+    />
   );
 }
 ```
 
-- Lines start on the positive charge and end on the negative charge, or leave the box. Arrows show the direction a positive test charge would move.
-- Equal sizes give equal numbers of start points: 8 per charge. The lines from −q that would end on +q are the same lines as those from +q, so they are not drawn twice.
-- Lines never cross. They are densest near each charge, where the field is strongest.
-- The direction follows the total field, the sum of both Coulomb fields:
+The number of lines is proportional to the charge, so equal charges get equal numbers. Lines that leave the frame still return to $-q$ outside it.
 
-$$\vec E = \sum_i \frac{q_i(\vec r-\vec r_i)}{|\vec r-\vec r_i|^3}$$
-
-Not shown: the field strength scale. The lines show direction and density only.
+Not checked: I did not render the figure, and I assumed `Diagram` coordinates start at (0, 0) at the lower left. The curves are traced numerically with a fixed step, so they are approximate.

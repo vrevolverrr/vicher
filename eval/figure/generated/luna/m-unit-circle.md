@@ -1,33 +1,44 @@
-On the unit circle, the point at angle $\theta$ has coordinates $(\cos\theta,\sin\theta)$. The horizontal and vertical sides of the triangle show those components; their signs indicate direction.
+On the unit circle, the point at angle $\theta$ has horizontal coordinate $\cos\theta$ and vertical coordinate $\sin\theta$. The colored segments show those signed coordinate lengths.
 
-For example, at $\theta=60^\circ$, the horizontal component is $\cos\theta=0.5$ and the vertical component is $\sin\theta\approx0.87$.
+$$
+(\cos\theta,\ \sin\theta)
+$$
 
 ```figure
 export const params = {
-  theta: { label: 'θ', min: 0, max: 360, step: 5, value: 60, unit: '°' }
+  theta: { label: 'Angle θ', min: 0, max: 360, step: 1, value: 45, unit: '°' }
 };
 
 export default function ({ theta }) {
-  const radians = theta * Math.PI / 180;
-  const x = Math.cos(radians);
-  const y = Math.sin(radians);
-  const arc = Array.from({ length: Math.max(2, Math.ceil(theta / 5) + 1) }, (_, i) => {
-    const a = radians * i / Math.max(1, Math.ceil(theta / 5));
-    return [0.38 * Math.cos(a), 0.38 * Math.sin(a)];
+  const rad = theta * Math.PI / 180;
+  const x = Math.cos(rad);
+  const y = Math.sin(rad);
+  const circle = Array.from({ length: 97 }, (_, i) => {
+    const a = 2 * Math.PI * i / 96;
+    return [Math.cos(a), Math.sin(a)];
+  });
+  const arc = Array.from({ length: 25 }, (_, i) => {
+    const a = rad * i / 24;
+    return [0.24 * Math.cos(a), 0.24 * Math.sin(a)];
   });
 
   return (
-    <Diagram width={3} height={3}>
-      <Circle id="circle" at={[0, 0]} r={1} />
-      <Segment id="x-axis" from={[-1.3, 0]} to={[1.3, 0]} />
-      <Segment id="y-axis" from={[0, -1.3]} to={[0, 1.3]} />
-      <Shape id="angle-arc" pts={arc} />
-      <Segment id="radius" from={[0, 0]} to={[x, y]} />
-      <Segment id="cos-length" from={[0, 0]} to={[x, 0]} label="$\\cos\\theta$" />
-      <Segment id="sin-length" from={[x, 0]} to={[x, y]} label="$\\sin\\theta$" />
-      <Points id="point" pts={[[x, y]]} label={`(${x.toFixed(2)}, ${y.toFixed(2)})`} />
-      <Label id="theta-label" at={[0.53 * Math.cos(radians / 2), 0.53 * Math.sin(radians / 2)]} text="$\\theta$" />
-    </Diagram>
+    <Row gap="lg" align="center">
+      <Diagram width={2.8} height={2.8}>
+        <Shape pts={circle} closed label="unit circle" />
+        <Shape pts={[[-1.2, 0], [1.2, 0]]} label="x" />
+        <Shape pts={[[0, -1.2], [0, 1.2]]} label="y" />
+        <Shape pts={arc} label="θ" />
+        <Segment from={[0, 0]} to={[x, y]} label="radius 1" />
+        <Segment from={[0, 0]} to={[x, 0]} label="cos θ" group="cos" />
+        <Segment from={[x, 0]} to={[x, y]} label="sin θ" group="sin" />
+        <Points pts={[[x, y], [x, 0]]} />
+      </Diagram>
+      <Column gap="sm">
+        <Node label={x.toFixed(3)} sub="cos θ" group="cos" />
+        <Node label={y.toFixed(3)} sub="sin θ" group="sin" />
+      </Column>
+    </Row>
   );
 }
 ```

@@ -1,54 +1,47 @@
-```figure
-export const params = {
-  angle: { label: 'Launch angle', min: 1, max: 89, step: 1, value: 45, unit: '°' },
-};
+Drag the **Launch angle** slider. The plot marks the range R, the max height H, and the flight time T for a launch at 20 m/s.
 
-const v = 20;   // launch speed, m/s
-const g = 9.8;  // gravity, m/s²
+```figure
+export const params = { angle: { label: 'Launch angle', min: 5, max: 85, step: 5, value: 45, unit: '°' } };
 
 export default function ({ angle }) {
+  const g = 9.8;                       // m/s², gravity
+  const v = 20;                        // m/s, launch speed
   const th = angle * Math.PI / 180;
   const vx = v * Math.cos(th);
   const vy = v * Math.sin(th);
-  const T = 2 * vy / g;        // flight time
-  const R = vx * T;            // range
-  const H = vy * vy / (2 * g); // maximum height
-
-  const pts = [];
-  for (let i = 0; i <= 80; i++) {
-    const t = T * i / 80;
-    pts.push([vx * t, vy * t - g * t * t / 2]);
-  }
+  const T = 2 * vy / g;                // flight time
+  const R = vx * T;                    // range on flat ground
+  const H = vy * vy / (2 * g);         // max height
+  const xa = R / 2;                    // x where the peak occurs
+  const traj = x => x * Math.tan(th) - g * x * x / (2 * vx * vx);
 
   return (
-    <Row gap="lg" align="center">
-      <Plot id="plot" x={[0, 45]} y={[0, 25]} xLabel="x (m)" yLabel="y (m)" equal>
-        <Shape id="path" pts={pts} />
-        <Segment id="range" from={[0, 0]} to={[R, 0]} label={`R = ${R.toFixed(1)} m`} />
-        <Segment id="height" from={[R / 2, 0]} to={[R / 2, H]} label={`H = ${H.toFixed(1)} m`} />
-        <Points id="apex" pts={[[R / 2, H]]} />
-        <Points id="land" pts={[[R, 0]]} />
+    <Column gap="md">
+      <Plot id="plot" x={[0, 45]} y={[0, 25]} xLabel="$x$ (m)" yLabel="$y$ (m)" equal>
+        <Fn id="path" f={traj} from={0} to={R} />
+        <Segment id="ground" from={[0, 0]} to={[R, 0]} state="active" />
+        <Segment id="height" from={[xa, 0]} to={[xa, H]} state="done" />
+        <Points id="land" pts={[[R, 0]]} label={`$R = ${R.toFixed(1)}$ m`} />
+        <Points id="apex" pts={[[xa, H]]} label={`$H = ${H.toFixed(1)}$ m`} />
       </Plot>
-      <Column gap="md">
-        <Node id="R" label={`${R.toFixed(2)} m`} sub="range" />
-        <Node id="H" label={`${H.toFixed(2)} m`} sub="maximum height" />
-        <Node id="T" label={`${T.toFixed(2)} s`} sub="flight time" />
-      </Column>
-    </Row>
+      <Row gap="md">
+        <Node id="n-range" label={`${R.toFixed(1)} m`} sub="Range R" />
+        <Node id="n-height" label={`${H.toFixed(1)} m`} sub="Max height H" />
+        <Node id="n-time" label={`${T.toFixed(2)} s`} sub="Flight time T" />
+      </Row>
+    </Column>
   );
 }
 ```
 
-Drag the slider to change the angle. The path, range R, and maximum height H update.
+At 45° the range is 40.8 m and the max height is 10.2 m. The range is largest at 45°.
 
-Formulas, with $v = 20$ m/s and $g = 9.8$ m/s² (no air drag):
+Formulas for flat ground, launch from ground level, no air drag, $g = 9.8$ m/s²:
 
-$$T = \frac{2v\sin\theta}{g}$$
+$$R = \frac{v^2 \sin 2\theta}{g}$$
 
-$$R = \frac{v^2\sin 2\theta}{g}$$
+$$H = \frac{v^2 \sin^2 \theta}{2g}$$
 
-$$H = \frac{v^2\sin^2\theta}{2g}$$
+Here $v$ is the launch speed and $\theta$ is the launch angle.
 
-Here $T$ is flight time in seconds, $\theta$ is the launch angle, and $R$ and $H$ are in metres. At $\theta = 45°$: $R = 400 \times 1 / 9.8 = 40.8$ m and $H = 400 \times 0.5 / 19.6 = 10.2$ m.
-
-Not done: drag, wind, and launch from a height above the ground. Not checked: the figure was not rendered in the app here, so confirm the layout once in the pane.
+Skipped: air drag, a launch height above ground, and a speed slider (fixed at 20 m/s as requested).

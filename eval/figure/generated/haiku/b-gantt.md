@@ -1,7 +1,7 @@
-Project length is **14 days**. Critical path: **A → C → E → F → G → H**.
+**Critical path: A → C → E → F → G → H. Project length: 14 days.**
 
-| Task | Dur (d) | Depends on | ES | EF | LS | LF | Float |
-|------|---------|------------|----|----|----|----|-------|
+| Activity | Duration | Predecessor | ES | EF | LS | LF | Float |
+|---|---|---|---|---|---|---|---|
 | A | 3 | none | 0 | 3 | 0 | 3 | 0 |
 | B | 2 | A | 3 | 5 | 6 | 8 | 3 |
 | C | 4 | A | 3 | 7 | 3 | 7 | 0 |
@@ -11,14 +11,20 @@ Project length is **14 days**. Critical path: **A → C → E → F → G → H*
 | G | 2 | F | 11 | 13 | 11 | 13 | 0 |
 | H | 1 | G | 13 | 14 | 13 | 14 | 0 |
 
-B and D can slip 3 days without moving the finish. A slip on any critical task moves the finish.
+ES is the latest EF of the predecessors. LS is LF minus duration. Float is LS minus ES.
+
+B and D share 3 days of float. Together they can slip 3 days without moving the finish.
 
 ```mermaid
 flowchart LR
-  A["A (3d)"] --> C["C (4d)"] --> E["E (3d)"] --> F["F (1d)"] --> G["G (2d)"] --> H["H (1d)"]
-  A --> B["B (2d)"] --> D["D (2d)"] --> F
-  classDef crit fill:#f88,stroke:#900,stroke-width:2px
-  class A,C,E,F,G,H crit
+  A["A (3)"] ==> C["C (4)"]
+  A --> B["B (2)"]
+  B --> D["D (2)"]
+  C ==> E["E (3)"]
+  D --> F["F (1)"]
+  E ==> F
+  F ==> G["G (2)"]
+  G ==> H["H (1)"]
 ```
 
-Not checked: calendar dates, weekends, and resource limits. Assumes finish-to-start links with no lag.
+Not checked: resource limits, lags, and working days versus calendar days. This assumes finish-to-start links only.

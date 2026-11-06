@@ -1,53 +1,52 @@
-**Gradient descent** repeatedly moves downhill by subtracting a fraction of the function’s gradient. The gradient points uphill, and the learning rate $\eta$ sets the step size.
-
-For this function, the gradient gives the direction of steepest increase:
+Gradient descent repeatedly moves opposite the gradient, which points uphill. For $f(x,y)=x^2+3y^2$, the gradient is $(2x,6y)$, so the update rule is
 
 $$
-\nabla f(x,y) = (2x, 6y)
+\begin{aligned}
+x_{\text{new}} &= x - 2\eta x \\
+y_{\text{new}} &= y - 6\eta y
+\end{aligned}
 $$
 
-Gradient descent updates both coordinates by subtracting the learning rate times the corresponding gradient component:
-
-$$
-x_{\text{next}} = x - 2\eta x,\qquad
-y_{\text{next}} = y - 6\eta y
-$$
-
-Starting at $(2.5, 1.5)$ with $\eta=0.1$, the gradient is $(5,9)$. The first step is $(2.5-0.1\cdot5,\;1.5-0.1\cdot9)=(2,0.6)$. The function value falls from $13$ to $5.08$. The figure lets you adjust $\eta$ and step through the path. For this function, rates below $1/3$ converge; rates closer to that limit can make the path zigzag.
+Here $\eta$ is the learning rate: it controls the size of each step. Starting at $(2.5,1.5)$, the gradient is $(5,9)$. With $\eta=0.1$, the next point is $(2,0.6)$, where $f=5.08$; the starting value was $13$. The figure shows the path on the bowl. Change the learning rate with the slider to see how it affects the steps. For this function, rates below $1/3$ converge toward the minimum at $(0,0)$.
 
 ```figure
 export const params = {
-  eta: { label: 'Learning rate', min: 0.01, max: 0.32, step: 0.01, value: 0.1 }
+  rate: { label: 'Learning rate', min: 0.01, max: 0.30, step: 0.01, value: 0.10 }
 };
 
-export default function ({ eta }) {
-  const path = [[2.5, 1.5, 13]];
+export default function ({ rate }) {
+  const steps = [];
   let x = 2.5;
   let y = 1.5;
+  let path = [[x, y, x * x + 3 * y * y]];
+
+  steps.push({
+    x, y, path,
+    text: `Start at $(${x.toFixed(3)}, ${y.toFixed(3)})$.`
+  });
 
   for (let i = 0; i < 8; i++) {
-    x = x - eta * 2 * x;
-    y = y - eta * 6 * y;
-    path.push([x, y, x * x + 3 * y * y]);
+    x = x - rate * 2 * x;
+    y = y - rate * 6 * y;
+    path = [...path, [x, y, x * x + 3 * y * y]];
+    steps.push({
+      x, y, path,
+      text: `Step ${i + 1}: $(x,y)=(${x.toFixed(3)}, ${y.toFixed(3)})$, with $f=${(x * x + 3 * y * y).toFixed(3)}$.`
+    });
   }
 
-  const steps = path.map((point, i) => ({
-    path: path.slice(0, i + 1),
-    current: point,
-    text: i === 0
-      ? `Start at $(2.5, 1.5)$, where $f = 13$.`
-      : `After ${i} steps: $(x, y) \\approx (${point[0].toFixed(3)}, ${point[1].toFixed(3)})$, with $f \\approx ${point[2].toFixed(3)}$.`
-  }));
-
   return (
-    <Figure steps={steps} caption={step => step.text} render={step => (
-      <Plot id="bowl" x={[-2.7, 2.7]} y={[-1.7, 1.7]} z={[0, 20]}
-        xLabel="x" yLabel="y" zLabel="f(x, y)">
-        <Fn id="surface" f={(x, y) => x * x + 3 * y * y} state="dim" />
-        <Shape id="path" pts={step.path} />
-        <Points id="current" pts={[step.current]} label="current point" />
-      </Plot>
-    )} />
+    <Figure
+      steps={steps}
+      caption={step => step.text}
+      render={step => (
+        <Plot x={[-3, 3]} y={[-2, 2]} z={[0, 32]} xLabel="x" yLabel="y" zLabel="f(x,y)">
+          <Fn id="bowl" f={(x, y) => x * x + 3 * y * y} />
+          <Shape id="trail" pts={step.path} />
+          <Points id="current" pts={[[step.x, step.y, step.x * step.x + 3 * step.y * step.y]]} />
+        </Plot>
+      )}
+    />
   );
 }
 ```

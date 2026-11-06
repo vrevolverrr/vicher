@@ -1,24 +1,26 @@
-$A \cap B^{c}$ means the part that is in $A$ and not in $B$.
-
 ```figure
-const r = 1;
-const h = Math.sqrt(3) / 2;
-const arc = (cx, start, end, count) =>
-  Array.from({ length: count + 1 }, (_, i) => {
-    const a = (start + (end - start) * i / count) * Math.PI / 180;
-    return [cx + r * Math.cos(a), r * Math.sin(a)];
-  });
+const a = [2.5, 2];
+const b = [4, 2];
+const r = 1.4;
+const angle = Math.acos((b[0] - a[0]) / (2 * r));
+const points = [];
+
+for (let i = 0; i <= 40; i++) {
+  const t = angle + (2 * Math.PI - 2 * angle) * i / 40;
+  points.push([a[0] + r * Math.cos(t), a[1] + r * Math.sin(t)]);
+}
+for (let i = 0; i <= 40; i++) {
+  const t = Math.PI - angle - (Math.PI - 2 * angle) * i / 40;
+  points.push([b[0] + r * Math.cos(t), b[1] + r * Math.sin(t)]);
+}
 
 export default function () {
-  const crescent = [
-    ...arc(-0.5, 60, 300, 48),
-    ...arc(0.5, 240, 120, 24).slice(1)
-  ];
   return (
-    <Diagram width={3.5} height={2.5}>
-      <Shape pts={crescent} closed label="$A \cap B^c$" />
-      <Circle at={[-0.5, 0]} r={1} label="A" />
-      <Circle at={[0.5, 0]} r={1} label="B" />
+    <Diagram width={7} height={4}>
+      <Shape pts={points} closed label="A ∩ Bᶜ" group="A only" />
+      <Circle at={a} r={r} label="A" />
+      <Circle at={b} r={r} label="B" />
+      <Label at={[0.5, 3.45]} text="A ∩ Bᶜ" />
     </Diagram>
   );
 }

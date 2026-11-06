@@ -1,65 +1,49 @@
-I’ll show each gradient descent update on the surface, with a learning-rate control and the iterates kept on the surface.
-
-**Gradient descent** repeatedly moves opposite the surface’s steepest uphill direction, aiming for its minimum. Here the surface is lowest at $(0,0,0)$. The gradient gives the uphill direction at each point; the learning rate controls how far each step moves.
-
-For $f(x,y)=x^2+3y^2$, the update rule is:
+Gradient descent repeatedly moves opposite the surface’s steepest uphill direction. Here the gradient is $(2x,6y)$, so each step updates both coordinates:
 
 $$
-(x_{k+1},y_{k+1})=(x_k,y_k)-\eta(2x_k,6y_k)
+(x_{\text{new}},y_{\text{new}})=(x-2\eta x,\ y-6\eta y)
 $$
 
-Here $\eta$ is the learning rate and $(x_k,y_k)$ is the current point. Starting at $(2.5,1.5)$ with $\eta=0.1$, the gradient is $(5,9)$, so the next point is $(2,0.6)$. Its height is $2^2+3(0.6)^2=5.08$. Use the slider and step controls to follow the iterates on the surface.
+Here $\eta$ is the learning rate. Starting at $(2.5,1.5)$ with $\eta=0.15$, the gradient is $(5,9)$, so the next point is $(1.75,0.15)$. The figure traces the iterates on $z=x^2+3y^2$; use the slider to change the learning rate.
 
 ```figure
 export const params = {
-  eta: { label: 'Learning rate', min: 0.01, max: 0.32, step: 0.01, value: 0.1 }
+  eta: { label: 'Learning rate', min: 0.02, max: 0.30, step: 0.01, value: 0.15 }
 };
 
 export default function ({ eta }) {
-  const steps = [];
   let x = 2.5;
   let y = 1.5;
+  const path = [[x, y, x * x + 3 * y * y]];
+  const steps = [{ path: [...path], x, y, z: path[0][2], text: `Start at $(2.5, 1.5)$; $z=${path[0][2].toFixed(3)}$.` }];
 
-  for (let k = 0; k <= 8; k++) {
-    const points = [];
-    let px = 2.5;
-    let py = 1.5;
-
-    for (let j = 0; j <= k; j++) {
-      points.push([px, py, px * px + 3 * py * py]);
-      px = px * (1 - 2 * eta);
-      py = py * (1 - 6 * eta);
-    }
-
+  for (let k = 1; k <= 8; k++) {
+    x = x - eta * 2 * x;
+    y = y - eta * 6 * y;
+    const z = x * x + 3 * y * y;
+    path.push([x, y, z]);
     steps.push({
-      points,
-      text: `Step ${k}: (${
-        x.toFixed(3)
-      }, ${
-        y.toFixed(3)
-      }), height ${
-        (x * x + 3 * y * y).toFixed(3)
-      }`
+      path: [...path],
+      x, y, z,
+      text: `Step ${k}: $(x,y)=(${x.toFixed(3)}, ${y.toFixed(3)})$, so $z=${z.toFixed(3)}$.`
     });
-
-    x = x * (1 - 2 * eta);
-    y = y * (1 - 6 * eta);
   }
 
   return (
     <Figure
       steps={steps}
       caption={step => step.text}
+      title="Gradient descent on an elliptic bowl"
       render={step => (
         <Plot
-          id="surface-plot"
-          x={[-3, 3]}
-          y={[-2, 2]}
-          z={[0, 16]}
+          id="bowl"
+          x={[-0.2, 2.8]}
+          y={[-1.7, 1.7]}
+          z={[0, 14]}
           xLabel="x"
           yLabel="y"
           zLabel="z"
-          equal
+          view={{ azimuth: 35, elevation: 28 }}
         >
           <Fn
             id="surface"
@@ -68,22 +52,16 @@ export default function ({ eta }) {
             state="dim"
           />
           <Shape
-            id="descent-path"
-            pts={step.points}
-            label="Iterates"
+            id="path"
+            pts={step.path}
             group="iterates"
           />
           <Points
-            id="iterate-points"
-            pts={step.points}
-            label="Iterates"
-            group="iterates"
-          />
-          <Points
-            id="minimum"
-            pts={[[0, 0, 0]]}
-            label="Minimum"
-            group="minimum"
+            id="current"
+            pts={[[step.x, step.y, step.z]]}
+            label="Current iterate"
+            group="iterate"
+            state="active"
           />
         </Plot>
       )}

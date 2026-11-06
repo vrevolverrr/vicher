@@ -1,48 +1,57 @@
 ```figure
-export const params = { angle: { label: 'Incline angle θ', min: 0, max: 60, step: 1, value: 30, unit: '°' } };
-
-const m = 5, g = 9.8;            // block mass (kg), gravity (m/s²)
-const W = m * g;                 // weight (N)
-const k = 0.02;                  // drawn arrow length per newton
-const L = 4.5, a = 1.0, s = 2.2; // slope length, block side, block position up the slope
-const O = [0.8, 0.8];            // foot of the slope
-
-const add = (p, q, k2 = 1) => [p[0] + k2 * q[0], p[1] + k2 * q[1]];
+export const params = {
+  angle: { label: 'Incline angle', min: 5, max: 60, step: 1, value: 30, unit: '°' },
+};
 
 export default function ({ angle }) {
   const th = angle * Math.PI / 180;
-  const t = [Math.cos(th), Math.sin(th)];     // up the slope
-  const n = [-Math.sin(th), Math.cos(th)];    // out of the surface
-  const top = add(O, t, L);
-  const base = [top[0], O[1]];
-  const P = add(O, t, s);                     // surface point under the block
-  const c = add(P, n, a / 2);                 // block centre
-  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]]
-    .map(([i, j]) => add(add(c, t, i * a / 2), n, j * a / 2));
-  const N = W * Math.cos(th);                 // normal force
-  const f = W * Math.sin(th);                 // static friction, up the slope
-  const steps = [{ th: angle }];
+  const c = Math.cos(th), s = Math.sin(th);
+  const m = 5, g = 9.8;                 // mass (kg), gravity (m/s²)
+  const k = 0.06;                       // drawing units per newton
+  const wt = m * g;                     // weight (N)
+  const nf = wt * c;                    // normal force, block at rest (N)
+  const ff = wt * s;                    // static friction, block at rest (N)
+  const A = [2, 1], B = [2 + 10 * c, 1], C = [2 + 10 * c, 1 + 10 * s];  // ramp; θ sits at A
+  const u = [c, s], n = [-s, c];        // up the slope, out of the surface
+  const at = (p, a, d) => [p[0] + a * u[0] + d * n[0], p[1] + a * u[1] + d * n[1]];
+  const S = at(A, 5, 0);                // contact point on the slope
+  const b = 1.6, h = b / 2;             // block side
+  const cen = at(S, 0, h);              // centre of the block
+  const wTip = [cen[0], cen[1] - wt * k];
+  const nTip = [cen[0] + n[0] * nf * k, cen[1] + n[1] * nf * k];
+  const fTip = [cen[0] + u[0] * ff * k, cen[1] + u[1] * ff * k];
 
   return (
-    <Figure steps={steps} title="Block on a rough incline" caption={() => String.raw`Block of mass $m = 5$ kg at rest, $\theta = ${angle}^\circ$. Arrow lengths are proportional to force. Friction $f$ acts up the slope because gravity pulls the block down it.`} render={() => (
-      <Row gap="lg" align="center">
-        <Diagram id="fbd" width={6} height={5.5}>
-          <Shape id="ramp" pts={[O, top, base]} closed />
-          <Shape id="block" pts={corners} closed label="$m$" />
-          <Vector id="W" from={c} to={add(c, [0, -1], W * k)} label="$W$" />
-          <Vector id="N" from={c} to={add(c, n, N * k)} label="$N$" />
-          <Vector id="f" from={c} to={add(c, t, f * k)} label="$f$" />
-          <Angle id="theta" at={O} from={[O[0] + 1.2, O[1]]} to={top} label="$\theta$" />
-        </Diagram>
-        <Column gap="md">
-          <Node id="cardW" label={`${W.toFixed(1)} N`} sub="$W = mg$, weight, down" />
-          <Node id="cardN" label={`${N.toFixed(1)} N`} sub="$N = mg\cos\theta$, normal" />
-          <Node id="cardF" label={`${f.toFixed(1)} N`} sub="$f = mg\sin\theta$, friction" />
-        </Column>
-      </Row>
-    )} />
+    <Row gap="md" align="center">
+      <Diagram width={14} height={11}>
+        <Shape pts={[A, B, C]} closed />
+        <Segment from={[A[0] - 1, A[1]]} to={[B[0] + 1, A[1]]} />
+        <Shape pts={[at(S, -h, 0), at(S, h, 0), at(S, h, b), at(S, -h, b)]} closed state="dim" />
+        <Points pts={[cen]} />
+        <Vector from={cen} to={wTip} label="$mg$" />
+        <Vector from={cen} to={nTip} label="$N$" />
+        <Vector from={cen} to={fTip} label="$f_s$" />
+        <Angle at={A} from={B} to={C} label="$\theta$" />
+        <Label at={at(A, 7, -0.8)} text="rough" />
+      </Diagram>
+      <Column gap="sm">
+        <Node label={`${wt.toFixed(1)} N`} sub="weight, $mg$" />
+        <Node label={`${nf.toFixed(1)} N`} sub="normal, $N$" />
+        <Node label={`${ff.toFixed(1)} N`} sub="friction, $f_s$" />
+        <Tex tex="N = mg\cos\theta" />
+        <Tex tex="f_s = mg\sin\theta" />
+      </Column>
+    </Row>
   );
 }
 ```
 
-Drag the θ slider to change the angle. Not modeled: the friction coefficient μs and sliding. The figure assumes the block stays at rest.
+Drag the slider to change $\theta$. The arrows are to scale with each other.
+
+- Weight $mg$ acts straight down.
+- Normal $N$ acts perpendicular to the surface.
+- Friction $f_s$ acts up the slope and stops the block from sliding.
+
+The values use $m = 5$ kg and $g = 9.8$ m/s². The friction formula holds only while the block stays at rest, that is while $\tan\theta \le \mu_s$. Past that angle the block slides, and friction becomes kinetic.
+
+Not checked: the figure was not rendered in this session. The coefficient of friction is not in the figure, so the slip angle is not shown.

@@ -1,33 +1,33 @@
-The block’s weight points straight down, the normal force points perpendicular to the incline, and friction points up the slope, opposing the block’s tendency to slide down. The arrow lengths are illustrative. Change the angle with the slider.
+Gravity points down, the normal force is perpendicular to the incline, and friction points up the incline when the block tends to slide down. The force lengths are schematic.
 
 ```figure
 export const params = {
-  angle: { label: 'Incline angle', min: 0, max: 60, step: 1, value: 30, unit: '°' }
+  angle: { label: 'Incline angle', min: 10, max: 60, step: 1, value: 30, unit: '°' }
 };
 
 export default function ({ angle }) {
-  const rad = angle * Math.PI / 180;
-  const t = [Math.cos(rad), Math.sin(rad)];
-  const n = [-Math.sin(rad), Math.cos(rad)];
-  const origin = [0.5, 0.4];
-  const add = (p, a, k = 1) => [p[0] + a[0] * k, p[1] + a[1] * k];
-  const along = (p, d, s) => add(p, d, s);
-
-  const foot = along(origin, t, 2.3);
-  const far = along(foot, t, 1.5);
-  const baseA = add(foot, n, 0.12);
-  const baseB = add(far, n, 0.12);
-  const topB = add(baseB, n, 0.9);
-  const topA = add(baseA, n, 0.9);
-  const center = add(add(baseA, t, 0.75), n, 0.45);
+  const radians = angle * Math.PI / 180;
+  const u = [Math.cos(radians), Math.sin(radians)];
+  const n = [-Math.sin(radians), Math.cos(radians)];
+  const base = [0.7, 0.7];
+  const contact = [base[0] + 2.5 * u[0], base[1] + 2.5 * u[1]];
+  const center = [contact[0] + 0.4 * n[0], contact[1] + 0.4 * n[1]];
+  const point = (a, b, c) => [a[0] + b * c[0], a[1] + b * c[1]];
+  const block = [
+    point(contact, -0.55, u),
+    point(contact, 0.55, u),
+    point(point(contact, 0.55, u), 0.8, n),
+    point(point(contact, -0.55, u), 0.8, n)
+  ];
 
   return (
-    <Diagram width={10} height={8}>
-      <Segment from={origin} to={along(origin, t, 7.5)} label="Rough incline" />
-      <Shape pts={[baseA, baseB, topB, topA]} closed label="Block" />
-      <Vector from={center} to= {[center[0], center[1] - 1.8]} label="$mg$" />
-      <Vector from={center} to={add(center, n, 1.6)} label="$N$" />
-      <Vector from={center} to={add(center, t, 1.3)} label="$f$" />
+    <Diagram width={8} height={7.5}>
+      <Segment from={base} to={[base[0] + 5.5 * u[0], base[1] + 5.5 * u[1]]} label="incline" group="surface" />
+      <Shape pts={block} closed label="block" group="block" />
+      <Vector from={center} to={[center[0], center[1] - 1.6]} label="$mg$" group="gravity" />
+      <Vector from={center} to:={[center[0] + 1.4 * n[0], center[1] + 1.4 * n[1]]} label="$N$" group="normal" />
+      <Vector from={center} to={[center[0] - 1.2 * u[0], center[1] - 1.2 * u[1]]} label="$f$" group="friction" />
+      <Angle at={base} from={[base[0] + 1, base[1]]} to={[base[0] + u[0], base[1] + u[1]]} label={`${angle}°`} />
     </Diagram>
   );
 }

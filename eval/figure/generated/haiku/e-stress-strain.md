@@ -1,68 +1,59 @@
-```figure
-const KEY = [
-  { id: 'A', e: 0.00125, s: 250 },
-  { id: 'B', e: 0.0018, s: 300 },
-  { id: 'C', e: 0.002, s: 250 },
-  { id: 'D', e: 0.012, s: 250 },
-  { id: 'E', e: 0.15, s: 450 },
-  { id: 'F', e: 0.22, s: 400 },
-];
+A stress-strain curve shows how hard a steel bar pulls back as you stretch it, from the first load to the break. You get it from a tensile test: pull a standard bar and record the force and the length.
 
-const curve = [[0, 0], [0.00125, 250], [0.0018, 300], [0.002, 250], [0.012, 250]];
-for (let i = 1; i <= 40; i++) {
-  const t = i / 40;
-  curve.push([0.012 + 0.138 * t, 250 + 200 * (1 - Math.exp(-3 * t)) / (1 - Math.exp(-3))]);
-}
-for (let i = 1; i <= 20; i++) {
-  const d = 0.07 * i / 20;
-  curve.push([0.15 + d, 450 - 50 * (d / 0.07) ** 2]);
-}
+The curve plots two ratios:
+
+$$\sigma = \frac{F}{A_0}$$
+
+$$\varepsilon = \frac{\Delta L}{L_0}$$
+
+Here $\sigma$ is stress in MPa (N/mm²), $F$ is force in N, and $A_0$ is the original cross-section in mm². $\varepsilon$ is strain, the extension $\Delta L$ over the original length $L_0$. It has no unit, but is often shown as a percentage.
+
+In the elastic part of the curve, stress and strain follow Hooke's law:
+
+$$\sigma = E\varepsilon$$
+
+$E$ is Young's modulus, the stiffness of the steel. For mild steel, $E \approx 200$ GPa.
+
+```figure
+const pts = [[0, 0], [0.125, 250], [0.15, 280], [0.2, 250], [2, 250]];
+const hard = Array.from({ length: 27 }, (_, i) => 2 + i * 0.5).map(x => [x, 400 - 150 * ((15 - x) / 13) ** 2]);
+const neck = Array.from({ length: 15 }, (_, i) => 15 + (i + 1) * 0.5).map(x => [x, 400 - 70 * ((x - 15) / 7) ** 2]);
+const curve = [...pts, ...hard, ...neck];
+const key = [[0.125, 250], [0.15, 280], [0.2, 250], [2, 250], [15, 400], [22, 330]];
 
 export default function () {
   return (
-    <Row gap="lg" align="start">
-      <Panel title="Full curve">
-        <Plot id="full" x={[0, 0.25]} y={[0, 500]} xLabel="Strain ε" yLabel="Stress σ (MPa)">
-          <Shape id="curve" pts={curve} />
-          <Points id="pts-full" pts={KEY.map(k => [k.e, k.s])} />
-          <Label id="lbl-D" at={[0.012, 215]} text="D" />
-          <Label id="lbl-E" at={[0.085, 485]} text="E  UTS, 450 MPa" />
-          <Label id="lbl-F" at={[0.19, 360]} text="F  fracture" />
-        </Plot>
-      </Panel>
-      <Panel title="Zoom: elastic and yield region">
-        <Plot id="zoom" x={[0, 0.025]} y={[0, 350]} xLabel="Strain ε" yLabel="Stress σ (MPa)">
-          <Shape id="curve-z" pts={curve.filter(p => p[0] <= 0.025)} />
-          <Points id="pts-zoom" pts={KEY.map(k => [k.e, k.s])} />
-          <Label id="z-A" at={[0.0006, 265]} text="A" />
-          <Label id="z-B" at={[0.0014, 322]} text="B" />
-          <Label id="z-C" at={[0.0024, 240]} text="C" />
-          <Label id="z-lB" at={[0.003, 335]} text="B  upper yield, 300 MPa" />
-          <Label id="z-lC" at={[0.003, 315]} text="C  lower yield, 250 MPa" />
-          <Label id="z-lA" at={[0.003, 295]} text="A  proportional limit, 250 MPa" />
-          <Label id="z-lD" at={[0.0125, 225]} text="D  hardening starts" />
-        </Plot>
-      </Panel>
-    </Row>
+    <Plot id="ss" x={[0, 25]} y={[0, 450]} xLabel="Strain $\varepsilon$ (%)" yLabel="Stress $\sigma$ (MPa)">
+      <Shape pts={curve} label="Mild steel" />
+      <Points pts={key} />
+      <Label at={[1.0, 300]} text="**1, 2, 3** at 0.1 to 0.2 %" />
+      <Label at={[0.6, 140]} text="Elastic: $\sigma = E\varepsilon$" />
+      <Label at={[2.3, 215]} text="**4** hardening starts" />
+      <Label at={[15, 420]} text="**5** UTS, 400 MPa" />
+      <Label at={[19, 350]} text="Necking" />
+      <Label at={[22, 305]} text="**6** fracture" />
+    </Plot>
   );
 }
 ```
 
-A stress-strain curve plots how hard a bar pulls back, the **stress** σ, against how far it stretches, the **strain** ε. Mild steel has a straight start, a flat yield, a climb, a neck, then a break.
-
-The straight start obeys Hooke's law, σ = Eε, where E is Young's modulus, the slope of the line from O to A:
-
-$$\sigma = E\,\varepsilon$$
-
-Worked example at point A: E = 250 / 0.00125 = 200 000 MPa = 200 GPa, the usual value for steel.
-
-| Point | Key point | Strain ε | Stress σ (MPa) | What happens |
+| # | Point | Strain (%) | Stress (MPa) | What happens |
 |---|---|---|---|---|
-| A | Proportional limit | 0.00125 | 250 | Stress and strain stop being proportional above this point. |
-| B | Upper yield point | 0.0018 | 300 | Yielding starts. Stress peaks. |
-| C | Lower yield point | 0.002 | 250 | Stress drops to a steady level. The yield plateau begins. |
-| D | Start of strain hardening | 0.012 | 250 | The steel resists more, and stress rises again. |
-| E | Ultimate tensile strength | 0.15 | 450 | Highest stress. Necking starts. |
-| F | Fracture | 0.22 | 400 | The bar breaks. |
+| 1 | Proportional limit | 0.125 | 250 | Hooke's law fails above this |
+| 2 | Upper yield point | 0.15 | 280 | Peak stress as yielding starts |
+| 3 | Lower yield point | 0.2 | 250 | Stress drops, then stays nearly flat |
+| 4 | Start of strain hardening | 2 | 250 | Plateau ends; stress rises again |
+| 5 | Ultimate tensile strength | 15 | 400 | Highest engineering stress |
+| 6 | Fracture | 22 | 330 | Bar breaks after necking |
 
-The elastic limit lies just above A, so this figure treats the two as one point. These are typical textbook values. Exact numbers vary by steel grade.
+Points 1 to 3 sit so close that they overlap on the plot. The elastic limit is also close to point 1, so treat them as one for this sketch.
+
+**Worked example.** A bar has $A_0 = 100$ mm² and $L_0 = 200$ mm. Load it to $F = 25$ kN.
+
+1. Stress: $\sigma = \dfrac{25\,000}{100} = 250$ MPa
+2. Strain: $\varepsilon = \dfrac{\sigma}{E} = \dfrac{250}{200\,000} = 0.00125$, which is 0.125 %
+3. Extension: $\Delta L = \varepsilon L_0 = 0.00125 \times 200 = 0.25$ mm
+
+This bar sits at point 1. Past point 1, the line bends and Hooke's law no longer holds.
+
+Not checked: how the labels sit in your viewer. The numbers are typical textbook values, not those of a specific steel grade.

@@ -1,6 +1,6 @@
-**Least-squares line: ŷ = 17/14 + (20/21)x ≈ 1.214 + 0.952x**
+**Least-squares line:** $\hat{y} = \frac{20}{21}x + \frac{17}{14} \approx 0.952x + 1.214$
 
-Sums: n = 8, x̄ = 4.5, ȳ = 5.5, Sₓₓ = 42, Sₓᵧ = 40. So the slope is b = Sₓᵧ / Sₓₓ = 40/42 = 20/21, and the intercept is a = ȳ − b·x̄ = 17/14.
+Sums: $\bar{x} = 4.5$, $\bar{y} = 5.5$, $S_{xx} = 42$, $S_{xy} = 40$. So slope $= 40/42$ and intercept $= 5.5 - (40/42)(4.5) = 17/14$.
 
 | x | y | ŷ | residual (y − ŷ) |
 |---|---|---|---|
@@ -13,28 +13,17 @@ Sums: n = 8, x̄ = 4.5, ȳ = 5.5, Sₓₓ = 42, Sₓᵧ = 40. So the slope is b 
 | 7 | 7 | 7.881 | −0.881 |
 | 8 | 9 | 8.833 | 0.167 |
 
-The residuals sum to 0. The sum of squared residuals is 82/21 ≈ 3.905.
+Residuals sum to 0. Sum of squared residuals is $82/21 \approx 3.905$. $R^2 \approx 0.907$.
 
-```figure
-const xs = [1, 2, 3, 4, 5, 6, 7, 8];
-const ys = [2, 3, 5, 4, 6, 8, 7, 9];
-const a = 17 / 14;
-const b = 20 / 21;
-const yhat = x => a + b * x;
-
-export default function () {
-  return (
-    <Plot id="plot" x={[0, 9]} y={[0, 10]} xLabel="x" yLabel="y">
-      <>
-        {xs.map((x, i) => (
-          <Segment id={`res-${x}`} from={[x, ys[i]]} to={[x, yhat(x)]} group="Residual" />
-        ))}
-      </>
-      <Points id="data" pts={xs.map((x, i) => [x, ys[i]])} group="Data" />
-      <Fn id="line" f={yhat} from={0} to={9} label="ŷ = 17/14 + (20/21)x" />
-    </Plot>
-  );
-}
+```mermaid
+xychart-beta
+    title "Data (bars) and least-squares line"
+    x-axis ["1", "2", "3", "4", "5", "6", "7", "8"]
+    y-axis "y" 0 --> 10
+    bar [2, 3, 5, 4, 6, 8, 7, 9]
+    line [2.17, 3.12, 4.07, 5.02, 5.98, 6.93, 7.88, 8.83]
 ```
 
-Computed by hand, not run in code. The residuals check out because they sum to 0.
+Largest residual is at x = 4 (−1.024), the point furthest below the line.
+
+Not checked: I did not run a script. Values were computed by hand and cross-checked (residuals sum to 0; SSE matches $\sum y^2 - a\sum y - b\sum xy$). The chart is a bar-and-line view, not a true scatter plot, because the renderer has no scatter type.

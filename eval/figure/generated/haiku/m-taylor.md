@@ -1,35 +1,58 @@
-A Taylor polynomial copies a curve near one point. Each term you add matches one more derivative of the curve at that point, so the copy follows the curve over a wider stretch. Step through the figure to see each odd power added.
+The Taylor polynomial of $\sin x$ at $0$ is a sum of odd powers of $x$. Each added term matches one more derivative of $\sin$ at $0$, so the polynomial stays close to the curve over a wider range.
+
+**Taylor polynomial.** The degree-$n$ Taylor polynomial of $f$ at $0$ is:
+
+$$P_n(x) = \sum_{k=0}^{n} \frac{f^{(k)}(0)}{k!}\,x^k$$
+
+Here $f^{(k)}(0)$ is the $k$th derivative of $f$ at $0$, and $k!$ is $k$ factorial. The derivatives of $\sin$ at $0$ repeat $0, 1, 0, -1$, so only odd powers survive. The degree-7 polynomial is:
+
+$$P_7(x) = x - \frac{x^3}{3!} + \frac{x^5}{5!} - \frac{x^7}{7!}$$
+
+**Example at $x = 1$**, where $\sin 1 = 0.841471$:
+
+| Degree | Last term added | $P(1)$ | Error |
+|---|---|---|---|
+| 1 | $x$ | 1 | 0.158529 |
+| 3 | $-\frac{x^3}{3!}$ | 0.833333 | 0.008138 |
+| 5 | $+\frac{x^5}{5!}$ | 0.841667 | 0.000196 |
+| 7 | $-\frac{x^7}{7!}$ | 0.841468 | 0.0000027 |
+
+**Where it stops working.** For a fixed degree, the error grows as $|x|$ grows. At $x = 3$, $P_7(3) = 0.0911$ misses $\sin 3 = 0.1411$ by $0.0500$. $P_{11}(3) = 0.14087$ misses by only $0.00025$.
+
+Use the step control to add terms, from degree 1 to degree 7:
 
 ```figure
-const fact = k => (k <= 1 ? 1 : k * fact(k - 1));
+const sinOf = x => Math.sin(x);
 
-// Taylor polynomial of sin x at 0, keeping every odd power up to x^n
-const P = (x, n) => {
-  let s = 0;
-  for (let k = 1; k <= n; k += 2) {
-    const sign = ((k - 1) / 2) % 2 === 0 ? 1 : -1;
-    s += sign * Math.pow(x, k) / fact(k);
+// Sum of the first m nonzero terms of the sine series.
+function P(m, x) {
+  let s = 0, term = x;
+  for (let j = 0; j < m; j++) {
+    s += term;
+    term = -term * x * x / ((2 * j + 2) * (2 * j + 3));
   }
   return s;
-};
+}
 
 export default function () {
-  const steps = [1, 3, 5, 7, 9].map(n => {
-    const p = P(1, n);
-    return { n, p, err: Math.abs(Math.sin(1) - p) };
+  const steps = [1, 2, 3, 4].map(m => {
+    const deg = 2 * m - 1;
+    const err = (Math.sin(1) - P(m, 1)).toPrecision(3);
+    return {
+      m,
+      deg,
+      text: String.raw`Degree $P_{${deg}}$ has ${m} term${m > 1 ? 's' : ''}. At $x=1$ the error is ${err}.`,
+    };
   });
   return (
     <Figure
       steps={steps}
-      heading={step => String.raw`Up to $x^{${step.n}}$`}
-      caption={step => String.raw`$P_{${step.n}}(1)=${step.p.toFixed(6)}$, so the error at $x=1$ is ${step.err.toPrecision(3)}.`}
+      caption={step => step.text}
       render={step => (
-        <Plot id="plot" x={[-4, 4]} y={[-2, 2]} xLabel="x" yLabel="y" equal>
-          <Fn id="sin" f={x => Math.sin(x)} label="$\sin x$" group="target" />
-          <Fn id="poly" f={x => P(x, step.n)} label={`$P_{${step.n}}(x)$`} group="approx" />
-          <Points id="pt-sin" pts={[[1, Math.sin(1)]]} group="target" />
-          <Points id="pt-poly" pts={[[1, step.p]]} group="approx" />
-          <Segment id="err" from={[1, step.p]} to={[1, Math.sin(1)]} group="error" />
+        <Plot id="plot" x={[-3.5, 3.5]} y={[-2, 2]} xLabel="$x$" yLabel="$y$">
+          <Fn id="sin" f={x => sinOf(x)} label="$\sin x$" />
+          <Fn id="poly" f={x => P(step.m, x)} label={String.raw`$P_{${step.deg}}(x)$`} />
+          <Points id="at1" pts={[[1, Math.sin(1)]]} />
         </Plot>
       )}
     />
@@ -37,21 +60,4 @@ export default function () {
 }
 ```
 
-**Definition.** The Taylor polynomial of degree $n$ of $f$ at $0$ sums $\frac{f^{(k)}(0)}{k!}x^k$ for $k=0$ to $n$. Here $f^{(k)}$ is the $k$-th derivative and $k!$ is $k$ factorial. For $\sin x$, the derivatives at $0$ are $0, 1, 0, -1, \dots$, so only odd powers remain, with signs $+, -, +, \dots$:
-
-$$P_{2m+1}(x)=x-\frac{x^{3}}{3!}+\frac{x^{5}}{5!}-\cdots+(-1)^{m}\frac{x^{2m+1}}{(2m+1)!}$$
-
-Here $P_{2m+1}$ has highest power $x^{2m+1}$, and $m$ counts the terms after $x$.
-
-**Worked example at $x=1$.** Here $\sin 1 = 0.841471$.
-
-- $P_1(1)=1$, error $0.159$.
-- $P_3(1)=1-\frac{1}{6}=0.833333$, error $0.00814$.
-- $P_5(1)=0.833333+\frac{1}{120}=0.841667$, error $0.000196$.
-- $P_7(1)=0.841667-\frac{1}{5040}=0.841468$, error $0.0000027$.
-
-Each error is roughly 20 to 70 times smaller than the one before. The vertical gap at $x=1$ in the figure is that error.
-
-**Where it stops working.** The fit is best near $0$. At $x=3$, $P_1(3)=3$ while $\sin 3 = 0.141$. Even $P_9(3)\approx 0.145$ is still $0.004$ away. Far from $0$, a fixed degree fails, so you need more terms.
-
-Not checked: the figure does not run here. I computed the numbers by hand, not in code.
+Not checked: I did not render the figure, and the table values are hand-computed to six digits.

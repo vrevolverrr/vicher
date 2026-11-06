@@ -1,48 +1,58 @@
+Group C has the highest median (25). Group A has the widest spread and one outlier, 40.
+
 ```figure
-const groups = [
-  { name: 'A', min: 12, q1: 16, med: 19, q3: 23.5, max: 25, out: [40] },
-  { name: 'B', min: 8, q1: 10.5, med: 14.5, q3: 15.5, max: 18, out: [] },
-  { name: 'C', min: 20, q1: 22, med: 25, q3: 28, max: 31, out: [] },
+const data = [
+  { name: 'Group A', xs: [12, 15, 17, 18, 20, 22, 25, 40] },
+  { name: 'Group B', xs: [8, 10, 11, 14, 15, 15, 16, 18] },
+  { name: 'Group C', xs: [20, 21, 23, 24, 26, 27, 29, 31] },
 ];
 
+const median = s => {
+  const n = s.length, m = n / 2;
+  return n % 2 ? s[(n - 1) / 2] : (s[m - 1] + s[m]) / 2;
+};
+
+// shortcut: quartile halves assume even n (true here, n = 8), add median-excluded halves for odd n
+const summary = xs => {
+  const s = [...xs].sort((a, b) => a - b), h = s.length / 2;
+  const q1 = median(s.slice(0, h)), q3 = median(s.slice(h));
+  const lo = q1 - 1.5 * (q3 - q1), hi = q3 + 1.5 * (q3 - q1);
+  const inside = s.filter(v => v >= lo && v <= hi);
+  return {
+    min: inside[0], q1, med: median(s), q3, max: inside[inside.length - 1],
+    out: s.filter(v => v < lo || v > hi),
+  };
+};
+
 export default function () {
+  const rows = data.map(d => ({ name: d.name, ...summary(d.xs) }));
   return (
-    <Figure
-      title="Box plots of groups A, B and C"
-      steps={[0]}
-      caption={() => 'Box spans Q1 to Q3. Line in box is the median. Whiskers reach the furthest value inside 1.5 IQR. Dots are outliers.'}
-      render={() => (
-        <Plot x={[0.4, 3.6]} y={[0, 44]} yLabel="Value" equal={false}>
-          {groups.map((g, i) => {
-            const x = i + 1;
-            const w = 0.25;
-            const cap = 0.12;
-            return (
-              <>
-                <Shape pts={[[x - w, g.q1], [x + w, g.q1], [x + w, g.q3], [x - w, g.q3]]} closed group={g.name} />
-                <Segment from={[x - w, g.med]} to={[x + w, g.med]} group={g.name} />
-                <Segment from={[x, g.q3]} to={[x, g.max]} group={g.name} />
-                <Segment from={[x, g.min]} to={[x, g.q1]} group={g.name} />
-                <Segment from={[x - cap, g.max]} to={[x + cap, g.max]} group={g.name} />
-                <Segment from={[x - cap, g.min]} to={[x + cap, g.min]} group={g.name} />
-                <Label at={[x, 2]} text={`**${g.name}**`} />
-                {g.out.map(v => <Points pts={[[x, v]]} group={g.name} />)}
-              </>
-            );
-          })}
-        </Plot>
-      )}
-    />
+    <Row gap="lg" align="center">
+      <Plot id="box" x={[0.4, 3.6]} y={[0, 45]} xLabel="Group" yLabel="Value">
+        {rows.map((r, i) => {
+          const x = i + 1, w = 0.2, g = r.name;
+          return (
+            <>
+              <Segment from={[x, r.min]} to={[x, r.q1]} group={g} />
+              <Segment from={[x, r.q3]} to={[x, r.max]} group={g} />
+              <Segment from={[x - 0.1, r.min]} to={[x + 0.1, r.min]} group={g} />
+              <Segment from={[x - 0.1, r.max]} to={[x + 0.1, r.max]} group={g} />
+              <Shape pts={[[x - w, r.q1], [x + w, r.q1], [x + w, r.q3], [x - w, r.q3]]} closed group={g} />
+              <Segment from={[x - w, r.med]} to={[x + w, r.med]} group={g} />
+              {r.out.length > 0 && <Points pts={r.out.map(v => [x, v])} group={g} />}
+              <Label at={[x, 2]} text={r.name} />
+            </>
+          );
+        })}
+      </Plot>
+      <Table id="stats" title="Five-number summary"
+        columns={['Group', 'Min', 'Q1', 'Median', 'Q3', 'Max', 'Outliers']}
+        rows={rows.map(r => [r.name, r.min, r.q1, r.med, r.q3, r.max, r.out.join(', ') || 'none'])} />
+    </Row>
   );
 }
 ```
 
-| Group | Min | Q1 | Median | Q3 | Max | Outliers |
-|---|---|---|---|---|---|---|
-| A | 12 | 16 | 19 | 23.5 | 25 | 40 |
-| B | 8 | 10.5 | 14.5 | 15.5 | 18 | none |
-| C | 20 | 22 | 25 | 28 | 31 | none |
+Quartiles are the medians of each half. Whiskers reach the furthest value within 1.5 × IQR of the box. Group A's upper fence is 34.75, so 40 is an outlier.
 
-A's 40 is an outlier. Upper fence = 23.5 + 1.5 × 7.5 = 34.75, so A's upper whisker stops at 25.
-
-Not checked: the figure uses the median-of-halves quartile method. Excel `QUARTILE.INC` and R's default use interpolation, which gives A Q1 = 16.5 and Q3 = 22.75. The outlier and the group order stay the same.
+Not checked: I have no preview here, so the rendering is unverified.
