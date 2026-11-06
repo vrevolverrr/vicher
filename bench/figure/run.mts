@@ -123,6 +123,8 @@ async function main(): Promise<void> {
   const started = Date.now();
   try {
     await evalIn(vault, await pageScript());
+    // A window the OS is not drawing gets no frames, so it floats on top; it never takes focus from the developer.
+    await evalIn(vault, `(() => { const w = require('@electron/remote').getCurrentWindow(); w.setAlwaysOnTop(true, 'screen-saver'); w.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); w.showInactive(); return 'ok'; })()`);
     await cdp(vault, 'Emulation.setDeviceMetricsOverride', { width: 1400, height: 3000, deviceScaleFactor: 2, mobile: false });
     await cdp(vault, 'Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
     await evalIn(vault, 'app.workspace.leftSplit.collapse(); app.workspace.rightSplit.collapse(); "ok"');
@@ -134,7 +136,6 @@ async function main(): Promise<void> {
       const goldens: Record<string, Snapshot> = goldenFile && existsSync(goldenFile) ? JSON.parse(await readFile(goldenFile, 'utf8')) : {};
       let goldensChanged = false;
       try {
-        await cdp(vault, 'Page.bringToFront', {}).catch(() => undefined);
         const visuals = await evalJson<VisualInfo[]>(vault, `__vicherBench.play(${JSON.stringify(fixture.reply)})`);
         if (!visuals.length) rows.push({ fixture: fixture.id, source: fixture.source, visual: -1, kind: '-', theme: '-', width: 0, state: '-', findings: [{ check: 'no-visual', detail: 'the reply drew no figure or diagram' }] });
         for (const theme of themes) {
@@ -191,7 +192,6 @@ async function main(): Promise<void> {
               await evalJson(vault, `__vicherBench.measure(${v}, ${Math.max(...widths)}, "step:0")`);
               const lost = await evalJson<string[]>(vault, `__vicherBench.angleKept(${v})`);
               if (lost.length) rows.push({ fixture: fixture.id, source: fixture.source, visual: v, kind: visual.kind, theme, width: Math.max(...widths), state: 'angle', findings: lost.map((detail) => ({ check: 'angle-lost', detail })) });
-              await evalIn(vault, `require('@electron/remote').getCurrentWindow().show(), require('@electron/remote').getCurrentWindow().focus(), 'ok'`);
               for (const [width, rate, limit] of [[720, 1, 20], [720, 4, 34], [1200, 4, 34]] as const) {
                 await evalJson(vault, `__vicherBench.measure(${v}, ${width}, "step:0")`);
                 await cdp(vault, 'Emulation.setCPUThrottlingRate', { rate });

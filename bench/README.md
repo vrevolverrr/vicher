@@ -14,7 +14,7 @@ npm run bench:figures -- [--source=stress,demo,generated] [--only=text] [--width
 
 `--only=<text>` runs just the fixtures whose id contains the text.
 
-Obsidian must be running with its command line interface on (Settings → General → Command line interface). The bench window takes focus while it runs. Results go to promptfoo (`npx promptfoo view`: a row per fixture, a column per theme and width, a metric per check) and to `out/<time>/`: `contact.html` shows each fixture's shots side by side, and `report.json` has every measured state.
+Obsidian must be running with its command line interface on (Settings → General → Command line interface). The bench window floats on top while it runs, without taking focus. Results go to promptfoo (`npx promptfoo view`: a row per fixture, a column per theme and width, a metric per check) and to `out/<time>/`: `contact.html` shows each fixture's shots side by side, and `report.json` has every measured state.
 
 | Path | Contents |
 | --- | --- |
