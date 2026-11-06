@@ -136,8 +136,9 @@ export class Plot3Chart {
   }
 
   private watch(): void {
-    if (this.observer || typeof IntersectionObserver === 'undefined') return;
-    this.observer = new IntersectionObserver((entries) => {
+    const Observer = this.el.ownerDocument.defaultView?.IntersectionObserver;
+    if (this.observer || !Observer) return;
+    this.observer = new Observer((entries) => {
       const near = entries.some((entry) => entry.isIntersecting);
       if (near === this.near) return;
       this.near = near;
@@ -259,12 +260,21 @@ export class Plot3Chart {
           context.moveTo(dot.at[0] + 4.5, dot.at[1]);
           context.arc(dot.at[0], dot.at[1], 4.5, 0, 2 * Math.PI);
         }
-        i = j - 1;
         context.lineWidth = 2;
-        context.strokeStyle = overlay.state === 'active' ? this.ink({}) : overlay.state === 'done' ? ink : halo;
+        context.strokeStyle = overlay.state === 'done' ? ink : halo;
         context.stroke();
         context.fillStyle = overlay.state === 'done' ? paper : ink;
         context.fill();
+        if (overlay.state === 'active') {
+          context.beginPath();
+          for (const dot of overlays.slice(i, j) as Extract<Overlay, { kind: 'dot' }>[]) {
+            context.moveTo(dot.at[0] + 8.5, dot.at[1]);
+            context.arc(dot.at[0], dot.at[1], 8.5, 0, 2 * Math.PI);
+          }
+          context.strokeStyle = this.ink({});
+          context.stroke();
+        }
+        i = j - 1;
         continue;
       }
       if (overlay.kind === 'note') continue;

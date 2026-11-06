@@ -34,6 +34,16 @@ const MARKS = `export default function () {
   </Column>} />;
 }`;
 
+const POINTERS = `export default function () {
+  const items = [3, 1, 4, 1, 5, 9, 2, 6].map((v, i) => ({ id: 'i' + i, label: v }));
+  const long = Array.from({ length: 64 }, (_, i) => ({ id: 'j' + i, label: i }));
+  return <Column>
+    <Plot id="p" x={[0, 10]} y={[-2, 2]}><Fn id="f" f={(x) => Math.sin(x)} /></Plot>
+    <Seq id="s" index items={items} /><Pointer to="i0" name="left" /><Pointer to="i1" name="right" /><Pointer to="i2" name="middle" />
+    <Seq id="l" items={long} /><Pointer to="j0" name="a long name" />
+  </Column>;
+}`;
+
 const OPEN = `(async () => {
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const leaf = app.workspace.openPopoutLeaf({ size: { width: 520, height: 760 } });
@@ -50,7 +60,7 @@ const OPEN = `(async () => {
   const press = () => doc.body.dispatchEvent(new win.PointerEvent('pointerdown', { bubbles: true }));
   const step = (quote, comment) => ({ type: 'highlight', step: { path: 'note.md', quote, comment } });
   view.panes.get(view.selected).replayReply({ at: Date.now(), parts: [
-    { type: 'text', text: 'Figure.\\n\\n\`\`\`figure\\n' + ${JSON.stringify(FIGURE)} + '\\n\`\`\`\\n\\n\`\`\`figure\\n' + ${JSON.stringify(CARDS)} + '\\n\`\`\`\\n\\n\`\`\`figure\\n' + ${JSON.stringify(MARKS)} + '\\n\`\`\`\\n' },
+    { type: 'text', text: 'Figure.\\n\\n\`\`\`figure\\n' + ${JSON.stringify(FIGURE)} + '\\n\`\`\`\\n\\n\`\`\`figure\\n' + ${JSON.stringify(CARDS)} + '\\n\`\`\`\\n\\n\`\`\`figure\\n' + ${JSON.stringify(MARKS)} + '\\n\`\`\`\\n\\n\`\`\`figure\\n' + ${JSON.stringify(POINTERS)} + '\\n\`\`\`\\n' },
     step('A quote', 'A comment long enough that it has to wrap in a narrow pane, so it must not run past the card'),
     step('Second stop'),
   ] }, 0);
@@ -128,7 +138,7 @@ test('a root Row of cards fills the pane and wraps once it cannot', async () => 
 });
 
 test('a group and a state combine on cells, nodes and edges', async () => {
-  const shown = await inPage<Record<string, string>>(`const figure = [...ui.panel().querySelectorAll('.vicher-figure')].at(-1);
+  const shown = await inPage<Record<string, string>>(`const figure = ui.panel().querySelectorAll('.vicher-figure')[2];
     for (let i = 0; i < 40 && !figure.querySelector('.vicher-network-edge'); i++) await ui.wait(100);
     const style = (selector) => ui.win.getComputedStyle(figure.querySelector(selector));
     const cell = (id) => style('[data-figure-id="' + id + '"]').backgroundColor;
@@ -140,6 +150,30 @@ test('a group and a state combine on cells, nodes and edges', async () => {
   assert.equal(shown.nodeFill, shown.rowCell, 'an active node keeps its group fill');
   assert.equal(shown.nodeOutline, 'solid');
   assert.equal(shown.edge, '4.5px');
+});
+
+test('a figure in a popout redraws at the new width, and its pointers neither cover each other nor clip', async () => {
+  const measure = `const figure = ui.panel().querySelectorAll('.vicher-figure')[3];
+    figure.scrollIntoView();
+    for (let i = 0; i < 40 && !figure.querySelector('.vicher-figure-pointer'); i++) await ui.wait(100);
+    const box = (el) => el.getBoundingClientRect();
+    const pointers = [...figure.querySelectorAll('.vicher-figure-pointer')].map(box);
+    const seq = figure.querySelector('[data-figure-id="s"]');
+    const overlaps = pointers.filter((a, i) => pointers.some((b, j) => j > i && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom)).length;
+    const scroller = box(figure.querySelector('.vicher-figure-scroll'));
+    const lowest = Math.max(...pointers.slice(0, 3).map((p) => p.bottom));
+    return { plot: box(figure.querySelector('.vicher-figure-plot')).width, pane: scroller.width, overlaps, clipped: scroller.left - pointers[3].left, spill: lowest - box(seq).bottom };`;
+
+  const wide = await at<{ plot: number; pane: number; overlaps: number; clipped: number; spill: number }>(620, measure);
+  const narrow = await at<typeof wide>(340, measure);
+
+  assert.ok(wide.plot > narrow.plot, `the plot stayed ${narrow.plot} px wide`);
+  assert.ok(narrow.plot <= narrow.pane, `the plot is ${narrow.plot} px in a ${narrow.pane} px pane`);
+  for (const shown of [wide, narrow]) {
+    assert.equal(shown.overlaps, 0);
+    assert.ok(shown.clipped < 1, `a pointer clips by ${shown.clipped} px`);
+    assert.ok(shown.spill <= 0, `pointers run ${shown.spill} px below their Seq`);
+  }
 });
 
 test('a menu in a popout window opens on a click and closes on Escape or a press outside', async () => {

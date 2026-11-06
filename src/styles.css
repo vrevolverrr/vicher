@@ -860,6 +860,13 @@ body {
   stroke-width: 2;
 }
 
+.vicher-plot-ring,
+.vicher-figure-mark.is-ring {
+  fill: none;
+  stroke: var(--text-normal);
+  stroke-width: 2;
+}
+
 /* A 3D plot's height colours (viridis), its cell edges and its box. The dark ramp lifts the low end off the background. */
 .vicher-plot3 {
   --vicher-surface-1: #440154;
@@ -1927,10 +1934,6 @@ body {
 .vicher-plot-area[data-state='done'] {
   stroke-width: 1.5;
   stroke-dasharray: 7 4;
-}
-:is(.vicher-plot-dot, .vicher-figure-mark.is-point)[data-state='active'] {
-  stroke: var(--text-normal);
-  stroke-width: 2;
 }
 :is(.vicher-plot-dot, .vicher-figure-mark.is-point)[data-state='done'] {
   fill: var(--background-primary);

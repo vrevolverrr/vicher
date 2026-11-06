@@ -160,8 +160,10 @@ export class FigureView {
 
   constructor(parent: HTMLElement, private readonly host: FigureHost, private readonly sandbox: FigureSandbox = figureSandbox) {
     this.el = parent.appendChild(div('vicher-figure'));
-    if (typeof ResizeObserver !== 'undefined') {
-      this.observer = new ResizeObserver(() => this.resized());
+    // The figure's own window: the main window's observer reports a popout only when the main window paints.
+    const Observer = this.el.ownerDocument.defaultView?.ResizeObserver;
+    if (Observer) {
+      this.observer = new Observer(() => this.resized());
       this.observer.observe(this.el);
     }
     watchTheme(this);
@@ -228,9 +230,10 @@ export class FigureView {
 
   /** Resolves once the figure is within a screen of the viewport, or at once where that cannot be watched. */
   private visible(): Promise<void> {
-    if (typeof IntersectionObserver === 'undefined') return Promise.resolve();
+    const Observer = this.el.ownerDocument.defaultView?.IntersectionObserver;
+    if (!Observer) return Promise.resolve();
     return new Promise((resolve) => {
-      const observer = new IntersectionObserver((entries) => {
+      const observer = new Observer((entries) => {
         if (!entries.some((entry) => entry.isIntersecting) && !this.controller.signal.aborted) return;
         observer.disconnect();
         resolve();

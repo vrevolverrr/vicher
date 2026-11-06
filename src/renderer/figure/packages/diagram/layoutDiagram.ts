@@ -94,6 +94,7 @@ export function layoutDiagram(diagram: Diagram, extent: Extent, available: numbe
         for (const p of layer.pts) {
           const [cx, cy] = px(p);
           marks.push({ shape: 'circle', cx, cy, r: 3.5, className: 'is-point', ...marked });
+          if (layer.state === 'active') marks.push({ shape: 'circle', cx, cy, r: 7.5, className: 'is-ring' });
         }
         if (layer.pts.length) label(layer.pts[0], layer);
         break;

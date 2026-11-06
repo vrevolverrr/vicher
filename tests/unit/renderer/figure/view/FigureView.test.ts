@@ -520,6 +520,15 @@ describe('FigureView', () => {
     expect(tops[1]).not.toBe(tops[0]);
   });
 
+  it('rings an active dot on a Plot and in a Diagram, grouped or not, and no other dot', async () => {
+    const dots = [el('Points', { pts: [[1, 1]] }), el('Points', { pts: [[2, 2]], state: 'active' }), el('Points', { pts: [[3, 3]], state: 'active', group: 'found' })];
+    const root = el('Column', {}, el('Plot', { id: 'p', x: [0, 4], y: [0, 4] }, ...dots), el('Diagram', { id: 'd', width: 4, height: 4 }, ...dots));
+    const view = new FigureView(document.body, host(), sandbox(() => payload([{ caption: '', root }])));
+    await expect(view.run('src')).resolves.toEqual({ drawn: true });
+    expect(view.el.querySelectorAll('.vicher-plot-ring')).toHaveLength(2);
+    expect(view.el.querySelectorAll('.vicher-figure-mark.is-ring')).toHaveLength(2);
+  });
+
   it('draws a Table without rowIds, its cells unaddressed', async () => {
     const view = new FigureView(document.body, host(), sandbox(() => payload([{ caption: '', root: el('Table', { columns: ['a', 'b'], rows: [[1, 2]] }) }])));
     await expect(view.run('src')).resolves.toEqual({ drawn: true });

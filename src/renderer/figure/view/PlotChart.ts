@@ -219,6 +219,7 @@ export class PlotChart {
         const dot = svg('circle', { cx: sx(layer.x), cy: sy(layer.y), r: 5, fill: color, class: 'vicher-plot-dot' }, root);
         dot.style.color = color;
         markData(dot, layer);
+        if (layer.state === 'active') svg('circle', { cx: sx(layer.x), cy: sy(layer.y), r: 9, class: 'vicher-plot-ring' }, root);
         if (layer.label) label(sx(layer.x), sy(layer.y), layer.label, true);
       } else if (layer.kind === 'note') {
         label(sx(layer.x), sy(layer.y), layer.text, layer.state === 'active', true, textInk(layer), layer.state === 'dim');
