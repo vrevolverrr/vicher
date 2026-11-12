@@ -684,7 +684,6 @@ body {
   stroke-width: 2;
 }
 
-/* Markdown tables share one presentation in prose and OpenUI text. */
 .vicher-reply.markdown-rendered .table-wrapper {
   width: 100%;
   min-width: 0;
