@@ -32,6 +32,25 @@ describe('layoutNetwork', () => {
       expect(layout.nodes.get('B')!.y).toBe(layout.nodes.get('C')!.y);
     });
 
+    it('takes an edge that skips rows around the nodes in between, with its label on no other', () => {
+      const pairs = [[0, 1], [1, 2], [1, 3], [3, 4], [2, 5], [3, 5], [0, 5]];
+      const names = pairs.map((_, i) => `sends nightly batch export ${i}`);
+      const layout = layoutNetwork({
+        nodes: [0, 1, 2, 3, 4, 5].map((n) => ({ id: `n${n}` })),
+        edges: pairs.map(([from, to], i) => ({ id: `e${i}`, from: `n${from}`, to: `n${to}`, directed: true })),
+        nodeLabels: ['Customer relationship management system', 'Order intake'],
+        edgeLabels: names,
+      });
+      const skipping = layout.edges.find((edge) => edge.id === 'e6')!;
+      const passed = ['n1', 'n2', 'n3', 'n4'].map((id) => layout.nodes.get(id)!);
+      const route = [...skipping.path.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)].map(([, x, y]) => ({ x: Number(x), y: Number(y), width: 0, height: 0 }));
+
+      expect(route.length).toBeGreaterThan(3);
+      for (const point of route) for (const node of passed) expect(overlap(point, node)).toBe(false);
+      const labels = layout.edges.map((edge) => ink(edge.label));
+      labels.forEach((label, i) => labels.slice(i + 1).forEach((other) => expect(overlap(label, other)).toBe(false)));
+    });
+
     it('keeps the free layout for undirected edges and for a cycle', () => {
       expect(downward(network(false))).toBe(false);
       expect(downward(network(true, ['HA']))).toBe(false);

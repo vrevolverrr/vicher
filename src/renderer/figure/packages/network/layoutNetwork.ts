@@ -56,6 +56,7 @@ export function layoutNetwork({ nodes, edges, nodeLabels, edgeLabels }: NetworkI
   const rows = !tree && edges.length > 0 && edges.every(e => e.directed) ? ranks(nodes.length, links) : null;
   const grid = tree || rows !== null;
   let points: Point[];
+  let ways: ReadonlyMap<number, readonly Point[]> = new Map();
   if (tree) {
     const positions = new Map<string, Point>();
     let leaf = 0;
@@ -67,7 +68,8 @@ export function layoutNetwork({ nodes, edges, nodeLabels, edgeLabels }: NetworkI
     };
     place(roots[0].id, 0);
     points = nodes.map(n => positions.get(n.id)!);
-  } else points = rows ? layered(rows, links) : force(nodes.length, links);
+  } else if (rows) ({ points, ways } = layered(rows, links));
+  else points = force(nodes.length, links);
 
   // Room between neighbours for each lane's edge label and a little air, so a small graph fits beside its table.
   const lanes = Math.max(1, ...[...pairs.values()].map(group => (group[0].from === group[0].to ? 1 : group.length)));
@@ -79,13 +81,16 @@ export function layoutNetwork({ nodes, edges, nodeLabels, edgeLabels }: NetworkI
   const geometry = new Map(nodes.map((n, i) => [n.id, { x: points[i].x * (grid ? spacingX : scale), y: points[i].y * (grid ? spacingY : scale), ...nodeSize }]));
   // Keep Bezier control points and label boxes inside the reserved surface as well.
   const bounds: Point[] = [...geometry.values()].flatMap(p => [{ x: p.x - p.width / 2, y: p.y - p.height / 2 }, { x: p.x + p.width / 2, y: p.y + p.height / 2 }]);
-  const routes: { id: string; points: Point[]; loop: boolean }[] = [];
+  const routes: { id: string; points: Point[]; shape: 'loop' | 'curve' | 'route' }[] = [];
+  const edgeIndex = new Map(edges.map((e, i) => [e, i]));
   for (const group of pairs.values()) group.forEach((edge, index) => {
     const a = geometry.get(edge.from)!;
     const b = geometry.get(edge.to)!;
     const loop = edge.from === edge.to;
+    const way = ways.get(edgeIndex.get(edge)!)?.map(w => ({ x: w.x * spacingX, y: w.y * spacingY }));
     let path: Point[];
-    if (loop) {
+    if (way) path = [boundary(a, way[0]), ...way, boundary(b, way[way.length - 1])];
+    else if (loop) {
       const neighbours = edges.flatMap(e => (e.from === e.to ? [] : e.from === edge.from ? [geometry.get(e.to)!] : e.to === edge.from ? [geometry.get(e.from)!] : []));
       path = selfLoop(a, loopSide(a, neighbours), 64 + index * (edgeSize.height + 32));
     } else {
@@ -99,14 +104,14 @@ export function layoutNetwork({ nodes, edges, nodeLabels, edgeLabels }: NetworkI
       path = [boundary(a, control), control, boundary(b, control)];
     }
     bounds.push(...path);
-    routes.push({ id: edge.id, points: path, loop });
+    routes.push({ id: edge.id, points: path, shape: way ? 'route' : loop ? 'loop' : 'curve' });
   });
   // Each label takes the first spot along its own edge clear of the nodes and the labels placed before it, so edges that
   // cross or share a node do not stack their labels.
   const taken: (Point & Size)[] = [...geometry.values()].map(n => ({ x: n.x - n.width / 2, y: n.y - n.height / 2, width: n.width, height: n.height }));
   const labels = routes.map(route => {
     const spots = LABEL_SPOTS.map(t => {
-      const c = pointAt(route.points, t);
+      const c = route.shape === 'route' ? along(route.points, t) : pointAt(route.points, t);
       return { x: c.x - edgeSize.width / 2, y: c.y - edgeSize.height / 2, ...edgeSize };
     });
     const index = spots.map(ink).findIndex(spot => !taken.some(other => overlaps(spot, other)));
@@ -125,7 +130,8 @@ export function layoutNetwork({ nodes, edges, nodeLabels, edgeLabels }: NetworkI
     nodes: new Map([...geometry].map(([id, p]) => [id, { ...p, x: p.x - minX - p.width / 2, y: p.y - minY - p.height / 2 }])),
     edges: routes.map((route, i) => {
       const p = route.points.map(shifted);
-      return { id: route.id, path: `M${p[0].x},${p[0].y} ${route.loop ? 'C' : 'Q'}${p.slice(1).map(v => `${v.x},${v.y}`).join(' ')}`, label: { ...labels[i], ...shifted(labels[i]) } };
+      const path = route.shape === 'route' ? rounded(p) : `M${p[0].x},${p[0].y} ${route.shape === 'loop' ? 'C' : 'Q'}${p.slice(1).map(v => `${v.x},${v.y}`).join(' ')}`;
+      return { id: route.id, path, label: { ...labels[i], ...shifted(labels[i]) } };
     }),
   };
 }
@@ -135,6 +141,24 @@ function pointAt(p: readonly Point[], t: number): Point {
   let q = p;
   while (q.length > 1) q = q.slice(1).map((v, i) => ({ x: q[i].x + (v.x - q[i].x) * t, y: q[i].y + (v.y - q[i].y) * t }));
   return q[0];
+}
+
+const mid = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+
+/** A path through every point of a route, straight between them and rounded at each turn. */
+function rounded(p: readonly Point[]): string {
+  const turns = p.slice(1, -1).map((corner, i) => `Q${corner.x},${corner.y} ${mid(corner, p[i + 2]).x},${mid(corner, p[i + 2]).y}`);
+  return `M${p[0].x},${p[0].y} L${mid(p[0], p[1]).x},${mid(p[0], p[1]).y} ${turns.join(' ')} L${p[p.length - 1].x},${p[p.length - 1].y}`;
+}
+
+/** The point a share `t` of the way along a route, by length. */
+function along(p: readonly Point[], t: number): Point {
+  const lengths = p.slice(1).map((point, i) => Math.hypot(point.x - p[i].x, point.y - p[i].y));
+  let left = t * lengths.reduce((sum, length) => sum + length, 0);
+  const i = lengths.findIndex(length => (left <= length ? true : ((left -= length), false)));
+  if (i < 0) return p[p.length - 1];
+  const share = left / (lengths[i] || 1);
+  return { x: p[i].x + (p[i + 1].x - p[i].x) * share, y: p[i].y + (p[i + 1].y - p[i].y) * share };
 }
 
 /** A label's box without the air around its text (`fittedSize`), which a neighbour may cover. */
@@ -183,20 +207,40 @@ function ranks(count: number, edges: readonly (readonly number[])[]): number[] |
 }
 
 /**
- * Each row centred, its nodes in the order of where their predecessors sit, so edges between neighbouring rows cross little.
- * shortcut: an edge that skips a row runs straight and may pass behind a node in between; route it around when a figure shows that.
+ * Rows of members, each row centred. An edge that skips rows takes a place in every row it crosses, which keeps it clear
+ * of the nodes there: those places are its way. Each row is then ordered by where its neighbours in the row before sit,
+ * going down, up and down again, so few edges cross and their labels find room.
  */
-function layered(rows: readonly number[], edges: readonly (readonly number[])[]): Point[] {
-  const xs = rows.map(() => 0);
-  for (let row = 0; row <= Math.max(...rows); row++) {
-    const above = (i: number): number => {
-      const from = edges.flatMap(([a, b]) => (b === i ? [xs[a]] : []));
-      return from.length ? from.reduce((sum, x) => sum + x) / from.length : 0;
-    };
-    const members = rows.flatMap((y, i) => (y === row ? [[i, above(i)] as const] : [])).sort((a, b) => a[1] - b[1]);
-    members.forEach(([i], k) => { xs[i] = k - (members.length - 1) / 2; });
-  }
-  return rows.map((y, i) => ({ x: xs[i], y }));
+function layered(rows: readonly number[], edges: readonly (readonly number[])[]): { points: Point[]; ways: Map<number, Point[]> } {
+  // Members 0 to n - 1 are the nodes; the places follow.
+  const row = [...rows];
+  const places = new Map<number, number[]>();
+  const links: (readonly [number, number])[] = [];
+  edges.forEach(([from, to], e) => {
+    let upper = from;
+    for (let r = rows[from] + 1; r < rows[to]; r++) {
+      const place = row.push(r) - 1;
+      places.set(e, [...(places.get(e) ?? []), place]);
+      links.push([upper, place]);
+      upper = place;
+    }
+    links.push([upper, to]);
+  });
+  const xs = row.map(() => 0);
+  /** Orders row `r` by its neighbours on the far `end` of its links (0 the row above, 1 the row below); a tie keeps the order it has. */
+  const order = (r: number, end: 0 | 1): void => {
+    const members = row.flatMap((y, m) => (y === r ? [m] : []));
+    const pull = new Map(members.map((m) => {
+      const near = links.flatMap((link) => (link[1 - end] === m ? [xs[link[end]]] : []));
+      return [m, near.length ? near.reduce((sum, x) => sum + x) / near.length : xs[m]];
+    }));
+    members.sort((a, b) => pull.get(a)! - pull.get(b)! || xs[a] - xs[b]).forEach((m, k) => { xs[m] = k - (members.length - 1) / 2; });
+  };
+  const last = Math.max(...rows);
+  for (let r = 0; r <= last; r++) order(r, 0);
+  for (let r = last - 1; r >= 0; r--) order(r, 1);
+  for (let r = 1; r <= last; r++) order(r, 0);
+  return { points: rows.map((y, i) => ({ x: xs[i], y })), ways: new Map([...places].map(([e, way]) => [e, way.map((m) => ({ x: xs[m], y: row[m] }))])) };
 }
 
 /** Fixed iteration budget and declaration-order seeds; never rerun while stepping. */
