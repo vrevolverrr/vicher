@@ -230,7 +230,8 @@ export class PlotChart {
         const marker = `${clipId}-arrow-${index}`;
         const head = svg('marker', { id: marker, viewBox: '0 0 10 10', refX: 9, refY: 5, markerUnits: 'userSpaceOnUse', markerWidth: 12, markerHeight: 12, orient: 'auto-start-reverse' }, svg('defs', {}, root));
         svg('path', { d: 'M0 0L10 5L0 10z', fill: color }, head);
-        markData(svg('path', { d: path([layer.from, layer.to]), stroke: color, 'marker-end': `url(#${marker})`, class: 'vicher-plot-line vicher-plot-arrow' }, data), layer);
+        // A vector of no length has no direction, so it draws no head; its label still says "0 m/s".
+        if (layer.from[0] !== layer.to[0] || layer.from[1] !== layer.to[1]) markData(svg('path', { d: path([layer.from, layer.to]), stroke: color, 'marker-end': `url(#${marker})`, class: 'vicher-plot-line vicher-plot-arrow' }, data), layer);
         if (layer.label) label(sx((layer.from[0] + layer.to[0]) / 2), sy((layer.from[1] + layer.to[1]) / 2), layer.label, true);
       }
     });
@@ -261,9 +262,12 @@ export class PlotChart {
   /** Lines, areas and bars take the next series colour unless the model names one; a dot or rule defaults to the ink. */
   private assignColors(layers: readonly Layer[]): string[] {
     let next = 1;
+    let bars: string | undefined;
     return layers.map((layer) => {
       const ink = markInk(layer);
       if (ink) return ink;
+      // Unnamed bars are one series, such as the rectangles of a Riemann sum.
+      if (layer.kind === 'area' && layer.bar && !layer.label) return (bars ??= seriesColor(next++));
       if (layer.kind === 'note') return 'var(--text-normal)';
       // Unnamed Shapes are usually one kind of thing, such as 20 confidence intervals, so a colour is for the one that differs.
       if (layer.kind === 'line' && layer.neutral) return 'var(--text-muted)';
@@ -278,11 +282,12 @@ export class PlotChart {
     const entries: [string, string, string][] = [];
     const seen = new Set<string>();
     layers.forEach((layer, index) => {
-      // A dot or a rule writes its label on the plot, so only layers with a swatch to explain are listed.
-      if (layer.kind === 'note' || layer.kind === 'dot' || layer.kind === 'rule' || layer.kind === 'arrow' || !layer.label || seen.has(layer.label)) return;
+      // A dot or a rule writes its label on the plot, so only layers with a swatch to explain are listed: a set of dots by its name.
+      const name = layer.kind === 'dot' ? layer.name : layer.kind === 'note' || layer.kind === 'rule' || layer.kind === 'arrow' ? undefined : layer.label;
+      if (!name || seen.has(name)) return;
       if (layer.kind === 'bars' && layer.mode === 'waterfall') return;
-      seen.add(layer.label);
-      entries.push([layer.label, colors[index], layer.kind]);
+      seen.add(name);
+      entries.push([name, colors[index], layer.kind]);
     });
     if (layers.some((layer) => layer.kind === 'bars' && layer.mode === 'waterfall')) {
       entries.push(['Total', 'var(--vicher-series-1)', 'bars'], ['Increase', 'var(--color-green)', 'bars'], ['Decrease', 'var(--color-red)', 'bars']);

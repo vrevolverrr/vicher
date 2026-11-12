@@ -18,6 +18,26 @@ describe('layoutNetwork', () => {
     });
   });
 
+  describe('a precedence network', () => {
+    const ids = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    const pairs = ['AB', 'AC', 'BD', 'CE', 'DF', 'EF', 'FG', 'GH'];
+    const network = (directed: boolean, extra: string[] = []) => layoutNetwork({ nodes: ids.map((id) => ({ id })), edges: [...pairs, ...extra].map((id) => ({ id, from: id[0], to: id[1], directed })), nodeLabels: ids, edgeLabels: [] });
+    const downward = (layout: ReturnType<typeof network>): boolean => layout.edges.every(({ id }) => layout.nodes.get(id[0])!.y < layout.nodes.get(id[1])!.y);
+
+    it('puts every node of directed edges with no cycle below the nodes that point at it, and no two on each other', () => {
+      const layout = network(true);
+      expect(downward(layout)).toBe(true);
+      const boxes = [...layout.nodes.values()];
+      boxes.forEach((box, i) => boxes.slice(i + 1).forEach((other) => expect(overlap(box, other)).toBe(false)));
+      expect(layout.nodes.get('B')!.y).toBe(layout.nodes.get('C')!.y);
+    });
+
+    it('keeps the free layout for undirected edges and for a cycle', () => {
+      expect(downward(network(false))).toBe(false);
+      expect(downward(network(true, ['HA']))).toBe(false);
+    });
+  });
+
   it('draws a self-loop on the side away from the node\'s neighbour', () => {
     const layout = layoutNetwork({
       nodes: [{ id: 'a' }, { id: 'b' }],

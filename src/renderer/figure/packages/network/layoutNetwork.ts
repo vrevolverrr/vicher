@@ -22,7 +22,7 @@ export interface NetworkLayout extends Size {
 
 export interface NetworkInput {
   readonly nodes: readonly { readonly id: string }[];
-  readonly edges: readonly { readonly id: string; readonly from: string; readonly to: string }[];
+  readonly edges: readonly { readonly id: string; readonly from: string; readonly to: string; readonly directed?: boolean }[];
   /** Every node label and every edge label shown in any step, which size the boxes. */
   readonly nodeLabels: readonly string[];
   readonly edgeLabels: readonly string[];
@@ -51,6 +51,10 @@ export function layoutNetwork({ nodes, edges, nodeLabels, edgeLabels }: NetworkI
     return children.get(id)!.every(visit);
   };
   const tree = nodes.length > 0 && roots.length === 1 && edges.length === nodes.length - 1 && nodes.every(n => (parents.get(n.id) ?? 0) <= 1) && [...pairs.values()].every(p => p.length === 1) && visit(roots[0].id) && seen.size === nodes.length;
+  const links = edges.map(e => [nodeIndex.get(e.from)!, nodeIndex.get(e.to)!] as const);
+  // Directed edges with no cycle give each node a row, so a precedence network reads top to bottom as a tree does.
+  const rows = !tree && edges.length > 0 && edges.every(e => e.directed) ? ranks(nodes.length, links) : null;
+  const grid = tree || rows !== null;
   let points: Point[];
   if (tree) {
     const positions = new Map<string, Point>();
@@ -63,7 +67,7 @@ export function layoutNetwork({ nodes, edges, nodeLabels, edgeLabels }: NetworkI
     };
     place(roots[0].id, 0);
     points = nodes.map(n => positions.get(n.id)!);
-  } else points = force(nodes.length, edges.map(e => [nodeIndex.get(e.from)!, nodeIndex.get(e.to)!]));
+  } else points = rows ? layered(rows, links) : force(nodes.length, links);
 
   // Room between neighbours for each lane's edge label and a little air, so a small graph fits beside its table.
   const lanes = Math.max(1, ...[...pairs.values()].map(group => (group[0].from === group[0].to ? 1 : group.length)));
@@ -71,8 +75,8 @@ export function layoutNetwork({ nodes, edges, nodeLabels, edgeLabels }: NetworkI
   const spacingY = nodeSize.height + edgeSize.height * lanes + 12;
   // A graph scales uniformly until every pair is a full gap apart on at least one axis.
   let scale = 0;
-  if (!tree) for (let a = 0; a < points.length; a++) for (let b = a + 1; b < points.length; b++) scale = Math.max(scale, Math.min(spacingX / Math.max(0.001, Math.abs(points[a].x - points[b].x)), spacingY / Math.max(0.001, Math.abs(points[a].y - points[b].y))));
-  const geometry = new Map(nodes.map((n, i) => [n.id, { x: points[i].x * (tree ? spacingX : scale), y: points[i].y * (tree ? spacingY : scale), ...nodeSize }]));
+  if (!grid) for (let a = 0; a < points.length; a++) for (let b = a + 1; b < points.length; b++) scale = Math.max(scale, Math.min(spacingX / Math.max(0.001, Math.abs(points[a].x - points[b].x)), spacingY / Math.max(0.001, Math.abs(points[a].y - points[b].y))));
+  const geometry = new Map(nodes.map((n, i) => [n.id, { x: points[i].x * (grid ? spacingX : scale), y: points[i].y * (grid ? spacingY : scale), ...nodeSize }]));
   // Keep Bezier control points and label boxes inside the reserved surface as well.
   const bounds: Point[] = [...geometry.values()].flatMap(p => [{ x: p.x - p.width / 2, y: p.y - p.height / 2 }, { x: p.x + p.width / 2, y: p.y + p.height / 2 }]);
   const routes: { id: string; points: Point[]; loop: boolean }[] = [];
@@ -161,8 +165,42 @@ function boundary(box: NodeGeometry, toward: Point): Point {
   return { x: box.x + dx * scale, y: box.y + dy * scale };
 }
 
+/** Each node's row when every edge points down: one below its lowest predecessor. `null` when the edges form a cycle. */
+function ranks(count: number, edges: readonly (readonly number[])[]): number[] | null {
+  const rank = new Array<number>(count).fill(0);
+  const waiting = new Array<number>(count).fill(0);
+  for (const [, to] of edges) waiting[to]++;
+  const ready = rank.flatMap((_, i) => (waiting[i] ? [] : [i]));
+  let placed = 0;
+  for (let i = ready.shift(); i !== undefined; i = ready.shift()) {
+    placed++;
+    for (const [from, to] of edges) if (from === i) {
+      rank[to] = Math.max(rank[to], rank[i] + 1);
+      if (--waiting[to] === 0) ready.push(to);
+    }
+  }
+  return placed === count ? rank : null;
+}
+
+/**
+ * Each row centred, its nodes in the order of where their predecessors sit, so edges between neighbouring rows cross little.
+ * shortcut: an edge that skips a row runs straight and may pass behind a node in between; route it around when a figure shows that.
+ */
+function layered(rows: readonly number[], edges: readonly (readonly number[])[]): Point[] {
+  const xs = rows.map(() => 0);
+  for (let row = 0; row <= Math.max(...rows); row++) {
+    const above = (i: number): number => {
+      const from = edges.flatMap(([a, b]) => (b === i ? [xs[a]] : []));
+      return from.length ? from.reduce((sum, x) => sum + x) / from.length : 0;
+    };
+    const members = rows.flatMap((y, i) => (y === row ? [[i, above(i)] as const] : [])).sort((a, b) => a[1] - b[1]);
+    members.forEach(([i], k) => { xs[i] = k - (members.length - 1) / 2; });
+  }
+  return rows.map((y, i) => ({ x: xs[i], y }));
+}
+
 /** Fixed iteration budget and declaration-order seeds; never rerun while stepping. */
-function force(count: number, edges: readonly number[][]): Point[] {
+function force(count: number, edges: readonly (readonly number[])[]): Point[] {
   if (!count) return [];
   const radius = Math.max(1, Math.sqrt(count));
   const p = Array.from({ length: count }, (_, i) => ({ x: Math.cos(i * 2.399963229728653) * Math.sqrt(i + 1), y: Math.sin(i * 2.399963229728653) * Math.sqrt(i + 1) }));

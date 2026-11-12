@@ -35,7 +35,7 @@ export const Segment = component({
 export const Points = component({
   name: 'Points',
   signature: '<Points pts={[[x, y]]} label group state id />',
-  summary: 'dots.',
+  summary: 'dots. The `label` of one point is written beside it; the `label` of several names them in a Plot\'s legend.',
   fields: { id, pts: field.list(field.point(), { max: LIMITS.layerPoints }), label, ...marks },
 });
 

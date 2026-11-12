@@ -82,6 +82,19 @@ describe('a layer\'s colour', () => {
     expect(layers({ type: 'Shape', ...shape, label: 'missed', group: 'pivot' })[0]).toMatchObject({ color: 'blue' });
   });
 
+  it('writes one point\'s label beside it, and lists the label several points share in the legend', () => {
+    expect(layers({ type: 'Points', pts: [[0, 0]], label: 'peak' })).toMatchObject([{ kind: 'dot', label: 'peak' }]);
+    const set = layers({ type: 'Points', pts: [[0, 0], [1, 1]], label: 'nodes' });
+    expect(set).toMatchObject([{ kind: 'dot', name: 'nodes' }, { kind: 'dot' }]);
+    expect(set.some((dot) => 'label' in dot)).toBe(false);
+  });
+
+  it('draws parametric surfaces at one scale even when the Plot gives its axes, and a graph z = f(x, y) to fill them', () => {
+    const plot3 = (surface: object) => plot3Model({ type: 'Plot3', x: [-2.6, 2.6], y: [-2.6, 2.6], z: [-0.6, 0.6], children: [{ type: 'Surface', ...surface }] } as never);
+    expect(plot3({ pts: [[2, 0, 0.5]] }).equal).toBe(true);
+    expect(plot3({ zs: [0.5] }).equal).toBe(false);
+  });
+
   it('does not read a dot\'s label as a name', () => {
     expect(layers({ type: 'Points', pts: [[0, 0]], label: 'missed' })[0]).toMatchObject({ color: undefined });
   });

@@ -23,6 +23,25 @@ afterEach(() => {
 });
 
 describe('PlotChart', () => {
+  it('lists a set of dots in the legend by its name and writes nothing beside them', () => {
+    const { chart: plot } = chart(480, { x: [0, 1], y: [0, 1], layers: [{ kind: 'dot', x: 0, y: 0, name: 'nodes' }, { kind: 'dot', x: 1, y: 0 }] });
+    expect([...plot.el.querySelectorAll('.vicher-plot-key')].map((key) => key.textContent)).toEqual(['nodes']);
+    expect(plot.el.querySelectorAll('.vicher-plot-label')).toHaveLength(0);
+  });
+
+  it('gives unnamed bars one colour and the curve over them the next', () => {
+    const bar = (from: number): PlotModel['layers'][number] => ({ kind: 'area', points: [[from, 1], [from + 1, 1]], base: 0, from, to: from + 1, bar: true });
+    const { chart: plot } = chart(480, { x: [0, 3], y: [0, 2], layers: [bar(0), bar(1), bar(2), { kind: 'line', points: [[0, 0], [3, 2]], label: 'f' }] });
+    expect(new Set([...plot.el.querySelectorAll('.vicher-plot-area')].map((area) => area.getAttribute('fill')))).toEqual(new Set(['var(--vicher-series-1)']));
+    expect(plot.el.querySelector('.vicher-plot-line')!.getAttribute('stroke')).toBe('var(--vicher-series-2)');
+  });
+
+  it('draws no arrow for a vector of no length, and still writes its label', () => {
+    const { chart: plot } = chart(480, { x: [0, 1], y: [0, 1], layers: [{ kind: 'arrow', from: [0.5, 0.5], to: [0.5, 0.5], label: '0 m/s' }] });
+    expect(plot.el.querySelectorAll('.vicher-plot-arrow')).toHaveLength(0);
+    expect(texts(plot).some((text) => text.textContent === '0 m/s')).toBe(true);
+  });
+
   it('has the owner typeset labels and axis titles holding maths, and keeps plain ones as SVG text', () => {
     const { chart: plot, written } = chart(480, {
       x: [-40, 100],

@@ -26,6 +26,16 @@ describe('diagramExtent', () => {
 });
 
 describe('drawDiagram', () => {
+  it('draws no arrow for a vector of no length', () => {
+    const vectors = (to: [number, number]): number => {
+      const el = document.createElement('div');
+      const node = diagram({ type: 'Segment', from: [0, 0], to: [4, 3] }, { type: 'Vector', from: [1, 1], to });
+      drawDiagram(el, node, diagramExtent(node), 480, (box, text) => void (box.textContent = String(text)));
+      return el.querySelectorAll('.is-vector').length;
+    };
+    expect([vectors([2, 1]), vectors([1, 1])]).toEqual([1, 0]);
+  });
+
   it('grows past its border to hold a Dimension drawn off its points', () => {
     const node = diagram({ type: 'Segment', from: [0, 0], to: [4, 0] }, { type: 'Dimension', from: [0, 0], to: [4, 0], label: '4' });
     const el = document.createElement('div');

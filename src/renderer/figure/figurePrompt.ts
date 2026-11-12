@@ -94,7 +94,7 @@ Do not draw electrical circuits or logic gates; say a figure cannot show them an
 A group says what kind of thing an object is, and you name it. A state says where it stands, and the host names it. An element can take both.
 
 - \`group="pivot"\`, or \`groups={{ id: 'pivot' }}\` on \`Graph\`, \`Seq\` and \`Table\`: the name is what the key under the figure shows, at most ${LIMITS.groupName} characters and at most ${LIMITS.groups} names in a figure. Every element with one name shares a colour. Use a group for real categories; for "look here", use a state.
-- \`state="active"\`, or \`states={{ id: 'active' }}\`: \`active\` being worked on now (thick, bold), \`done\` finished (dashed, or a hollow dot), \`dim\` out of play (faded). A state keeps an element's colour. The key explains each one used.
+- \`state="active"\`, or \`states={{ id: 'active' }}\`: \`active\` being worked on now (thick, bold), \`done\` finished (dashed, or a hollow dot), \`dim\` out of play (faded). A state keeps an element's colour. In a figure of two or more steps the key explains each one used.
 - A \`Plot\` line or area's \`label\` is its name, so it needs no group. A \`Segment\`'s label is written on the plot.
 - \`legend={{ wrong: 'red' }}\` on \`<Figure>\` is optional and pins a name to a colour, when the colour carries meaning or a formula must match it; each colour holds one name. The host picks every other colour.
 
