@@ -27,7 +27,7 @@ function scroller(el: HTMLElement): HTMLElement | null {
 }
 
 /**
- * Draws a 3D Plot: its faces on a canvas, and the box, ticks, labels and overlays in SVG over it. The student turns it by
+ * Draws a 3D Plot: the box's back edges, the faces and the overlays on a canvas, and the axes, ticks and labels in SVG over it. The student turns it by
  * dragging or with the arrow keys. The canvas holds its bitmap only while the chart is the shown step's and near the view.
  */
 export class Plot3Chart {
