@@ -1801,8 +1801,10 @@ body {
   font-weight: var(--font-semibold);
 }
 
+/* A label drawn before MathJax has loaded comes from the Markdown renderer, in a paragraph. */
 .vicher-figure-pointer p,
-.vicher-figure-link-label p {
+.vicher-figure-link-label p,
+.vicher-plot-key p {
   display: inline;
 }
 

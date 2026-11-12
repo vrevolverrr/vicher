@@ -36,6 +36,20 @@ describe('PlotChart', () => {
     expect(plot.el.querySelector('.vicher-plot-line')!.getAttribute('stroke')).toBe('var(--vicher-series-2)');
   });
 
+  it('draws a rectangle as a light fill with an outline, so the curve behind a window shows and equal bars stay apart', () => {
+    const { chart: plot } = chart(480, { x: [0, 2], y: [0, 6], layers: [
+      { kind: 'line', points: [[0, 1], [2, 5]], label: 'f' },
+      { kind: 'area', points: [[0.5, 4], [1.5, 4]], base: 2, from: 0.5, to: 1.5, bar: true },
+      { kind: 'area', points: [[0, 1], [2, 5]], base: 0 },
+    ] });
+    const [box, under] = [...plot.el.querySelectorAll('.vicher-plot-area')];
+
+    expect(Number(box.getAttribute('fill-opacity'))).toBeLessThan(0.5);
+    expect(box.getAttribute('stroke')).toBe(box.getAttribute('fill'));
+    expect(box.closest('[clip-path*="-area-"]')).toBeNull();
+    expect(under.getAttribute('stroke')).toBeNull();
+  });
+
   it('draws no arrow for a vector of no length, and still writes its label', () => {
     const { chart: plot } = chart(480, { x: [0, 1], y: [0, 1], layers: [{ kind: 'arrow', from: [0.5, 0.5], to: [0.5, 0.5], label: '0 m/s' }] });
     expect(plot.el.querySelectorAll('.vicher-plot-arrow')).toHaveLength(0);

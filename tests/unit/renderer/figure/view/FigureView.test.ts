@@ -152,12 +152,15 @@ describe('FigureView', () => {
   });
 
   it('keys a group drawn only as lines with a line, and one that fills a box with a box', async () => {
-    const root = el('Row', {}, el('Node', { id: 'a', label: 'A', group: 'cards' }), el('Diagram', { width: 2, height: 1 }, el('Segment', { from: [0, 0], to: [1, 0], group: 'rays' }), el('Shape', { pts: [[0, 0], [1, 0], [1, 1]], closed: true, group: 'both' }), el('Segment', { from: [0, 1], to: [1, 1], group: 'both' })));
+    const triangle = { pts: [[0, 0], [1, 0], [1, 1]], closed: true };
+    const drawing = el('Diagram', { width: 2, height: 1 }, el('Segment', { from: [0, 0], to: [1, 0], group: 'rays' }), el('Shape', { ...triangle, group: 'both' }), el('Segment', { from: [0, 1], to: [1, 1], group: 'both' }));
+    // A Plot draws a closed Shape as an outline, with nothing inside.
+    const root = el('Row', {}, el('Node', { id: 'a', label: 'A', group: 'cards' }), drawing, el('Plot', { x: [0, 1], y: [0, 1] }, el('Shape', { ...triangle, group: 'band' })));
     const view = new FigureView(document.body, host(), sandbox(() => payload([{ caption: 'a', root }])));
     void view.run('src');
     await flush();
     const marks = [...view.el.querySelectorAll('.vicher-figure-key-item')].map((item) => [item.textContent!.trim(), item.querySelector('.vicher-figure-key-mark')!.classList.contains('is-line')]);
-    expect(marks).toEqual([['cards', false], ['rays', true], ['both', false]]);
+    expect(marks).toEqual([['cards', false], ['rays', true], ['both', false], ['band', true]]);
   });
 
   it('draws a step heading over its caption in the list', async () => {

@@ -185,7 +185,8 @@ export class PlotChart {
       const color = colors[index];
       if (layer.kind === 'area') {
         let target = data;
-        if (layer.from !== undefined || layer.to !== undefined) {
+        // A rectangle is its own path from `from` to `to`; clipping it there would cut half its outline away.
+        if (!layer.bar && (layer.from !== undefined || layer.to !== undefined)) {
           const left = sx(Math.max(x0, layer.from ?? x0));
           const right = sx(Math.min(x1, layer.to ?? x1));
           const id = `${clipId}-area-${index}`;
@@ -200,7 +201,9 @@ export class PlotChart {
             ? lower.filter(([x]) => x >= first[0] && x <= last[0]).reverse()
             : [[last[0], layer.base], [first[0], layer.base]] as [number, number][];
           if (!back.length) continue;
-          markData(svg('path', { d: `${path(run)}L${path(back).slice(1)}Z`, fill: color, 'fill-opacity': layer.bar ? 0.8 : 0.18, stroke: layer.state ? (layer.bar ? 'var(--text-normal)' : color) : undefined, class: 'vicher-plot-area' }, target), layer);
+          // A rectangle may be a bar or a window over a curve, and nothing in it says which: both are a light fill that shows
+          // what is behind, with an outline that keeps neighbours of one colour apart. A curve is the outline of the area under it.
+          markData(svg('path', { d: `${path(run)}L${path(back).slice(1)}Z`, fill: color, 'fill-opacity': layer.bar ? 0.3 : 0.18, stroke: layer.bar ? (layer.state ? 'var(--text-normal)' : color) : layer.state ? color : undefined, class: 'vicher-plot-area' }, target), layer);
         }
       } else if (layer.kind === 'line') {
         for (const run of runs(layer.points)) markData(svg('path', { d: path(run), stroke: color, class: 'vicher-plot-line' }, data), layer);

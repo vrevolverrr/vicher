@@ -164,14 +164,14 @@ function keyedGroups(groups: ReadonlySet<string>, steps: readonly Step[]): strin
 /** Elements drawn as a line with no inside; an open `Shape` is one too. */
 const STROKES = new Set(['Segment', 'Vector', 'Circle', 'Fn', 'Angle', 'RightAngle', 'Tick', 'Dimension', 'Arrow']);
 
-/** The groups every use of which is a line: a Graph's edges, and the layers and links that have no inside. */
+/** The groups every use of which is a line: a Graph's edges, and the layers and links that have no inside. Only a Diagram fills a closed `Shape`. */
 function strokeGroups(steps: readonly Step[]): Set<string> {
   const strokes = new Set<string>();
   const boxes = new Set<string>();
-  const visit = (node: { type: string; group?: string; closed?: boolean; groups?: ReadonlyMap<string, string>; edges?: readonly { id?: string }[]; children?: readonly unknown[] }): void => {
-    if (node.group !== undefined) (STROKES.has(node.type) || (node.type === 'Shape' && !node.closed) ? strokes : boxes).add(node.group);
+  const visit = (node: { type: string; group?: string; closed?: boolean; groups?: ReadonlyMap<string, string>; edges?: readonly { id?: string }[]; children?: readonly unknown[] }, filled = false): void => {
+    if (node.group !== undefined) (STROKES.has(node.type) || (node.type === 'Shape' && !(filled && node.closed)) ? strokes : boxes).add(node.group);
     for (const [id, name] of node.groups ?? []) (node.edges?.some((edge) => edge.id === id) ? strokes : boxes).add(name);
-    (node.children as (typeof node)[] | undefined)?.forEach(visit);
+    (node.children as (typeof node)[] | undefined)?.forEach((child) => visit(child, node.type === 'Diagram'));
   };
   for (const step of steps) visit(step.root);
   return new Set([...strokes].filter((name) => !boxes.has(name)));
