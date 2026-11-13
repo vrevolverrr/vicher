@@ -1,22 +1,22 @@
 ```mermaid
 flowchart TB
-    NE["Threat of new entrants<br/>Independent cafés open cheaply"]
-    SP["Supplier power<br/>Beans, milk, cups, machines"]
-    BP["Buyer power<br/>Customers switch easily"]
-    SU["Threat of substitutes<br/>Tea, energy drinks, home coffee"]
-    RV["Competitive rivalry<br/>Many cafés compete on location and price"]
-    NE --> RV
-    SP --> RV
-    BP --> RV
-    SU --> RV
+    NE["Threat of new entrants<br/>Medium"]
+    SUP["Supplier power<br/>Medium"]
+    BUY["Buyer power<br/>Low to medium"]
+    SUB["Threat of substitutes<br/>High"]
+    RIV["Rivalry among existing firms<br/>High"]
+    NE --> RIV
+    SUP --> RIV
+    BUY --> RIV
+    SUB --> RIV
 ```
 
-| Force | Level | Coffee chain reason |
+| Force | Rating | Coffee chain driver |
 |---|---|---|
-| Threat of new entrants | High | Small cafés need little capital. Chain stores need more. |
-| Supplier power | Medium | Beans come from few large traders, so prices swing. Milk and cups are common goods. |
-| Buyer power | Medium to high | Customers pay little to switch. Loyalty apps reduce this. |
-| Threat of substitutes | High | Tea, energy drinks and home coffee machines replace a café visit. |
-| Competitive rivalry | High | Many cafés compete on the same locations, drinks and prices. |
+| New entrants | Medium | Espresso equipment is cheap and small sites are easy to lease. Brand, prime locations, and store capex slow entry. |
+| Supplier power | Medium | Few large bean roasters and dairy distributors. Green coffee prices swing. |
+| Buyer power | Low to medium | Many options and low switching cost. Loyalty apps reduce this. |
+| Substitutes | High | Home brewing, tea, energy drinks, instant coffee. |
+| Rivalry | High | Starbucks, Dunkin, independents, and convenience stores compete for the same sites and customers. |
 
-Skipped: market size, local competitor data and financials. Not checked: your target market. These levels are general, so check them against local data before you use them in a decision.
+Not checked: local market data. The ratings are generic, so set them with your own store and competitor data.

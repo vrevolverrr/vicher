@@ -1,18 +1,18 @@
-Porter’s five forces for a coffee shop chain:
+Porter’s five forces show the pressures that shape competition and profits in an industry. For a coffee shop chain:
 
 ```mermaid
 flowchart TB
-    C["Coffee shop chain"]
-    R["Competitive rivalry<br/>High: many cafés compete on location, price, and quality"]
-    N["New entrants<br/>Moderate: opening one café is manageable; building a chain takes more capital"]
-    S["Supplier power<br/>Moderate: coffee beans can be sourced widely, but quality and harvests vary"]
-    B["Buyer power<br/>High: customers can switch easily between cafés"]
-    T["Threat of substitutes<br/>High: home coffee, tea, convenience stores, and ready-to-drink coffee"]
+    NEW["Threat of new entrants<br/>Moderate: opening a small café is accessible,<br/>but building a trusted chain costs more"]
+    SUP["Supplier power<br/>Moderate: coffee beans can be sourced widely,<br/>but specialty beans and labor can cost more"]
+    RIVAL["Rivalry among existing chains<br/>High: chains compete on price, convenience,<br/>locations, and loyalty"]
+    BUY["Buyer power<br/>High: customers can easily switch<br/>to another café or make coffee at home"]
+    SUB["Threat of substitutes<br/>High: home-brewed coffee, tea,<br/>energy drinks, and convenience-store coffee"]
 
-    R --> C
-    N --> C
-    S --> C
-    B --> C
-    T --> C
+    NEW --> RIVAL
+    SUP --> RIVAL
+    BUY --> RIVAL
+    SUB --> RIVAL
 ```
+
+The ratings are typical examples; they can differ by location and market segment.
 

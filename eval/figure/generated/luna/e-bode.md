@@ -1,43 +1,49 @@
-A Bode plot shows a filter’s gain and phase shift across frequency. For a first-order low-pass filter,
+A first-order low-pass filter passes low frequencies and reduces high frequencies. Its Bode plot shows gain and phase versus frequency; the slider moves the cutoff frequency $f_c$, where the gain is about $-3$ dB and the phase is $-45^\circ$.
 
-$$H(jf)=\frac{1}{1+jf/f_c}$$
+$$
+|H(f)|_{\mathrm{dB}}=-10\log_{10}\left(1+\left(\frac{f}{f_c}\right)^2\right)
+$$
 
-Here $f$ is frequency and $f_c$ is the adjustable cutoff frequency. The plots use a logarithmic frequency axis; at cutoff, the gain is about $-3$ dB and the phase is $-45^\circ$.
+$$
+\phi(f)=-\tan^{-1}\left(\frac{f}{f_c}\right)\frac{180^\circ}{\pi}
+$$
+
+Here $f$ is frequency and $f_c$ is the cutoff frequency. The horizontal coordinate below is $\log_{10}(f/\mathrm{Hz})$, so equal distances represent equal frequency ratios.
 
 ```figure
 export const params = {
-  fc: { label: 'Cutoff frequency', min: 0.1, max: 1000, step: 0.1, value: 10, unit: 'Hz' }
+  fcHz: { label: 'Cutoff frequency (Hz)', min: 1, max: 10000, step: 1, value: 100 }
 };
 
-export default function ({ fc }) {
-  const steps = [{ fc }];
+export default function ({ fcHz }) {
+  const xCutoff = Math.log10(fcHz);
+  const steps = [fcHz];
+
   return (
-    <Figure
-      steps={steps}
-      caption={step => `Cutoff frequency: **${step.fc} Hz**`}
+    <Figure steps={steps}
+      caption={step => `Cutoff frequency: **${step} Hz**`}
       render={step => {
-        const cutoffX = Math.log10(step.fc);
-        const ratio = x => Math.pow(10, x) / step.fc;
-        const gain = x => 20 * Math.log10(1 / Math.sqrt(1 + ratio(x) ** 2));
-        const phase = x => -Math.atan(ratio(x)) * 180 / Math.PI;
+        const cutoff = Math.log10(step);
         return (
-          <Column gap="md">
-            <Row gap="md">
-              <Plot id="gain-plot" x={[-2, 4]} y={[-45, 5]} xLabel="log₁₀(frequency / Hz)" yLabel="Gain (dB)">
-                <Fn id="gain" f={gain} label="Gain" />
-                <Segment id="gain-cutoff" from={[cutoffX, -45]} to={[cutoffX, 5]} />
-                <Points id="gain-point" pts={[[cutoffX, gain(cutoffX)]]} label="fc" />
-              </Plot>
-              <Plot id="phase-plot" x={[-2, 4]} y={[-100, 10]} xLabel="log₁₀(frequency / Hz)" yLabel="Phase (degrees)">
-                <Fn id="phase" f={phase} label="Phase" />
-                <Segment id="phase-cutoff" from={[cutoffX, -100]} to={[cutoffX, 10]} />
-                <Points id="phase-point" pts={[[cutoffX, phase(cutoffX)]]} label="fc" />
-              </Plot>
-            </Row>
-          </Column>
+          <Row gap="md">
+            <Plot id="magnitude" x={[-2, 5]} y={[-60, 5]}
+              xLabel="$\log_{10}(f/\mathrm{Hz})$" yLabel="Gain (dB)">
+              <Fn id="gain" f={x => -10 * Math.log10(1 + (10 ** x / step) ** 2)}
+                from={-2} to={5} label="Gain" />
+              <Segment id="gainCutoff" from={[cutoff, -60]} to={[cutoff, 5]}
+                label="$f_c$" />
+            </Plot>
+            <Plot id="phase" x={[-2, 5]} y={[-100, 5]}
+              xLabel="$\log_{10}(f/\mathrm{Hz})$" yLabel="Phase (degrees)">
+              <Fn id="phaseCurve"
+                f={x => -Math.atan(10 ** x / step) * 180 / Math.PI}
+                from={-2} to={5} label="Phase" />
+              <Segment id="phaseCutoff" from={[cutoff, -100]} to={[cutoff, 5]}
+                label="$f_c$" />
+            </Plot>
+          </Row>
         );
-      }}
-    />
+      }} />
   );
 }
 ```

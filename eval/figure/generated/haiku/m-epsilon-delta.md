@@ -1,37 +1,36 @@
-Drag the ε slider to see the rule at work. The box is the target: every x within δ of 1 (other than 1 itself) must send f(x) within ε of 3.
-
-The formal definition:
-
-$$\lim_{x\to 1} f(x) = 3 \iff \forall\,\varepsilon>0\ \exists\,\delta>0:\ 0<|x-1|<\delta \Rightarrow |f(x)-3|<\varepsilon$$
-
-Find δ for a given ε:
-
-$$|f(x)-3| = |2x-2| = 2|x-1|$$
-
-So $2|x-1|<\varepsilon$ exactly when $|x-1|<\varepsilon/2$. Choose $\delta=\varepsilon/2$. For $\varepsilon=1$, $\delta=0.5$: any $x$ in $(0.5,\,1.5)$ gives $f(x)$ in $(2,\,4)$.
+Move the ε slider. The curve stays inside the box when x is within δ of 1, with δ = ε/2.
 
 ```figure
-export const params = { eps: { label: 'ε', min: 0.05, max: 2, step: 0.05, value: 1 } };
+export const params = {
+  eps: { label: 'ε', min: 0.05, max: 2, step: 0.05, value: 0.5 }
+};
 
 export default function ({ eps }) {
-  const x0 = 1, L = 3;
-  const delta = eps / 2;   // 2|x-1| < eps exactly when |x-1| < eps/2
-  const box = [[x0 - delta, L - eps], [x0 + delta, L - eps], [x0 + delta, L + eps], [x0 - delta, L + eps]];
+  const d = eps / 2;
   return (
-    <Row gap="lg" align="center">
+    <Column gap="md">
       <Plot id="plot" x={[0, 2]} y={[0, 6]} xLabel="x" yLabel="f(x)">
-        <Fn id="line" f={x => 2 * x + 1} label="f(x) = 2x + 1" />
-        <Shape id="box" pts={box} closed label="ε and δ box" />
-        <Segment id="d" from={[x0, 0.4]} to={[x0 + delta, 0.4]} label="δ" />
-        <Points id="pt" pts={[[x0, L]]} label="L = 3" state="dim" />
+        <Fn id="f" f={x => 2 * x + 1} from={0} to={2} label="f(x) = 2x + 1" />
+        <Region id="box" top={3 + eps} base={3 - eps} from={1 - d} to={1 + d} label="ε-δ box" />
+        <Segment id="L" from={[0, 3]} to={[2, 3]} label="L = 3" state="dim" />
+        <Points id="pt" pts={[[1, 3]]} label="(1, 3)" />
       </Plot>
-      <Column gap="md">
-        <Node id="eps" label={`ε = ${eps}`} sub="allowed error in f(x)" />
-        <Node id="delta" label={`δ = ε/2 = ${delta}`} sub="allowed distance from x = 1" />
-      </Column>
-    </Row>
+      <Text>{String.raw`$\varepsilon = ${eps.toFixed(2)}$, $\delta = \varepsilon/2 = ${d.toFixed(3)}$`}</Text>
+    </Column>
   );
 }
 ```
 
-Not checked: I did not render the figure, so the layout and label placement are unverified.
+**The definition.** $\lim_{x \to 1} f(x) = 3$ means: for every output tolerance ε > 0, some input tolerance δ > 0 exists, such that every x with $0 < |x-1| < \delta$ gives $|f(x)-3| < \varepsilon$.
+
+$$\forall\,\varepsilon>0\;\exists\,\delta>0:\;0<|x-1|<\delta \Rightarrow |f(x)-3|<\varepsilon$$
+
+Inside the box, the graph enters through the left side and leaves through the right side. It never crosses the top or bottom.
+
+**Worked example, ε = 0.5.** The gap is $|f(x)-3| = |2x+1-3| = 2|x-1|$. This is below 0.5 when $|x-1| < 0.25$, so δ = 0.25 works.
+- Check x = 1.2: f = 3.4, and $|3.4-3| = 0.4 < 0.5$. Passes.
+- Check x = 1.3: f = 3.6, and $|3.6-3| = 0.6 > 0.5$. Fails, because 1.3 is outside δ = 0.25.
+
+The rule $\delta = \varepsilon/2$ works for every ε, so the limit is 3.
+
+Not checked: I did not render the figure in the app. If the Region label or the Text fails to draw, tell me the error.

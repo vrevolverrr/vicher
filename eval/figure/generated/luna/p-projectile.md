@@ -1,12 +1,14 @@
-With no air resistance and level launch and landing ground, a projectile follows a curved path. Changing the launch angle changes how far it travels and how high it rises.
+A projectile’s **range** is how far it travels horizontally before landing. Its **maximum height** is the highest point on its path. Assuming it lands at launch height and ignoring air resistance, both depend on the launch angle $\theta$:
 
-For launch speed $v$ and angle $\theta$, the range $R$ and maximum height $H$ are:
+$$
+R = \frac{v^2 \sin(2\theta)}{g}
+$$
 
-$$R = \frac{v^2\sin(2\theta)}{g}$$
+$$
+H = \frac{v^2 \sin^2(\theta)}{2g}
+$$
 
-$$H = \frac{v^2\sin^2(\theta)}{2g}$$
-
-Here $g = 9.8\ \text{m/s}^2$. At $20\ \text{m/s}$ and $45^\circ$, the range is about $40.8\ \text{m}$ and the maximum height is about $10.2\ \text{m}$.
+Here $v$ is launch speed and $g = 9.8\ \text{m/s}^2$ is gravitational acceleration. At $v = 20\ \text{m/s}$ and $\theta = 45^\circ$, the range is about $40.8\ \text{m}$ and the maximum height is about $10.2\ \text{m}$.
 
 ```figure
 export const params = {
@@ -14,34 +16,27 @@ export const params = {
 };
 
 export default function ({ angle }) {
-  const speed = 20;
-  const gravity = 9.8;
+  const v = 20;
+  const g = 9.8;
   const radians = angle * Math.PI / 180;
-  const range = speed * speed * Math.sin(2 * radians) / gravity;
-  const height = speed * speed * Math.sin(radians) ** 2 / (2 * gravity);
+  const range = v * v * Math.sin(2 * radians) / g;
+  const height = v * v * Math.sin(radians) ** 2 / (2 * g);
   const apexX = range / 2;
+  const pathY = x => x * Math.tan(radians) - g * x * x / (2 * v * v * Math.cos(radians) ** 2);
 
   return (
-    <Figure
-      steps={[{ range, height, apexX }]}
-      title="Projectile path"
-      render={step => (
-        <Column gap="md">
-          <Plot id="trajectory" x={[0, 42]} y={[0, 22]} xLabel="Horizontal distance (m)" yLabel="Height (m)">
-            <Fn id="path" f={x => x * Math.tan(radians) - gravity * x * x / (2 * speed * speed * Math.cos(radians) ** 2)} from={0} to={step.range} label="Path" />
-            <Segment id="range-mark" from={[0, 0]} to={[step.range, 0]} label={`Range: ${step.range.toFixed(1)} m`} />
-            <Segment id="height-mark" from={[step.apexX, 0]} to={[step.apexX, step.height]} label={`Max height: ${step.height.toFixed(1)} m`} />
-            <Points id="key-points" pts={[[step.range, 0], [step.apexX, step.height]]} />
-            <Label id="apex-label" at={[step.apexX, step.height]} text="Peak" />
-          </Plot>
-          <Row gap="md">
-            <Node id="angle-card" label={`${angle}°`} sub="Launch angle" />
-            <Node id="range-card" label={`${step.range.toFixed(1)} m`} sub="Range" />
-            <Node id="height-card" label={`${step.height.toFixed(1)} m`} sub="Maximum height" />
-          </Row>
-        </Column>
-      )}
-    />
+    <Plot
+      id="flight"
+      x={[0, range * 1.12]}
+      y={[0, height * 1.35]}
+      xLabel="Horizontal distance (m)"
+      yLabel="Height (m)"
+    >
+      <Fn id="trajectory" f={pathY} from={0} to={range} label="Flight path" />
+      <Segment from={[0, 0]} to={[range, 0]} label={`Range: ${range.toFixed(1)} m`} />
+      <Segment from={[apexX, 0]} to={[apexX, height]} label={`Max height: ${height.toFixed(1)} m`} />
+      <Points pts={[[apexX, height]]} label="Peak" />
+    </Plot>
   );
 }
 ```

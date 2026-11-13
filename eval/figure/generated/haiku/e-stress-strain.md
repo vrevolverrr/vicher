@@ -1,59 +1,40 @@
-A stress-strain curve shows how hard a steel bar pulls back as you stretch it, from the first load to the break. You get it from a tensile test: pull a standard bar and record the force and the length.
-
-The curve plots two ratios:
-
-$$\sigma = \frac{F}{A_0}$$
-
-$$\varepsilon = \frac{\Delta L}{L_0}$$
-
-Here $\sigma$ is stress in MPa (N/mm²), $F$ is force in N, and $A_0$ is the original cross-section in mm². $\varepsilon$ is strain, the extension $\Delta L$ over the original length $L_0$. It has no unit, but is often shown as a percentage.
-
-In the elastic part of the curve, stress and strain follow Hooke's law:
-
-$$\sigma = E\varepsilon$$
-
-$E$ is Young's modulus, the stiffness of the steel. For mild steel, $E \approx 200$ GPa.
-
 ```figure
-const pts = [[0, 0], [0.125, 250], [0.15, 280], [0.2, 250], [2, 250]];
-const hard = Array.from({ length: 27 }, (_, i) => 2 + i * 0.5).map(x => [x, 400 - 150 * ((15 - x) / 13) ** 2]);
-const neck = Array.from({ length: 15 }, (_, i) => 15 + (i + 1) * 0.5).map(x => [x, 400 - 70 * ((x - 15) / 7) ** 2]);
-const curve = [...pts, ...hard, ...neck];
-const key = [[0.125, 250], [0.15, 280], [0.2, 250], [2, 250], [15, 400], [22, 330]];
+const pts = [[0, 0], [0.00125, 250], [0.0018, 285], [0.0022, 250]];
+for (let i = 1; i <= 20; i++) pts.push([0.0022 + (0.012 - 0.0022) * i / 20, 250]);
+for (let i = 1; i <= 60; i++) {
+  const e = 0.012 + (0.18 - 0.012) * i / 60;
+  pts.push([e, 250 + 150 * (1 - Math.exp(-(e - 0.012) / 0.05))]);
+}
+for (let i = 1; i <= 20; i++) pts.push([0.18 + 0.07 * i / 20, 395 - 65 * i / 20]);
+
+const marks = [
+  { id: 'A', name: 'Proportional limit', e: 0.00125, s: 250 },
+  { id: 'B', name: 'Upper yield point', e: 0.0018, s: 285 },
+  { id: 'C', name: 'Lower yield point', e: 0.0022, s: 250 },
+  { id: 'D', name: 'Start of strain hardening', e: 0.012, s: 250 },
+  { id: 'E', name: 'Ultimate tensile strength', e: 0.18, s: 395 },
+  { id: 'F', name: 'Fracture', e: 0.25, s: 330 }
+];
 
 export default function () {
   return (
-    <Plot id="ss" x={[0, 25]} y={[0, 450]} xLabel="Strain $\varepsilon$ (%)" yLabel="Stress $\sigma$ (MPa)">
-      <Shape pts={curve} label="Mild steel" />
-      <Points pts={key} />
-      <Label at={[1.0, 300]} text="**1, 2, 3** at 0.1 to 0.2 %" />
-      <Label at={[0.6, 140]} text="Elastic: $\sigma = E\varepsilon$" />
-      <Label at={[2.3, 215]} text="**4** hardening starts" />
-      <Label at={[15, 420]} text="**5** UTS, 400 MPa" />
-      <Label at={[19, 350]} text="Necking" />
-      <Label at={[22, 305]} text="**6** fracture" />
-    </Plot>
+    <Row gap="lg" align="center">
+      <Plot id="curve" x={[0, 0.28]} y={[0, 450]} xLabel="Strain, ε" yLabel="Stress, σ (MPa)">
+        <Shape id="curve-line" pts={pts} label="Mild steel" />
+        {marks.map(m => <Points id={m.id} pts={[[m.e, m.s]]} label={m.id} />)}
+      </Plot>
+      <Table id="marks" columns={['Point', 'Key point', 'Strain ε', 'Stress σ (MPa)']}
+        rows={marks.map(m => [m.id, m.name, m.e, m.s])} />
+    </Row>
   );
 }
 ```
 
-| # | Point | Strain (%) | Stress (MPa) | What happens |
-|---|---|---|---|---|
-| 1 | Proportional limit | 0.125 | 250 | Hooke's law fails above this |
-| 2 | Upper yield point | 0.15 | 280 | Peak stress as yielding starts |
-| 3 | Lower yield point | 0.2 | 250 | Stress drops, then stays nearly flat |
-| 4 | Start of strain hardening | 2 | 250 | Plateau ends; stress rises again |
-| 5 | Ultimate tensile strength | 15 | 400 | Highest engineering stress |
-| 6 | Fracture | 22 | 330 | Bar breaks after necking |
+Regions, left to right:
+- 0 to A: elastic. Stress and strain are proportional. Slope is E ≈ 200 GPa.
+- A to C: yield. Stress peaks at B, then drops to C.
+- C to D: yield plateau. Strain grows at constant stress.
+- D to E: strain hardening. Stress rises to the UTS.
+- E to F: necking. Stress falls until fracture.
 
-Points 1 to 3 sit so close that they overlap on the plot. The elastic limit is also close to point 1, so treat them as one for this sketch.
-
-**Worked example.** A bar has $A_0 = 100$ mm² and $L_0 = 200$ mm. Load it to $F = 25$ kN.
-
-1. Stress: $\sigma = \dfrac{25\,000}{100} = 250$ MPa
-2. Strain: $\varepsilon = \dfrac{\sigma}{E} = \dfrac{250}{200\,000} = 0.00125$, which is 0.125 %
-3. Extension: $\Delta L = \varepsilon L_0 = 0.00125 \times 200 = 0.25$ mm
-
-This bar sits at point 1. Past point 1, the line bends and Hooke's law no longer holds.
-
-Not checked: how the labels sit in your viewer. The numbers are typical textbook values, not those of a specific steel grade.
+The values are typical for low-carbon structural steel. The exact numbers change with grade.

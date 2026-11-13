@@ -1,36 +1,24 @@
-A bank reconciliation explains why the bank balance and the book balance differ on the same date. Some gaps are timing: a cheque you wrote has not cleared, or a deposit has not reached the bank. Others are items the books have not recorded, or recorded wrong. You adjust each side only for its own items. When both adjusted balances match, the records agree.
+The reconciliation does not balance. The adjusted bank balance is $8,100 and the adjusted book balance is $7,790, a **$310 gap**. One item is missing from your list, or one figure is wrong.
 
-## Which side each item goes on
+A bank reconciliation adjusts each side until both show the same true cash. Timing items (deposits in transit, outstanding cheques) adjust the bank side. Items the bank has recorded but the books have not, and book errors, adjust the book side.
 
-| Item | Side | Action | Amount | Why |
-|---|---|---|---|---|
-| Deposit in transit | Bank | Add | +900 | Books have it, bank does not yet |
-| Outstanding cheques | Bank | Subtract | −1,200 | Books have them, bank does not yet |
-| Bank fee | Books | Subtract | −50 | Bank took it, books do not show it |
-| NSF cheque | Books | Subtract | −200 | Bank returned it, books still count it as cash |
-| Book error | Books | Add | +90 | Cheque is $450, books show $540, so cash was reduced $90 too much |
+| Item | Side | Action | Amount |
+|---|---|---|---|
+| Deposit in transit | Bank | Add | 900 |
+| Outstanding cheques | Bank | Subtract | 1,200 |
+| Bank fee | Book | Subtract | 50 |
+| NSF cheque | Book | Subtract | 200 |
+| Cheque recorded as 540, actually 450 | Book | Add | 90 |
 
-## Adjusted balances
+The book error is added because cash was credited $540, but only $450 left the account. The books show $90 too little cash.
 
-Bank side:
+1. Bank side: $8{,}400 + 900 - 1{,}200 = 8{,}100$
+2. Book side: $7{,}950 + 90 - 50 - 200 = 7{,}790$
+3. Difference: $8{,}100 - 7{,}790 = 310$
 
-$$8{,}400 + 900 - 1{,}200 = 8{,}100$$
+To find the $310, check for:
+- A bank credit not in the books, such as interest or a direct deposit. Adding $310 to the book side closes the gap.
+- A $310 cheque missing from the outstanding list. Subtracting $310 from the bank side closes the gap.
+- A wrong input figure.
 
-Book side:
-
-$$7{,}950 - 50 - 200 + 90 = 7{,}790$$
-
-## The result: the records do not agree
-
-The adjusted balances should match. They do not: $8{,}100 - 7{,}790 = 310$.
-
-At least one input is wrong or missing. Any one of these would close the gap:
-
-- Bank balance is $8,090, not $8,400.
-- Outstanding cheques total $1,510, not $1,200.
-- Deposit in transit is $590, not $900.
-- Books are missing a $310 credit, such as interest earned.
-
-Which figure is right? Send the bank statement balance and the cheque list, and I will find the item.
-
-Not checked: the figures against the bank statement and source documents. Risk: posting the correcting entries now would leave the $310 gap in the books.
+Not checked: the bank statement itself, since I only had your list. Risk: if you post the three book entries now, the $310 gap stays in the ledger.

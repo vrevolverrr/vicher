@@ -1,42 +1,39 @@
-A matrix moves every point of a shape. Here it turns the unit square into a parallelogram. Two directions keep their line through the origin, and those are the eigenvectors.
+Eigenvalues are **3** and **1**. Eigenvectors: $v_1=(1,1)$ with $\lambda_1=3$, and $v_2=(1,-1)$ with $\lambda_2=1$. Check: $A(1,1)=(3,3)=3(1,1)$ and $A(1,-1)=(1,-1)$.
+
+The square's corners map to $(0,0)$, $(2,1)$, $(3,3)$, $(1,2)$, so it becomes a parallelogram with area $\det A = 3$. Step through the figure to see it.
 
 ```figure
-const square = [[0, 0], [1, 0], [1, 1], [0, 1]];
-const apply = ([x, y]) => [2 * x + y, x + 2 * y];
-const image = square.map(apply);
+export const params = {};
 
 export default function () {
+  const square = [[0, 0], [1, 0], [1, 1], [0, 1]];
+  const apply = ([x, y]) => [2 * x + y, x + 2 * y];   // A = [[2,1],[1,2]]
+  const steps = [
+    {
+      name: 'unit square', pts: square,
+      e1: [1, 1], l1: 'v₁ = (1,1)',
+      e2: [1, -1], l2: 'v₂ = (1,−1)',
+      text: 'The unit square with eigenvectors $v_1=(1,1)$ and $v_2=(1,-1)$ drawn from the origin.'
+    },
+    {
+      name: 'image under A', pts: square.map(apply),
+      e1: apply([1, 1]), l1: '3v₁ = (3,3)',
+      e2: apply([1, -1]), l2: 'v₂ = (1,−1)',
+      text: 'After $A$ the corners sit at $(0,0), (2,1), (3,3), (1,2)$. Area goes from $1$ to $3$. $v_1$ stretches by $3$, and $v_2$ keeps its length, so its eigenvalue is $1$.'
+    }
+  ];
   return (
-    <Diagram id="map" width={4.5} height={4.5}>
-      <Shape id="sq" pts={square} closed label="unit square" group="unit square" />
-      <Shape id="par" pts={image} closed label="image" group="image of square" />
-      <Points id="corners" pts={image} group="image of square" />
-      <Vector id="v1" from={[0, 0]} to={[1, 1]} label="v₁ = (1,1)" group="eigenvector" />
-      <Vector id="v1img" from={[0, 0]} to={[3, 3]} label="A v₁ = 3v₁" group="eigenvector" />
-      <Vector id="v2" from={[0, 0]} to={[1, -1]} label="v₂ = (1,-1)" group="eigenvector" />
-      <Label id="l1" at={[2, 1]} text="(2,1)" />
-      <Label id="l2" at={[3, 3]} text="(3,3)" />
-      <Label id="l3" at={[1, 2]} text="(1,2)" />
-    </Diagram>
+    <Figure steps={steps} caption={step => step.text} render={step => (
+      <Plot id="plot" x={[-1.5, 3.5]} y={[-1.5, 3.5]} xLabel="x" yLabel="y" equal>
+        <Shape id="shape" pts={step.pts} closed label={step.name} group="shape" />
+        <Vector id="e1" from={[0, 0]} to={step.e1} label={step.l1} group="eigen" />
+        <Vector id="e2" from={[0, 0]} to={step.e2} label={step.l2} group="eigen" />
+      </Plot>
+    )} />
   );
 }
 ```
 
-An **eigenvector** is a nonzero vector $\mathbf{v}$ that the matrix only scales. Its scale factor is the **eigenvalue** $\lambda$:
+Eigenvectors that stay on their own line are the key idea: $A$ only stretches them, so they never turn.
 
-$$A\mathbf{v}=\lambda\mathbf{v}$$
-
-To find the eigenvalues, solve $\det(A-\lambda I)=0$:
-
-$$(2-\lambda)^2-1=(\lambda-1)(\lambda-3)=0$$
-
-So $\lambda=1$ or $\lambda=3$. For each value, solve $(A-\lambda I)\mathbf{v}=0$:
-
-- $\lambda=3$: $-x+y=0$, so $\mathbf{v}_1=(1,1)$.
-- $\lambda=1$: $x+y=0$, so $\mathbf{v}_2=(1,-1)$.
-
-Check: $A(1,1)=(3,3)=3(1,1)$ and $A(1,-1)=(1,-1)=1(1,-1)$.
-
-The square's corners map as follows: $(1,0)\to(2,1)$, $(0,1)\to(1,2)$, $(1,1)\to(3,3)$, and the origin stays fixed. The image has corners $(0,0)$, $(2,1)$, $(3,3)$, $(1,2)$.
-
-Not verified: how the figure fits in your pane. The layout assumes the host fits the drawing to its bounds.
+Not checked: I did not render the figure, so the layout is untested. No code was changed.

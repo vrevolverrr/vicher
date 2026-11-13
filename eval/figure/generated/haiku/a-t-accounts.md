@@ -1,41 +1,52 @@
-**Journal entries**
+Five transactions posted to six accounts. Total debits and credits are both $12,200, so the trial balance balances.
 
-| # | Account | Debit | Credit |
-|---|---|---|---|
-| 1 | Cash | 10,000 | |
-| | Owner's Capital | | 10,000 |
-| 2 | Equipment | 4,000 | |
-| | Cash | | 4,000 |
-| 3 | Supplies | 500 | |
-| | Accounts Payable | | 500 |
-| 4 | Cash | 2,000 | |
-| | Service Revenue | | 2,000 |
-| 5 | Accounts Payable | 300 | |
-| | Cash | | 300 |
+**Cash (Asset)**
 
-**T-accounts**
+| Debit | Credit |
+|---|---|
+| 10,000 (1) | 4,000 (2) |
+| 2,000 (4) | 300 (5) |
+| **Balance 7,700** | |
 
-```text
-Cash                              Equipment
-Dr                Cr              Dr                Cr
-(1)  10,000       (2)   4,000     (2)   4,000
-(4)   2,000       (5)     300
-Bal   7,700
+**Supplies (Asset)**
 
-Supplies                          Accounts Payable
-Dr                Cr              Dr                Cr
-(3)     500                       (5)     300       (3)     500
-                                                    Bal     200
+| Debit | Credit |
+|---|---|
+| 500 (3) | |
+| **Balance 500** | |
 
-Owner's Capital                   Service Revenue
-Dr                Cr              Dr                Cr
-                  (1)  10,000                       (4)   2,000
-```
+**Equipment (Asset)**
 
-**Trial balance**
+| Debit | Credit |
+|---|---|
+| 4,000 (2) | |
+| **Balance 4,000** | |
+
+**Accounts Payable (Liability)**
+
+| Debit | Credit |
+|---|---|
+| 300 (5) | 500 (3) |
+| | **Balance 200 Cr** |
+
+**Owner's Capital (Equity)**
+
+| Debit | Credit |
+|---|---|
+| | 10,000 (1) |
+| | **Balance 10,000 Cr** |
+
+**Service Revenue (Revenue)**
+
+| Debit | Credit |
+|---|---|
+| | 2,000 (4) |
+| | **Balance 2,000 Cr** |
+
+**Trial Balance**
 
 | Account | Debit | Credit |
-|---|---:|---:|
+|---|---|---|
 | Cash | 7,700 | |
 | Supplies | 500 | |
 | Equipment | 4,000 | |
@@ -44,6 +55,4 @@ Dr                Cr              Dr                Cr
 | Service Revenue | | 2,000 |
 | **Total** | **12,200** | **12,200** |
 
-Debits equal credits, so the trial balance is in balance.
-
-I did not check these against a textbook answer key. The totals were checked by hand only: no tool or software was used.
+Skipped: no adjusting entries, since none were given. Risk: none for these five entries.

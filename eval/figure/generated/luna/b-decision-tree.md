@@ -1,29 +1,25 @@
-Launching has an expected value of **$48,000**, so it beats not launching, which has an expected value of **$0**. Expected value is the probability-weighted average of the possible net outcomes.
+The launch option has an expected value of **$48,000**, so launch; not launching is worth $0. The launch outcomes are $100,000 net ($150,000 − $50,000) with 60% probability, or −$30,000 net ($20,000 − $50,000) with 40% probability.
 
 $$
-\text{Launch EV} = 0.60(\$100{,}000) + 0.40(-\$30{,}000) = \$48{,}000
+EV(\text{launch}) = 0.6(100{,}000) + 0.4(-30{,}000) = 48{,}000
 $$
-
-The launch cost is subtracted from each outcome: $150,000 − $50,000 = $100,000$, and $20,000 − $50,000 = −$30,000$.
 
 ```figure
 export default function () {
   return (
     <Graph
       nodes={[
-        { id: 'decision', label: 'Decision' },
-        { id: 'launch', label: 'Launch', sub: 'EV = $48k' },
-        { id: 'chance', label: 'Outcome' },
-        { id: 'high', label: '+$100k', sub: '60%' },
-        { id: 'low', label: '−$30k', sub: '40%' },
-        { id: 'skip', label: 'Do not launch', sub: 'EV = $0' },
+        { id: 'decision', label: 'Decision', sub: 'Best value: $48,000' },
+        { id: 'launch', label: 'Launch', sub: 'EV: $48,000' },
+        { id: 'skip', label: 'Do not launch', sub: '$0' },
+        { id: 'success', label: '$100,000 net' },
+        { id: 'failure', label: '−$30,000 net' },
       ]}
       edges={[
-        { id: 'e1', from: 'decision', to: 'launch', label: 'Launch', directed: true },
-        { id: 'e2', from: 'launch', to: 'chance', directed: true },
-        { id: 'e3', from: 'chance', to: 'high', label: '60%', directed: true },
-        { id: 'e4', from: 'chance', to: 'low', label: '40%', directed: true },
-        { id: 'e5', from: 'decision', to: 'skip', label: 'Do not launch', directed: true },
+        { id: 'choose-launch', from: 'decision', to: 'launch', label: 'Launch', directed: true },
+        { id: 'choose-skip', from: 'decision', to: 'skip', label: 'Do not launch', directed: true },
+        { id: 'outcome-success', from: 'launch', to: 'success', label: '60%', directed: true },
+        { id: 'outcome-failure', from: 'launch', to: 'failure', label: '40%', directed: true },
       ]}
     />
   );

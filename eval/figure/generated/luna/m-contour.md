@@ -1,57 +1,53 @@
-A **level curve** connects points where $f(x,y)$ has the same value. For $f(x,y)=x^2-y^2$, the curve at height $c$ satisfies:
+I’ll show several hyperbolas for constant values of \(f\), then mark three points with gradient arrows.
 
-$$x^2-y^2=c$$
+A **level curve** joins points where $f$ has the same value. The **gradient** points in the direction of fastest increase and is perpendicular to the level curve at that point.
 
-The **gradient** points in the direction of greatest increase and is perpendicular to the level curve:
+$$
+\nabla f(x,y)=\left(\frac{\partial f}{\partial x},\frac{\partial f}{\partial y}\right)=(2x,-2y)
+$$
 
-$$\nabla f(x,y)=(2x,-2y)$$
-
-For example, at $(1,1)$, $f=0$ and $\nabla f=(2,-2)$, shown by an arrow on the zero curve.
+At $(2,1)$, $f=3$ and $\nabla f=(4,-2)$, so the gradient points right and down, across the curve $f=3$. The arrows below are shortened to fit the plot.
 
 ```figure
-const sample = (fn, count = 41) =>
-  Array.from({ length: count }, (_, i) => fn(-1.3 + (2.6 * i) / (count - 1)));
-
-const levels = [-4, -1, 0, 1, 4];
+const t = Array.from({ length: 81 }, (_, i) => -3 + 6 * i / 80);
+const levels = [-8, -4, 0, 4, 8];
 
 export default function () {
-  const curves = levels.flatMap(c => {
-    if (c === 0) {
-      return [
-        { id: 'zero-up', c, pts: sample(t => [t, t]) },
-        { id: 'zero-down', c, pts: sample(t => [t, -t]) }
-      ];
-    }
-    if (c > 0) {
-      const r = Math.sqrt(c);
-      return [-1, 1].map((side, i) => ({
-        id: `level-${c}-${i}`,
-        c,
-        pts: sample(t => [side * r * Math.cosh(t), r * Math.sinh(t)])
-      }));
-    }
-    const r = Math.sqrt(-c);
-    return [-1, 1].map((side, i) => ({
-      id: `level-${Math.abs(c)}-${i}`,
-      c,
-      pts: sample(t => [r * Math.sinh(t), side * r * Math.cosh(t)])
-    }));
-  });
-
   return (
-    <Plot x={[-4, 4]} y={[-4, 4]} xLabel="x" yLabel="y" equal>
-      {curves.map(curve => (
-        <Shape
-          key={curve.id}
-          id={curve.id}
-          pts={curve.pts}
-          group={`f = ${curve.c}`}
-        />
-      ))}
-      <Points id="gradient-points" pts={[[1, 0], [0, 1], [1, 1]]} />
-      <Vector id="grad-a" from={[1, 0]} to={[3, 0]} label="(2, 0)" group="gradient" />
-      <Vector id="grad-b" from={[0, 1]} to={[0, -1]} label="(0, −2)" group="gradient" />
-      <Vector id="grad-c" from={[1, 1]} to={[3, -1]} label="(2, −2)" group="gradient" />
+    <Plot x={[-4, 4]} y={[-4, 4]} xLabel="x" yLabel="y">
+      {levels.filter(c => c > 0).flatMap(c =>
+        [-1, 1].map((sign, i) => (
+          <Shape
+            id={`pos${c}${i}`}
+            group="level curves"
+            pts={t.map(y => [sign * Math.sqrt(c + y * y), y])}
+          />
+        ))
+      )}
+      {levels.filter(c => c < 0).flatMap(c =>
+        [-1, 1].map((sign, i) => (
+          <Shape
+            id={`neg${-c}${i}`}
+            group="level curves"
+            pts={t.map(x => [x, sign * Math.sqrt(-c + x * x)])}
+          />
+        ))
+      )}
+      <Shape id="zeroA" group="level curves" pts={t.map(v => [v, v])} />
+      <Shape id="zeroB" group="level curves" pts={t.map(v => [v, -v])} />
+
+      <Label at={[1.5, 3.25]} text="$f=-8$" />
+      <Label at={[2.2, 2.7]} text="$f=-4$" />
+      <Label at={[2.8, 2.8]} text="$f=0$" />
+      <Label at={[2.7, 2.15]} text="$f=4$" />
+      <Label at={[3.25, 1.65]} text="$f=8$" />
+
+      <Points id="p1" pts={[[2, 1]]} label="(2, 1)" group="sample points" />
+      <Points id="p2" pts={[[1, 2]]} label="(1, 2)" group="sample points" />
+      <Points id="p3" pts={[[-2, -1]]} label="(−2, −1)" group="sample points" />
+      <Vector id="g1" from={[2, 1]} to={[3.4, 0.3]} label="$\\nabla f$" group="gradients" />
+      <Vector id="g2" from={[1, 2]} to={[1.7, 0.6]} label="$\\nabla f$" group="gradients" />
+      <Vector id="g3" from={[-2, -1]} to={[-3.4, -0.3]} label="$\\nabla f$" group="gradients" />
     </Plot>
   );
 }

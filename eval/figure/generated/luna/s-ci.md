@@ -1,32 +1,33 @@
-A 95% confidence interval is made by a method that captures the true mean in about 95% of repeated samples. The mean is fixed; the intervals change from sample to sample. Here, 19 of the 20 intervals contain the true mean, and the one that misses is marked orange.
+I’ll show each interval against the same true mean, with misses marked separately.
+
+Each vertical segment is one 95% confidence interval; the horizontal line is the true mean. This illustrative set has 19 intervals that cover it and one that misses.
 
 ```figure
 const intervals = [
-  [47, 53], [46, 52], [49, 54], [45, 51], [48, 52],
-  [47, 55], [46, 50.5], [48, 54], [44, 49], [47.5, 52],
-  [46, 53], [48, 51], [45, 54], [47, 50.8], [46, 52],
-  [49, 55], [48, 53], [45.5, 51], [47, 54], [46, 51],
+  [46, 54], [47, 53], [48, 55], [45, 52], [49, 54],
+  [46, 51], [47, 55], [48, 53], [45, 54], [49, 52],
+  [46, 53], [47, 54], [48, 52], [45, 55], [49, 53],
+  [51, 56], [46, 52], [47, 53], [48, 54], [45, 51]
 ];
 
 export default function () {
   return (
-    <Figure steps={[{ intervals }]} legend={{
-      hit: 'contains true mean',
-      miss: 'misses true mean',
-      truth: 'true mean',
-    }} render={step => (
-      <Plot x={[43, 56]} y={[0, 21]} xLabel="Mean" yLabel="Sample">
-        {step.intervals.map(([lo, hi], i) => (
-          <Segment
-            id={`ci${i + 1}`}
-            from={[lo, i + 1]}
-            to={[hi, i + 1]}
-            group={lo <= 50 && 50 <= hi ? 'hit' : 'miss'}
-          />
-        ))}
-        <Segment id="trueMean" from={[50, 0]} to={[50, 21]} group="truth" />
-      </Plot>
-    )} />
+    <Figure
+      steps={[{ intervals }]}
+      caption={() => '19 intervals cover the true mean; 1 misses.'}
+      render={step => (
+        <Plot x={[0.5, 20.5]} y={[44, 57]} xLabel="Sample" yLabel="Mean">
+          <Fn f={x => 50} label="True mean = 50" />
+          {step.intervals.map(([lo, hi], i) => (
+            <Shape
+              id={`ci-${i + 1}`}
+              pts={[[i + 1, lo], [i + 1, hi]]}
+              group={i === 15 ? 'misses true mean' : 'covers true mean'}
+            />
+          ))}
+        </Plot>
+      )}
+    />
   );
 }
 ```

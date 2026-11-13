@@ -1,9 +1,9 @@
-**Monthly payment: $1,063.70.** Total interest: $1,528.66.
+Monthly payment: **$1,063.70** for 24 months, at 0.5% interest per month (6% ÷ 12).
 
-Payment = P·r / (1 − (1 + r)⁻ⁿ), with r = 0.06 / 12 = 0.005 and n = 24.
+$$M = \frac{P\,r}{1-(1+r)^{-n}} = \frac{24000 \times 0.005}{1-1.005^{-24}} \approx 1063.70$$
 
 | Month | Payment | Interest | Principal | Balance |
-|---|---|---|---|---|
+|---:|---:|---:|---:|---:|
 | 1 | 1,063.70 | 120.00 | 943.70 | 23,056.30 |
 | 2 | 1,063.70 | 115.28 | 948.42 | 22,107.88 |
 | 3 | 1,063.70 | 110.54 | 953.16 | 21,154.72 |
@@ -29,14 +29,18 @@ Payment = P·r / (1 − (1 + r)⁻ⁿ), with r = 0.06 / 12 = 0.005 and n = 24.
 | 23 | 1,063.70 | 10.56 | 1,053.14 | 1,058.27 |
 | 24 | 1,063.56 | 5.29 | 1,058.27 | 0.00 |
 
+Each row: interest = previous balance × 0.005; principal = payment − interest; balance = previous balance − principal.
+
+- Total paid: $25,528.66
+- Total interest: $1,528.66
+- Month 24 pays $1,063.56. The payment is rounded to cents, so the last payment absorbs the rounding difference.
+
 ```mermaid
 xychart-beta
     title "Remaining balance ($)"
-    x-axis "Month" 1 --> 24
+    x-axis "Month" [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
     y-axis "Balance" 0 --> 24000
-    line [23056, 22108, 21155, 20197, 19234, 18267, 17294, 16317, 15335, 14348, 13356, 12359, 11357, 10350, 9338, 8321, 7299, 6272, 5240, 4202, 3159, 2111, 1058, 0]
+    line [24000, 23056.30, 22107.88, 21154.72, 20196.79, 19234.07, 18266.54, 17294.17, 16316.94, 15334.82, 14347.79, 13355.83, 12358.91, 11357.00, 10350.09, 9338.14, 8321.13, 7299.04, 6271.84, 5239.50, 4202.00, 3159.31, 2111.41, 1058.27, 0]
 ```
 
-Interest is rounded to the cent each month. The final payment is $0.14 smaller to clear the balance.
-
-Not checked: your lender's rounding rule. A lender that truncates interest instead of rounding will shift the cents in some rows.
+Not checked: the figures are computed by hand, not by a spreadsheet. Confirm against your lender's schedule, since some lenders round interest differently or add fees.

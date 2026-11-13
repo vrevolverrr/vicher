@@ -1,28 +1,29 @@
-Profitability and liquidity fell over three years, and debt rose. Quick ratio dropped below 1.0 in Year 3.
+All eight ratios got worse from Year 1 to Year 3.
 
-| Ratio | Formula | Y1 | Y2 | Y3 | Trend |
+| Ratio | Formula | Year 1 | Year 2 | Year 3 | Change Y1→Y3 |
 |---|---|---|---|---|---|
-| Current ratio | current assets ÷ current liabilities | 2.00 | 1.50 | 1.31 | Down |
-| Quick ratio | (current assets − inventory) ÷ current liabilities | 1.25 | 0.83 | 0.69 | Down |
-| Working capital | current assets − current liabilities | 200 | 150 | 90 | Down |
-| Net profit margin | net income ÷ revenue | 10.0% | 6.9% | 3.1% | Down |
-| Asset turnover | revenue ÷ total assets | 0.67 | 0.65 | 0.61 | Down |
-| ROA | net income ÷ total assets | 6.7% | 4.5% | 1.9% | Down |
-| ROE | net income ÷ equity | 12.0% | 8.7% | 3.9% | Down |
-| Debt ratio | liabilities ÷ total assets | 44.4% | 48.0% | 51.4% | Up |
-| Debt-to-equity | liabilities ÷ equity | 0.80 | 0.92 | 1.06 | Up |
-| Equity multiplier | total assets ÷ equity | 1.80 | 1.92 | 2.06 | Up |
+| Current ratio | CA / CL | 2.00 | 1.50 | 1.31 | -0.69 |
+| Quick ratio | (CA - Inventory) / CL | 1.25 | 0.83 | 0.69 | -0.56 |
+| Net profit margin | Net income / Revenue | 10.0% | 6.9% | 3.1% | -6.9 pts |
+| ROA | Net income / Total assets | 6.7% | 4.5% | 1.9% | -4.8 pts |
+| ROE | Net income / Equity | 12.0% | 8.7% | 3.9% | -8.1 pts |
+| Asset turnover | Revenue / Total assets | 0.67 | 0.65 | 0.61 | -0.06 |
+| Debt-to-equity | (Total assets - Equity) / Equity | 0.80 | 0.92 | 1.06 | +0.26 (worse) |
+| Equity ratio | Equity / Total assets | 55.6% | 52.0% | 48.6% | -7.0 pts |
 
 ```mermaid
 xychart-beta
-    title "Return on equity (%)"
-    x-axis [Y1, Y2, Y3]
-    y-axis "%" 0 --> 14
-    line [12.0, 8.7, 3.9]
+    title "Liquidity ratios"
+    x-axis [Year 1, Year 2, Year 3]
+    y-axis "Ratio" 0 --> 2.5
+    line [2.00, 1.50, 1.31]
+    line [1.25, 0.83, 0.69]
 ```
 
-- Net income fell from 60 to 20, while revenue stayed near 600 to 650.
-- Liabilities rose from 400 to 540 (total assets minus equity).
-- Working capital fell from 200 to 90.
+Current ratio is the top line, quick ratio the bottom line. Quick ratio fell below 1.0 in Year 2.
 
-Assumed liabilities = total assets − equity, with no other items. Used year-end balances, not averages. Not checked: industry benchmarks.
+Assumptions:
+- Columns run oldest to newest. If they run newest first, every trend reverses.
+- Total liabilities = total assets - equity.
+
+Skipped: ROA and ROE use year-end balances, not averages. Inventory turnover is not shown because it needs cost of sales.
