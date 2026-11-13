@@ -207,8 +207,6 @@ export interface AgentAdapter {
   readonly skillSyntax: SkillSyntax;
   /** How the prompt names a file the CLI loads itself, or undefined when the turn must carry the file's text. */
   readonly fileMention?: (path: string) => string | undefined;
-  /** Whether a resumed conversation can be given tools, or keeps only those it started with (Codex). */
-  readonly toolsOnResume: boolean;
   authState(cliPath?: string): Promise<AuthState>;
   /** The CLI's own model list, one entry per family; starts a short-lived CLI process. */
   models(cliPath?: string): Promise<ModelOption[]>;

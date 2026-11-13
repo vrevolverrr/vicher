@@ -37,7 +37,7 @@ function fakeSession(id: string, options: AgentSessionOptions, title?: string): 
 function setup(record: Partial<ChatRecord> = {}, title?: string, claudeModels: Promise<ModelOption[]> = Promise.resolve([]), savedDefaults: unknown = {}) {
   const sessions: FakeSession[] = [];
   const adapter = (id: 'claude' | 'codex'): AgentAdapter => ({
-    id, skillSyntax: { prefix: id === 'claude' ? '/' : '$', atStart: id === 'claude' }, fileMention: (path) => `@"${path}"`, toolsOnResume: true,
+    id, skillSyntax: { prefix: id === 'claude' ? '/' : '$', atStart: id === 'claude' }, fileMention: (path) => `@"${path}"`,
     authState: async () => 'logged-in', models: async () => [],
     openSession: async (options) => {
       const session = fakeSession(`${id}-${sessions.length}`, options, title);

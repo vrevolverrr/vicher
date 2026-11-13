@@ -35,7 +35,6 @@ function loadClaudeAgentSDK(): Promise<typeof ClaudeSDK> {
 export class ClaudeAgent implements AgentAdapter {
   readonly id = 'claude';
   readonly skillSyntax = { prefix: '/', atStart: true };
-  readonly toolsOnResume = true;
   /** Claude Code loads an `@"path"` itself, as a `Read` the session records. It cannot read a quoted path that holds a quote, escaped or not. */
   readonly fileMention = (path: string): string | undefined => (path.includes('"') ? undefined : `@"${path}"`);
 
