@@ -13,6 +13,8 @@ const MARGIN = 4;
 const LABEL_SPOTS = [0.5, 0.35, 0.65, 0.2, 0.8];
 /** The padding `fittedSize` adds around a label's text on each side, less the 4 px the text's own background keeps. */
 const LABEL_AIR = { x: 8, y: 6 };
+/** The radius of a turn in a routed edge, small so the curve stays on its route. */
+const TURN = 8;
 
 export interface NetworkLayout extends Size {
   readonly kind: 'tree' | 'graph';
@@ -87,9 +89,13 @@ export function layoutNetwork({ nodes, edges, nodeLabels, edgeLabels }: NetworkI
     const a = geometry.get(edge.from)!;
     const b = geometry.get(edge.to)!;
     const loop = edge.from === edge.to;
-    const way = ways.get(edgeIndex.get(edge)!)?.map(w => ({ x: w.x * spacingX, y: w.y * spacingY }));
+    // In rows, an edge leaves the bottom of its node and enters the top of the next, and runs upright through each row it
+    // crosses, so no part of it lies in a row beside a node.
+    const way = ways.get(edgeIndex.get(edge)!)?.flatMap(w => [{ x: w.x * spacingX, y: w.y * spacingY - nodeSize.height / 2 }, { x: w.x * spacingX, y: w.y * spacingY + nodeSize.height / 2 }]);
+    const out = { x: a.x, y: a.y + a.height / 2 };
+    const into = { x: b.x, y: b.y - b.height / 2 };
     let path: Point[];
-    if (way) path = [boundary(a, way[0]), ...way, boundary(b, way[way.length - 1])];
+    if (way) path = [out, ...way, into];
     else if (loop) {
       const neighbours = edges.flatMap(e => (e.from === e.to ? [] : e.from === edge.from ? [geometry.get(e.to)!] : e.to === edge.from ? [geometry.get(e.from)!] : []));
       path = selfLoop(a, loopSide(a, neighbours), 64 + index * (edgeSize.height + 32));
@@ -101,7 +107,7 @@ export function layoutNetwork({ nodes, edges, nodeLabels, edgeLabels }: NetworkI
       const distance = Math.hypot(dx, dy) || 1;
       const offset = (index - (group.length - 1) / 2) * (edgeSize.height + 36);
       const control = { x: (a.x + b.x) / 2 - dy / distance * offset * 2, y: (a.y + b.y) / 2 + dx / distance * offset * 2 };
-      path = [boundary(a, control), control, boundary(b, control)];
+      path = rows ? [out, control, into] : [boundary(a, control), control, boundary(b, control)];
     }
     bounds.push(...path);
     routes.push({ id: edge.id, points: path, shape: way ? 'route' : loop ? 'loop' : 'curve' });
@@ -143,12 +149,18 @@ function pointAt(p: readonly Point[], t: number): Point {
   return q[0];
 }
 
-const mid = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
-
-/** A path through every point of a route, straight between them and rounded at each turn. */
+/** A path through every point of a route, straight between them and rounded at each turn by up to `TURN`. */
 function rounded(p: readonly Point[]): string {
-  const turns = p.slice(1, -1).map((corner, i) => `Q${corner.x},${corner.y} ${mid(corner, p[i + 2]).x},${mid(corner, p[i + 2]).y}`);
-  return `M${p[0].x},${p[0].y} L${mid(p[0], p[1]).x},${mid(p[0], p[1]).y} ${turns.join(' ')} L${p[p.length - 1].x},${p[p.length - 1].y}`;
+  const toward = (from: Point, to: Point): Point => {
+    const length = Math.hypot(to.x - from.x, to.y - from.y);
+    const share = Math.min(TURN, length / 2) / (length || 1);
+    return { x: from.x + (to.x - from.x) * share, y: from.y + (to.y - from.y) * share };
+  };
+  const turns = p.slice(1, -1).map((corner, i) => {
+    const [enter, leave] = [toward(corner, p[i]), toward(corner, p[i + 2])];
+    return `L${enter.x},${enter.y} Q${corner.x},${corner.y} ${leave.x},${leave.y}`;
+  });
+  return `M${p[0].x},${p[0].y} ${turns.join(' ')} L${p[p.length - 1].x},${p[p.length - 1].y}`;
 }
 
 /** The point a share `t` of the way along a route, by length. */
@@ -156,8 +168,7 @@ function along(p: readonly Point[], t: number): Point {
   const lengths = p.slice(1).map((point, i) => Math.hypot(point.x - p[i].x, point.y - p[i].y));
   let left = t * lengths.reduce((sum, length) => sum + length, 0);
   const i = lengths.findIndex(length => (left <= length ? true : ((left -= length), false)));
-  if (i < 0) return p[p.length - 1];
-  const share = left / (lengths[i] || 1);
+  const share = left / lengths[i];
   return { x: p[i].x + (p[i + 1].x - p[i].x) * share, y: p[i].y + (p[i + 1].y - p[i].y) * share };
 }
 
@@ -227,13 +238,17 @@ function layered(rows: readonly number[], edges: readonly (readonly number[])[])
     links.push([upper, to]);
   });
   const xs = row.map(() => 0);
+  const byRow = row.reduce<number[][]>((all, y, m) => ((all[y] ??= []).push(m), all), []);
+  /** Each member's neighbours in the row above (0) and the row below (1). */
+  const near = [row.map((): number[] => []), row.map((): number[] => [])];
+  for (const [upper, lower] of links) {
+    near[0][lower].push(upper);
+    near[1][upper].push(lower);
+  }
   /** Orders row `r` by its neighbours on the far `end` of its links (0 the row above, 1 the row below); a tie keeps the order it has. */
   const order = (r: number, end: 0 | 1): void => {
-    const members = row.flatMap((y, m) => (y === r ? [m] : []));
-    const pull = new Map(members.map((m) => {
-      const near = links.flatMap((link) => (link[1 - end] === m ? [xs[link[end]]] : []));
-      return [m, near.length ? near.reduce((sum, x) => sum + x) / near.length : xs[m]];
-    }));
+    const members = [...byRow[r]];
+    const pull = new Map(members.map((m) => [m, near[end][m].length ? near[end][m].reduce((sum, n) => sum + xs[n], 0) / near[end][m].length : xs[m]]));
     members.sort((a, b) => pull.get(a)! - pull.get(b)! || xs[a] - xs[b]).forEach((m, k) => { xs[m] = k - (members.length - 1) / 2; });
   };
   const last = Math.max(...rows);

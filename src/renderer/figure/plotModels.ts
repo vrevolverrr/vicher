@@ -55,7 +55,7 @@ export function plotModel(plot: Plot, colorOf: ColorOf = () => undefined): PlotM
       }
       case 'Points':
         // One point's label is a note beside it. Several points share theirs, so it names the set in the legend and sits on none of them.
-        return layer.pts.map(([x, y], i): Layer => ({ kind: 'dot', x, y, ...(i > 0 || label === undefined ? {} : layer.pts.length > 1 ? { name: label } : { label }), ...marks }));
+        return layer.pts.map(([x, y], i): Layer => ({ kind: 'dot', x, y, ...(label === undefined ? {} : layer.pts.length > 1 ? { name: label } : i === 0 ? { label } : {}), ...marks }));
       case 'Label':
         return [{ kind: 'note', x: layer.at[0], y: layer.at[1], text: layer.text, ...marks }];
     }

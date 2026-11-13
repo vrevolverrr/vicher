@@ -29,7 +29,17 @@ describe('PlotChart', () => {
     expect(plot.el.querySelectorAll('.vicher-plot-label')).toHaveLength(0);
   });
 
-  it('gives unnamed bars one colour and the curve over them the next', () => {
+  it('gives each named set of dots its own colour, in the legend too', () => {
+    const set = (name: string, y: number): PlotModel['layers'] => [0, 1].map((x) => ({ kind: 'dot', x, y, name }));
+    const { chart: plot } = chart(480, { x: [0, 1], y: [0, 1], layers: [...set('A', 0), ...set('B', 1)] });
+    const fills = [...plot.el.querySelectorAll('svg .vicher-plot-dot')].map((dot) => dot.getAttribute('fill'));
+    const swatches = [...plot.el.querySelectorAll<HTMLElement>('.vicher-plot-swatch')].map((swatch) => swatch.style.getPropertyValue('--vicher-swatch'));
+
+    expect(fills).toEqual(['var(--vicher-series-1)', 'var(--vicher-series-1)', 'var(--vicher-series-2)', 'var(--vicher-series-2)']);
+    expect(swatches).toEqual(['var(--vicher-series-1)', 'var(--vicher-series-2)']);
+  });
+
+    it('gives unnamed bars one colour and the curve over them the next', () => {
     const bar = (from: number): PlotModel['layers'][number] => ({ kind: 'area', points: [[from, 1], [from + 1, 1]], base: 0, from, to: from + 1, bar: true });
     const { chart: plot } = chart(480, { x: [0, 3], y: [0, 2], layers: [bar(0), bar(1), bar(2), { kind: 'line', points: [[0, 0], [3, 2]], label: 'f' }] });
     expect(new Set([...plot.el.querySelectorAll('.vicher-plot-area')].map((area) => area.getAttribute('fill')))).toEqual(new Set(['var(--vicher-series-1)']));

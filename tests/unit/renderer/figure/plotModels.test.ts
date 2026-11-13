@@ -85,7 +85,7 @@ describe('a layer\'s colour', () => {
   it('writes one point\'s label beside it, and lists the label several points share in the legend', () => {
     expect(layers({ type: 'Points', pts: [[0, 0]], label: 'peak' })).toMatchObject([{ kind: 'dot', label: 'peak' }]);
     const set = layers({ type: 'Points', pts: [[0, 0], [1, 1]], label: 'nodes' });
-    expect(set).toMatchObject([{ kind: 'dot', name: 'nodes' }, { kind: 'dot' }]);
+    expect(set).toMatchObject([{ kind: 'dot', name: 'nodes' }, { kind: 'dot', name: 'nodes' }]);
     expect(set.some((dot) => 'label' in dot)).toBe(false);
   });
 

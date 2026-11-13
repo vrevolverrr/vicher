@@ -262,10 +262,11 @@ export class PlotChart {
     if (!cats && interactive) this.addHover(model, colors, { x0, x1, y0, y1, margin, pw, ph, sx, sy });
   }
 
-  /** Lines, areas and bars take the next series colour unless the model names one; a dot or rule defaults to the ink. */
+  /** Lines, areas and bars take the next series colour unless the model names one; a dot or rule defaults to the ink, and a named set of dots takes one colour. */
   private assignColors(layers: readonly Layer[]): string[] {
     let next = 1;
     let bars: string | undefined;
+    const sets = new Map<string, string>();
     return layers.map((layer) => {
       const ink = markInk(layer);
       if (ink) return ink;
@@ -275,6 +276,7 @@ export class PlotChart {
       // Unnamed Shapes are usually one kind of thing, such as 20 confidence intervals, so a colour is for the one that differs.
       if (layer.kind === 'line' && layer.neutral) return 'var(--text-muted)';
       if (layer.series !== undefined) return seriesColor(layer.series);
+      if (layer.kind === 'dot' && layer.name) return sets.get(layer.name) ?? sets.set(layer.name, seriesColor(next++)).get(layer.name)!;
       if (layer.kind === 'dot' || layer.kind === 'arrow') return 'var(--text-normal)';
       if (layer.kind === 'rule') return 'var(--text-muted)';
       return seriesColor(next++);
