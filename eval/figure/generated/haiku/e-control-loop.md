@@ -1,20 +1,17 @@
 ```mermaid
 flowchart LR
-    r["Setpoint $$r(t)$$"] -->|"+"| e(("Σ"))
-    y["Output $$y(t)$$"] -->|"−"| e
-    e -->|"error $$e(t)$$"| P["Proportional $$K_p\,e(t)$$"]
-    e --> I["Integral $$K_i\int e\,dt$$"]
-    e --> D["Derivative $$K_d\,\frac{de}{dt}$$"]
-    P -->|"+"| u(("Σ"))
-    I -->|"+"| u
-    D -->|"+"| u
-    u -->|"control $$u(t)$$"| G["Plant $$G(s)$$"]
-    G --> y
+    R["Setpoint r(t)"] -->|"+"| S((Σ))
+    S -->|"e(t) = r − y"| P["P: Kp · e(t)"]
+    S --> I["I: Ki ∫ e(t) dt"]
+    S --> D["D: Kd · de/dt"]
+    P --> U((Σ))
+    I --> U
+    D --> U
+    U -->|"u(t)"| PL["Plant"]
+    PL -->|"y(t)"| Y["Output y(t)"]
+    Y -->|"−"| S
 ```
 
-The controller output is the sum of three terms:
+The error e(t) feeds the P, I and D blocks in parallel. Their sum u(t) drives the plant. The output is fed back and subtracted at the first summing junction.
 
-$$u(t) = K_p\,e(t) + K_i \int_0^t e(\tau)\,d\tau + K_d\,\frac{de(t)}{dt}$$
-
-- $e(t) = r(t) - y(t)$ is the error.
-- $K_p$, $K_i$, $K_d$ are the gains.
+Not checked: rendering in the Obsidian vault. Risk: none for the diagram itself.

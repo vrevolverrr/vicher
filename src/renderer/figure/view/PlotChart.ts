@@ -185,7 +185,8 @@ export class PlotChart {
       const color = colors[index];
       if (layer.kind === 'area') {
         let target = data;
-        if (layer.from !== undefined || layer.to !== undefined) {
+        // A rectangle is its own path from `from` to `to`; clipping it there would cut half its outline away.
+        if (!layer.bar && (layer.from !== undefined || layer.to !== undefined)) {
           const left = sx(Math.max(x0, layer.from ?? x0));
           const right = sx(Math.min(x1, layer.to ?? x1));
           const id = `${clipId}-area-${index}`;
@@ -200,7 +201,9 @@ export class PlotChart {
             ? lower.filter(([x]) => x >= first[0] && x <= last[0]).reverse()
             : [[last[0], layer.base], [first[0], layer.base]] as [number, number][];
           if (!back.length) continue;
-          markData(svg('path', { d: `${path(run)}L${path(back).slice(1)}Z`, fill: color, 'fill-opacity': layer.bar ? 0.8 : 0.18, stroke: layer.state ? (layer.bar ? 'var(--text-normal)' : color) : undefined, class: 'vicher-plot-area' }, target), layer);
+          // A rectangle may be a bar or a window over a curve, and nothing in it says which: both are a light fill that shows
+          // what is behind, with an outline that keeps neighbours of one colour apart. A curve is the outline of the area under it.
+          markData(svg('path', { d: `${path(run)}L${path(back).slice(1)}Z`, fill: color, 'fill-opacity': layer.bar ? 0.3 : 0.18, stroke: layer.bar ? (layer.state ? 'var(--text-normal)' : color) : layer.state ? color : undefined, class: 'vicher-plot-area' }, target), layer);
         }
       } else if (layer.kind === 'line') {
         for (const run of runs(layer.points)) markData(svg('path', { d: path(run), stroke: color, class: 'vicher-plot-line' }, data), layer);
@@ -230,7 +233,8 @@ export class PlotChart {
         const marker = `${clipId}-arrow-${index}`;
         const head = svg('marker', { id: marker, viewBox: '0 0 10 10', refX: 9, refY: 5, markerUnits: 'userSpaceOnUse', markerWidth: 12, markerHeight: 12, orient: 'auto-start-reverse' }, svg('defs', {}, root));
         svg('path', { d: 'M0 0L10 5L0 10z', fill: color }, head);
-        markData(svg('path', { d: path([layer.from, layer.to]), stroke: color, 'marker-end': `url(#${marker})`, class: 'vicher-plot-line vicher-plot-arrow' }, data), layer);
+        // A vector of no length has no direction, so it draws no head; its label still says "0 m/s".
+        if (layer.from[0] !== layer.to[0] || layer.from[1] !== layer.to[1]) markData(svg('path', { d: path([layer.from, layer.to]), stroke: color, 'marker-end': `url(#${marker})`, class: 'vicher-plot-line vicher-plot-arrow' }, data), layer);
         if (layer.label) label(sx((layer.from[0] + layer.to[0]) / 2), sy((layer.from[1] + layer.to[1]) / 2), layer.label, true);
       }
     });
@@ -258,16 +262,21 @@ export class PlotChart {
     if (!cats && interactive) this.addHover(model, colors, { x0, x1, y0, y1, margin, pw, ph, sx, sy });
   }
 
-  /** Lines, areas and bars take the next series colour unless the model names one; a dot or rule defaults to the ink. */
+  /** Lines, areas and bars take the next series colour unless the model names one; a dot or rule defaults to the ink, and a named set of dots takes one colour. */
   private assignColors(layers: readonly Layer[]): string[] {
     let next = 1;
+    let bars: string | undefined;
+    const sets = new Map<string, string>();
     return layers.map((layer) => {
       const ink = markInk(layer);
       if (ink) return ink;
+      // Unnamed bars are one series, such as the rectangles of a Riemann sum.
+      if (layer.kind === 'area' && layer.bar && !layer.label) return (bars ??= seriesColor(next++));
       if (layer.kind === 'note') return 'var(--text-normal)';
       // Unnamed Shapes are usually one kind of thing, such as 20 confidence intervals, so a colour is for the one that differs.
       if (layer.kind === 'line' && layer.neutral) return 'var(--text-muted)';
       if (layer.series !== undefined) return seriesColor(layer.series);
+      if (layer.kind === 'dot' && layer.name) return sets.get(layer.name) ?? sets.set(layer.name, seriesColor(next++)).get(layer.name)!;
       if (layer.kind === 'dot' || layer.kind === 'arrow') return 'var(--text-normal)';
       if (layer.kind === 'rule') return 'var(--text-muted)';
       return seriesColor(next++);
@@ -278,11 +287,12 @@ export class PlotChart {
     const entries: [string, string, string][] = [];
     const seen = new Set<string>();
     layers.forEach((layer, index) => {
-      // A dot or a rule writes its label on the plot, so only layers with a swatch to explain are listed.
-      if (layer.kind === 'note' || layer.kind === 'dot' || layer.kind === 'rule' || layer.kind === 'arrow' || !layer.label || seen.has(layer.label)) return;
+      // A dot or a rule writes its label on the plot, so only layers with a swatch to explain are listed: a set of dots by its name.
+      const name = layer.kind === 'dot' ? layer.name : layer.kind === 'note' || layer.kind === 'rule' || layer.kind === 'arrow' ? undefined : layer.label;
+      if (!name || seen.has(name)) return;
       if (layer.kind === 'bars' && layer.mode === 'waterfall') return;
-      seen.add(layer.label);
-      entries.push([layer.label, colors[index], layer.kind]);
+      seen.add(name);
+      entries.push([name, colors[index], layer.kind]);
     });
     if (layers.some((layer) => layer.kind === 'bars' && layer.mode === 'waterfall')) {
       entries.push(['Total', 'var(--vicher-series-1)', 'bars'], ['Increase', 'var(--color-green)', 'bars'], ['Decrease', 'var(--color-red)', 'bars']);

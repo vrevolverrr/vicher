@@ -1,40 +1,54 @@
-Mohr's circle for σx = 80, σy = −20, τxy = 30 MPa:
+Mohr's circle: center $C = (30, 0)$ MPa, radius $R = 58.3$ MPa.
 
 ```figure
 const sx = 80, sy = -20, t = 30;
 const c = (sx + sy) / 2;
-const r = Math.sqrt(((sx - sy) / 2) ** 2 + t ** 2);
-const s1 = c + r, s2 = c - r;
+const R = Math.sqrt(((sx - sy) / 2) ** 2 + t ** 2);
+const s1 = c + R, s2 = c - R;
+const X = [sx, t], Y = [sy, -t], C = [c, 0];
+
+const steps = [
+  { n: 1, text: String.raw`Plot $X = (80, 30)$ on the $x$ face and $Y = (-20, -30)$ on the $y$ face. The line $XY$ is a diameter.` },
+  { n: 2, text: String.raw`The circle has diameter $XY$. Center $C = (${c}, 0)$, radius $R = ${R.toFixed(1)}$ MPa.` },
+  { n: 3, text: String.raw`The circle crosses the $\sigma$ axis at $\sigma_1 = ${s1.toFixed(1)}$ MPa and $\sigma_2 = ${s2.toFixed(1)}$ MPa.` },
+  { n: 4, text: String.raw`The top and bottom points give $\tau_{max} = \pm${R.toFixed(1)}$ MPa, both at $\sigma = ${c}$ MPa.` },
+];
 
 export default function () {
   return (
-    <Plot id="mohr" x={[-40, 100]} y={[-70, 70]} xLabel="$\sigma$ (MPa)" yLabel="$\tau$ (MPa)" equal>
-      <Circle id="circle" at={[c, 0]} r={r} />
-      <Segment id="diam" from={[sx, t]} to={[sy, -t]} />
-      <Points id="faces" pts={[[sx, t], [sy, -t]]} group="face points" />
-      <Points id="principal" pts={[[s1, 0], [s2, 0]]} group="principal" />
-      <Points id="shear" pts={[[c, r], [c, -r]]} group="max shear" />
-      <Label id="lA" at={[sx, t]} text="A (80, 30)" />
-      <Label id="lB" at={[sy, -t]} text="B (−20, −30)" />
-      <Label id="l1" at={[s1, 0]} text="$\sigma_1 = 88.3$" />
-      <Label id="l2" at={[s2, 0]} text="$\sigma_2 = -28.3$" />
-      <Label id="lT" at={[c, r]} text="$\tau_{max} = 58.3$" />
-      <Label id="lC" at={[c, 0]} text="C" />
-    </Plot>
+    <Figure steps={steps} caption={step => step.text} render={step => (
+      <Plot id="mohr" x={[-40, 100]} y={[-70, 70]} xLabel="$\sigma$ (MPa)" yLabel="$\tau$ (MPa)">
+        {step.n >= 1 && <Segment id="xy" from={X} to={Y} />}
+        {step.n >= 1 && <Points id="pts-xy" pts={[X, Y]} />}
+        {step.n >= 1 && <Label id="lbl-X" at={X} text="$X$" />}
+        {step.n >= 1 && <Label id="lbl-Y" at={Y} text="$Y$" />}
+        {step.n >= 2 && <Circle id="circ" at={C} r={R} />}
+        {step.n >= 2 && <Points id="pt-C" pts={[C]} />}
+        {step.n >= 2 && <Label id="lbl-C" at={C} text="$C$" />}
+        {step.n >= 3 && <Points id="pts-sig" pts={[[s1, 0], [s2, 0]]} />}
+        {step.n >= 3 && <Label id="lbl-s1" at={[s1, 0]} text="$\sigma_1$" />}
+        {step.n >= 3 && <Label id="lbl-s2" at={[s2, 0]} text="$\sigma_2$" />}
+        {step.n >= 4 && <Points id="pts-tau" pts={[[c, R], [c, -R]]} />}
+        {step.n >= 4 && <Label id="lbl-tau" at={[c, R]} text="$\tau_{max}$" />}
+      </Plot>
+    )} />
   );
 }
 ```
 
-| Quantity | Formula | Value |
+Working:
+
+$$C = \frac{\sigma_x + \sigma_y}{2} = \frac{80 + (-20)}{2} = 30 \text{ MPa}$$
+
+$$R = \sqrt{\left(\frac{\sigma_x - \sigma_y}{2}\right)^2 + \tau_{xy}^2} = \sqrt{50^2 + 30^2} = \sqrt{3400} = 58.3 \text{ MPa}$$
+
+| Quantity | Value | Plane angle from x-axis (CCW positive) |
 |---|---|---|
-| Center C | $\frac{\sigma_x+\sigma_y}{2}$ | 30 MPa |
-| Radius R | $\sqrt{\left(\frac{\sigma_x-\sigma_y}{2}\right)^2+\tau_{xy}^2}$ | 58.3 MPa |
-| Principal σ₁ | $C+R$ | 88.3 MPa |
-| Principal σ₂ | $C-R$ | −28.3 MPa |
-| Max shear τmax | $R$ | 58.3 MPa, on faces where σ = 30 MPa |
-| Principal angle θp | $\tfrac12\arctan\frac{2\tau_{xy}}{\sigma_x-\sigma_y}$ | 15.5° counterclockwise |
-| Max-shear angle θs | $\theta_p - 45^\circ$ | 29.5° clockwise |
+| $\sigma_1$ | 88.3 MPa | $\theta_p = 15.5^\circ$ |
+| $\sigma_2$ | -28.3 MPa | $105.5^\circ$ |
+| $\tau_{max}$ | 58.3 MPa | $\theta_s = -29.5^\circ$, normal stress 30 MPa |
+| $\tau_{min}$ | -58.3 MPa | $60.5^\circ$, normal stress 30 MPa |
 
-Each face becomes one point: A = (σx, τxy) = (80, 30) and B = (σy, −τxy) = (−20, −30). AB is a diameter of the circle, and the centre C sits on the σ axis.
+Check: $\sigma_1 + \sigma_2 = 60 = \sigma_x + \sigma_y$.
 
-Not checked: how the figure renders in your pane. Risk: the angle signs assume the standard convention, where τxy is positive when it acts counterclockwise on the element. A text with the opposite convention flips the signs of θp and θs.
+Not checked: a textbook that plots shear downward mirrors the figure vertically. The values stay the same.

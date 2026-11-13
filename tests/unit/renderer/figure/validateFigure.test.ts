@@ -268,7 +268,7 @@ describe('validateFigure on a 3D Plot', () => {
 describe('validateFigure on extreme numbers in a 3D Plot', () => {
   const zs = (z: number): number[] => Array.from({ length: 49 * 49 }, (_, k) => (k % 2 ? z : -z));
 
-  it('fits z without the heights past ±1e9, so the range stays finite', () => {
+  it('fits z without the heights too large to span, so the range stays finite', () => {
     const result = validateFigure({ params: {}, frames: [{ caption: '', root: el('Plot', { x: [0, 1], y: [0, 1] }, el('Fn', { zs: [...zs(1.7e308).slice(1), 2] })) }] });
     expect(result.ok && plot3Model(result.figure.steps[0].root as Extract<FigureNode, { type: 'Plot3' }>).z).toEqual([1.8, 2.2]);
   });

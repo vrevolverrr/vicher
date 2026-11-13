@@ -20,7 +20,7 @@ export function edgeKeys(edges: readonly GraphEdge[]): string[] {
 /** One layout for a Graph over every step it is in: the union of its nodes and edges, first seen first, so nothing moves. */
 export function layoutGraph(uses: readonly Graph[]): NetworkLayout {
   const nodes = new Set<string>();
-  const edges = new Map<string, { id: string; from: string; to: string }>();
+  const edges = new Map<string, { id: string; from: string; to: string; directed: boolean }>();
   const nodeLabels: string[] = [];
   const edgeLabels: string[] = [];
   for (const graph of uses) {
@@ -30,7 +30,7 @@ export function layoutGraph(uses: readonly Graph[]): NetworkLayout {
     }
     edgeKeys(graph.edges).forEach((key, i) => {
       const edge = graph.edges[i];
-      if (!edges.has(key)) edges.set(key, { id: key, from: edge.from, to: edge.to });
+      if (!edges.has(key)) edges.set(key, { id: key, from: edge.from, to: edge.to, directed: edge.directed === true });
       if (edge.label !== undefined) edgeLabels.push(edge.label);
     });
   }

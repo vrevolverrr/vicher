@@ -54,7 +54,8 @@ export function plotModel(plot: Plot, colorOf: ColorOf = () => undefined): PlotM
         ];
       }
       case 'Points':
-        return layer.pts.map(([x, y], i): Layer => ({ kind: 'dot', x, y, label: i === 0 ? label : undefined, ...marks }));
+        // One point's label is a note beside it. Several points share theirs, so it names the set in the legend and sits on none of them.
+        return layer.pts.map(([x, y], i): Layer => ({ kind: 'dot', x, y, ...(label === undefined ? {} : layer.pts.length > 1 ? { name: label } : i === 0 ? { label } : {}), ...marks }));
       case 'Label':
         return [{ kind: 'note', x: layer.at[0], y: layer.at[1], text: layer.text, ...marks }];
     }
@@ -97,9 +98,10 @@ export function plot3Model(plot: Plot3, colorOf: ColorOf = () => undefined): Plo
   const span = (range: Range): number => range[1] - range[0];
   const same = [y, z].every((range) => Math.abs(span(range) - span(x)) <= 1e-9 * span(x));
   const spans = [x, y, z].map(span);
-  // A Plot that gives no axis draws a solid in its own units, so a torus is not stretched to a cube. Spans more than 10×
-  // apart are data in different units, which one scale would squash to a sliver.
-  const solid = plot.x === undefined && plot.y === undefined && plot.z === undefined && Math.max(...spans) <= 10 * Math.min(...spans);
+  // A Plot that gives no axis, or whose surfaces are all parametric, draws a solid in its own units, so a torus is not
+  // stretched to a cube. Spans more than 10× apart are data in different units, which one scale would squash to a sliver.
+  const parametric = surfaces.length > 0 && surfaces.every((layer) => layer.zs === undefined);
+  const solid = (parametric || (plot.x === undefined && plot.y === undefined && plot.z === undefined)) && Math.max(...spans) <= 10 * Math.min(...spans);
   const children = plot.children.map((layer): Layer3 => {
     if (layer.type === 'Label') return { type: 'Label', at: layer.at, text: layer.text, ...marksOf(layer, colorOf) };
     const marks = { ...(layer.id ? { id: layer.id } : {}), ...marksOf(layer, colorOf), ...(layer.label === undefined ? {} : { label: layer.label }) };

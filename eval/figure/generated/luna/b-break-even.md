@@ -1,40 +1,39 @@
-Break-even is where revenue covers all costs. For a price of $50 per unit, each unit contributes $20 toward fixed costs, so you break even after 600 units.
-
-$$
-Q_{\text{BE}} = \frac{\text{fixed costs}}{\text{price} - \text{variable cost per unit}}
-$$
-
-Here, $Q_{\text{BE}}$ is the number of units needed to break even. The chart shows revenue and total cost; move the price slider to see where the lines meet.
+Break-even is where revenue meets total cost. Change the selling price with the slider; the marked point shows the break-even quantity.
 
 ```figure
 export const params = {
-  price: { label: 'Price per unit', min: 20, max: 80, step: 1, value: 50, unit: '$' }
+  price: { label: 'Price per unit', min: 35, max: 60, step: 1, value: 60, unit: '$' }
 };
 
 export default function ({ price }) {
-  const breakEvenUnits = 12000 / (price - 30);
-  const showBreakEven = price > 30 && breakEvenUnits <= 1000;
-
+  const quantity = 12000 / (price - 30);
   return (
-    <Plot
-      id="break-even-chart"
-      x={[0, 1000]}
-      y={[0, 80000]}
-      xLabel="Units sold"
-      yLabel="Dollars"
-    >
-      <Fn id="revenue" f={x => price * x} label={`Revenue at $${price}/unit`} />
-      <Fn id="total-cost" f={x => 12000 + 30 * x} label="Total cost" />
-      {showBreakEven && (
-        <>
-          <Points id="break-even-point" pts={[[breakEvenUnits, price * breakEvenUnits]]} label="Break-even" />
-          <Label at={[breakEvenUnits, price * breakEvenUnits]} text={`${Math.round(breakEvenUnits)} units`} />
-        </>
+    <Figure
+      steps={[{ price, quantity }]}
+      render={step => (
+        <Plot x={[0, 2500]} y={[0, 150000]} xLabel="Units sold" yLabel="Dollars">
+          <Fn
+            id="total-cost"
+            f={q => 12000 + 30 * q}
+            from={0}
+            to={2500}
+            label="Total cost: $12,000 + $30 per unit"
+          />
+          <Fn
+            id="revenue"
+            f={q => step.price * q}
+            from={0}
+            to={2500}
+            label={`Revenue: $${step.price} per unit`}
+          />
+          <Points
+            pts={[[step.quantity, step.price * step.quantity]]}
+            label={`Break-even: ${Math.round(step.quantity)} units`}
+          />
+        </Plot>
       )}
-    </Plot>
+    />
   );
 }
 ```
-
-At prices of $30 or less, there is no positive break-even quantity: revenue cannot cover both the variable cost and fixed costs.
 

@@ -1,25 +1,44 @@
-$A \cap B^c$ is the part of $A$ that is outside $B$: the elements in $A$ that are not in $B$. The shaded crescent is that region.
+Shade the part of circle A that lies outside circle B. That region is $A \cap B^c$.
 
-For example, with $A = \{1, 2, 3, 4\}$ and $B = \{3, 4, 5\}$, the elements of $A$ that are not in $B$ are $1$ and $2$, so $A \cap B^c = \{1, 2\}$.
+In simple words, $B^c$ (the complement of B) is everything in the universe $U$ that is not in B. Intersecting that with A keeps only the points that are in A and not in B.
+
+**Example:** $U=\{1,\dots,8\}$, $A=\{1,2,3,4,5\}$, $B=\{4,5,6,7\}$.
+- $B^c=\{1,2,3,8\}$
+- $A \cap B^c=\{1,2,3\}$
+
+The elements 4 and 5 are in both sets, so they are not shaded.
 
 ```figure
-const inA = (x, y) => (x - 1.4) ** 2 + (y - 1.5) ** 2 <= 1;
-const inB = (x, y) => (x - 2.6) ** 2 + (y - 1.5) ** 2 <= 1;
+const R = 1.6, cA = -0.8, cB = 0.8, h = 0.2;
 
 export default function () {
-  const pts = [];
-  for (let x = 0; x <= 4.001; x += 0.1)
-    for (let y = 0; y <= 3.001; y += 0.1)
-      if (inA(x, y) && !inB(x, y)) pts.push([x, y]);
+  const inA = (x, y) => (x - cA) ** 2 + y ** 2 <= R * R;
+  const inB = (x, y) => (x - cB) ** 2 + y ** 2 <= R * R;
+  const cells = [];
+  for (let i = 0; i < 16; i++) {
+    for (let j = 0; j < 16; j++) {
+      const x0 = -2.4 + i * h, y0 = -1.6 + j * h;
+      const mx = x0 + h / 2, my = y0 + h / 2;
+      if (inA(mx, my) && !inB(mx, my)) cells.push({ id: `c${i}-${j}`, x0, x1: x0 + h, y0, y1: y0 + h });
+    }
+  }
   return (
-    <Diagram id="venn" width={4} height={3}>
-      <Circle id="A" at={[1.4, 1.5]} r={1} label="A" />
-      <Circle id="B" at={[2.6, 1.5]} r={1} label="B" />
-      <Points id="shade" pts={pts} />
-      <Label id="name" at={[1.0, 2.75]} text="$A \cap B^c$" />
-    </Diagram>
+    <Plot id="venn" x={[-3, 3]} y={[-2.5, 2.5]} equal>
+      <Shape pts={[[-3, -2.5], [3, -2.5], [3, 2.5], [-3, 2.5]]} closed />
+      {cells.map(c => <Region id={c.id} top={c.y1} base={c.y0} from={c.x0} to={c.x1} group="A ∩ Bᶜ" />)}
+      <Circle id="circA" at={[cA, 0]} r={R} />
+      <Circle id="circB" at={[cB, 0]} r={R} />
+      <Label id="lblU" at={[-2.7, 2.1]} text="$U$" />
+      <Label id="lblA" at={[-2.2, 1.85]} text="$A$" />
+      <Label id="lblB" at={[2.2, 1.85]} text="$B$" />
+    </Plot>
   );
 }
 ```
 
-Not run here: the figure renders only in the Vicher pane.
+Steps:
+1. Draw the universe box $U$.
+2. Draw circles A and B so they overlap.
+3. Shade the part inside A and outside B. Leave the overlap unshaded.
+
+The shading is built from small squares, so its edges look stepped.

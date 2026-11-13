@@ -1,50 +1,52 @@
-Assuming a pin at the left end, a roller at the right, and Pratt diagonals sloping toward the centre, the support reactions are $15$ kN upward at each end. By symmetry, the horizontal reaction is zero. With 3 m panels and a 3 m truss height, each diagonal is at $45^\circ$.
+Assuming a pin at **A**, a roller at **E**, and Pratt diagonals sloping toward the center, the member forces are below. **T** means tension and **C** means compression. Zero-force members are marked 0.
 
 ```figure
 export default function () {
   return (
-    <Diagram width={12} height={4}>
-      <Segment from={[0, 0]} to={[3, 0]} label="0" />
-      <Segment from={[3, 0]} to={[6, 0]} label="15 T" />
-      <Segment from={[6, 0]} to={[9, 0]} label="15 T" />
-      <Segment from={[9, 0]} to={[12, 0]} label="0" />
-
-      <Segment from={[0, 3]} to={[3, 3]} label="15 C" />
-      <Segment from={[3, 3]} to={[6, 3]} label="20 C" />
-      <Segment from={[6, 3]} to={[9, 3]} label="20 C" />
-      <Segment from={[9, 3]} to={[12, 3]} label="15 C" />
-
-      <Segment from={[0, 0]} to={[0, 3]} label="15 C" />
-      <Segment from={[3, 0]} to={[3, 3]} label="5 C" />
-      <Segment from={[6, 0]} to={[6, 3]} label="0" />
-      <Segment from={[9, 0]} to={[9, 3]} label="5 C" />
-      <Segment from={[12, 0]} to={[12, 3]} label="15 C" />
-
-      <Segment from={[0, 3]} to={[3, 0]} label="21.2 T" />
-      <Segment from={[3, 3]} to={[6, 0]} label="7.07 T" />
-      <Segment from={[9, 3]} to={[6, 0]} label="7.07 T" />
-      <Segment from={[12, 3]} to={[9, 0]} label="21.2 T" />
-
-      <Points pts={[[0, 0], [3, 0], [6, 0], [9, 0], [12, 0], [0, 3], [3, 3], [6, 3], [9, 3], [12, 3]]} />
+    <Diagram width={12} height={3}>
+      <Segment from={[0, 0]} to={[3, 0]} />
+      <Segment from={[3, 0]} to={[6, 0]} />
+      <Segment from={[6, 0]} to={[9, 0]} />
+      <Segment from={[9, 0]} to={[12, 0]} />
+      <Segment from={[0, 3]} to={[3, 3]} />
+      <Segment from={[3, 3]} to={[6, 3]} />
+      <Segment from={[6, 3]} to={[9, 3]} />
+      <Segment from={[9, 3]} to={[12, 3]} />
+      <Segment from={[0, 0]} to={[0, 3]} />
+      <Segment from={[3, 0]} to={[3, 3]} />
+      <Segment from={[6, 0]} to={[6, 3]} />
+      <Segment from={[9, 0]} to={[9, 3]} />
+      <Segment from={[12, 0]} to={[12, 3]} />
+      <Segment from={[0, 3]} to={[3, 0]} />
+      <Segment from={[3, 3]} to={[6, 0]} />
+      <Segment from={[9, 3]} to={[6, 0]} />
+      <Segment from={[12, 3]} to={[9, 0]} />
+      <Label at={[0, -0.25]} text="A" />
+      <Label at={[3, -0.25]} text="B" />
+      <Label at={[6, -0.25]} text="C" />
+      <Label at={[9, -0.25]} text="D" />
+      <Label at={[12, -0.25]} text="E" />
+      <Label at={[0, 3.2]} text="a" />
+      <Label at={[3, 3.2]} text="b" />
+      <Label at={[6, 3.2]} text="c" />
+      <Label at={[9, 3.2]} text="d" />
+      <Label at={[12, 3.2]} text="e" />
     </Diagram>
   );
 }
 ```
 
-Member forces, in kN:
+By symmetry and vertical equilibrium, the support reactions are $A_y=E_y=15$ kN; the horizontal reaction is zero. The diagonals are at $45^\circ$, so their horizontal and vertical components are equal.
 
-| Member | Force |
+| Members | Force |
 |---|---:|
-| Bottom chord, left end panel | 0 |
-| Bottom chord, two middle panels | 15 T each |
-| Bottom chord, right end panel | 0 |
-| Top chord, two end panels | 15 C each |
-| Top chord, two middle panels | 20 C each |
-| End verticals | 15 C each |
-| Inner verticals beside centre | 5 C each |
-| Centre vertical | 0 |
-| End diagonals | 21.2 T each |
-| Inner diagonals | 7.07 T each |
-
-Here, **T** means tension and **C** means compression. The end diagonal force is $15/\sin 45^\circ = 21.2$ kN; the inner diagonal force is $5/\sin 45^\circ = 7.07$ kN.
+| Bottom chord AB, DE | 0 |
+| Bottom chord BC, CD | 15 kN T |
+| Top chord ab, de | 15 kN C |
+| Top chord bc, cd | 20 kN C |
+| Verticals Aa, Ee | 15 kN C |
+| Verticals Bb, Dd | 5 kN C |
+| Vertical Cc | 0 |
+| Diagonals aB, eD | $15\sqrt{2}=21.21$ kN T |
+| Diagonals bC, dC | $5\sqrt{2}=7.07$ kN T |
 

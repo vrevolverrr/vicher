@@ -3,46 +3,46 @@
 | Cash | Debit | Credit |
 |---|---:|---:|
 | Owner investment | $10,000 | |
-| Cash revenue | 2,000 | |
-| Equipment purchase | | 4,000 |
-| Payable payment | | 300 |
-| **Ending balance** | **$7,700** | |
+| Cash revenue | $2,000 | |
+| Equipment | | $4,000 |
+| Payment on payable | | $300 |
+| **Balance** | **$7,700** | |
 
 | Equipment | Debit | Credit |
 |---|---:|---:|
-| Equipment purchase | $4,000 | |
-| **Ending balance** | **$4,000** | |
+| Cash purchase | $4,000 | |
+| **Balance** | **$4,000** | |
 
 | Supplies | Debit | Credit |
 |---|---:|---:|
-| Supplies bought on credit | $500 | |
-| **Ending balance** | **$500** | |
+| Purchased on credit | $500 | |
+| **Balance** | **$500** | |
 
-| Accounts Payable | Debit | Credit |
+| Accounts payable | Debit | Credit |
 |---|---:|---:|
 | Payment | $300 | |
-| Supplies bought on credit | | $500 |
-| **Ending balance** | | **$200** |
+| Supplies purchased | | $500 |
+| **Balance** | | **$200** |
 
-| Owner’s Capital | Debit | Credit |
+| Owner’s capital | Debit | Credit |
 |---|---:|---:|
 | Owner investment | | $10,000 |
-| **Ending balance** | | **$10,000** |
+| **Balance** | | **$10,000** |
 
 | Revenue | Debit | Credit |
 |---|---:|---:|
-| Cash revenue | | $2,000 |
-| **Ending balance** | | **$2,000** |
+| Cash earned | | $2,000 |
+| **Balance** | | **$2,000** |
 
 ### Trial balance
 
 | Account | Debit | Credit |
 |---|---:|---:|
 | Cash | $7,700 | |
-| Equipment | 4,000 | |
-| Supplies | 500 | |
-| Accounts Payable | | $200 |
-| Owner’s Capital | | 10,000 |
-| Revenue | | 2,000 |
-| **Total** | **$12,200** | **$12,200** |
+| Equipment | $4,000 | |
+| Supplies | $500 | |
+| Accounts payable | | $200 |
+| Owner’s capital | | $10,000 |
+| Revenue | | $2,000 |
+| **Totals** | **$12,200** | **$12,200** |
 

@@ -440,18 +440,20 @@ export class FigureView {
         };
       }
     }
-    if (figure.key.length || figure.states.size) {
+    // A state says where an element stands in the steps, so a figure of one step has no progress for the key to explain.
+    const states = figure.steps.length > 1 ? STATES.filter((state) => figure.states.has(state)) : [];
+    if (figure.key.length || states.length) {
       const key = scroll.appendChild(div('vicher-figure-key'));
-      const entry = (marks: Marks, meaning: string): void => {
+      const entry = (marks: Marks, meaning: string, line = false): void => {
         const item = key.appendChild(div('vicher-figure-key-item'));
         const mark = item.appendChild(createSpan());
-        mark.className = 'vicher-figure-key-mark';
+        mark.className = `vicher-figure-key-mark${line ? ' is-line' : ''}`;
         markData(mark, marks);
         mark.textContent = ' ';
         drawing.markdown(item.appendChild(createSpan()), meaning);
       };
-      for (const name of figure.key) entry({ color: drawing.colorOf(name) }, name);
-      for (const state of STATES) if (figure.states.has(state)) entry({ state }, `${state}: ${MEANING[state]}`);
+      for (const name of figure.key) entry({ color: drawing.colorOf(name) }, name, figure.strokes.has(name));
+      for (const state of states) entry({ state }, `${state}: ${MEANING[state]}`);
     }
     if (figure.steps.length > 1) {
       playback = mount(Playback, { target: side, props: { change: (index) => this.show(index) } });
@@ -517,9 +519,20 @@ export class FigureView {
       for (const step of this.steps) for (const drawn of step.drawn) drawn.repaint?.();
       for (const step of this.steps) if (step.dirty) this.repaint(step);
     }
+    for (const step of this.steps) this.placeCards(step.el);
     this.reserveWidths();
     for (const step of this.steps) drawLinks(step.el, step.links, markdown);
     this.placeSide?.();
+  }
+
+  /** Marks each Column that its Row wrapped under the element before it, so a Column of cards runs as a row there (`styles.css`). */
+  private placeCards(root: HTMLElement): void {
+    for (const column of root.querySelectorAll<HTMLElement>('.vicher-figure-row > .vicher-figure-column')) {
+      // Measured without `is-under`, whose full-width basis would keep the Column wrapped once the pane widens again.
+      column.classList.remove('is-under');
+      const before = column.previousElementSibling as HTMLElement | null;
+      column.classList.toggle('is-under', !!before?.offsetHeight && column.offsetTop >= before.offsetTop + before.offsetHeight);
+    }
   }
 
   private show(index: number): void {
@@ -559,6 +572,7 @@ export class FigureView {
   private repaint(step: StepView): void {
     step.dirty = false;
     for (const drawn of step.drawn) drawn.repaint?.();
+    this.placeCards(step.el);
     if (this.markdown) drawLinks(step.el, step.links, this.markdown);
   }
 

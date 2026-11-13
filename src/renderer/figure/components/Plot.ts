@@ -41,7 +41,7 @@ export const Plot = component({
   guidance: [
     'A Plot is 3D when it holds an `Fn` of two variables or any point with three coordinates; then every point in it is `[x, y, z]`, z points up, and the student turns it by dragging.',
     'An axis is required when a function takes it as input (`x` for a curve, `x` and `y` for a surface z = f(x, y)); every other axis is fitted to the layers when absent, and a surface\'s few extreme heights (near a pole such as 1/(x² + y²)) are cut at the box; give the axis to show more.',
-    '`equal` draws one unit as long on every axis, so a circle stays round and a sphere a sphere; it is on when the axes span the same length, or when a 3D Plot gives none and its spans are within 10× of each other, and `equal={false}` turns it off. Without it each axis fills its side, so unequal ranges never squash the drawing.',
+    '`equal` draws one unit as long on every axis, so a circle stays round and a sphere a sphere; it is on when the axes span the same length, or when a 3D Plot gives none or holds only parametric surfaces and its spans are within 10× of each other, and `equal={false}` turns it off. Without it each axis fills its side, so unequal ranges never squash the drawing.',
     '`view` is a 3D Plot\'s starting angle in degrees, default `{ azimuth: 30, elevation: 25 }`.',
   ],
   variants: {

@@ -6,7 +6,8 @@ export type Layer = (
   /** `lower`, when set, replaces the flat `base` as the edge shaded against; `from` and `to` limit the shading to an x range. */
   | { kind: 'area'; points: Point[]; base: number; lower?: Point[]; from?: number; to?: number; bar?: boolean; label?: string; series?: number }
   | { kind: 'bars'; values: (number | null)[]; mode: 'bars' | 'waterfall'; label?: string; series?: number }
-  | { kind: 'dot'; x: number; y: number; label?: string; series?: number }
+  /** `label` is written beside the dot; `name` is what the legend calls the set of dots it belongs to. */
+  | { kind: 'dot'; x: number; y: number; label?: string; name?: string; series?: number }
   | { kind: 'rule'; at: number; axis: 'x' | 'y'; label?: string; series?: number }
   | { kind: 'note'; x: number; y: number; text: string; series?: number }
   /** A line with an arrowhead at `to` and no point marks. */

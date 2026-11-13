@@ -1,34 +1,46 @@
-Gravity points down, the normal force is perpendicular to the incline, and friction points up the incline when the block tends to slide down. The force lengths are schematic.
-
 ```figure
 export const params = {
-  angle: { label: 'Incline angle', min: 10, max: 60, step: 1, value: 30, unit: '°' }
+  angle: { label: 'Incline angle', min: 10, max: 60, step: 5, value: 30, unit: '°' }
 };
 
 export default function ({ angle }) {
-  const radians = angle * Math.PI / 180;
-  const u = [Math.cos(radians), Math.sin(radians)];
-  const n = [-Math.sin(radians), Math.cos(radians)];
-  const base = [0.7, 0.7];
-  const contact = [base[0] + 2.5 * u[0], base[1] + 2.5 * u[1]];
-  const center = [contact[0] + 0.4 * n[0], contact[1] + 0.4 * n[1]];
-  const point = (a, b, c) => [a[0] + b * c[0], a[1] + b * c[1]];
-  const block = [
-    point(contact, -0.55, u),
-    point(contact, 0.55, u),
-    point(point(contact, 0.55, u), 0.8, n),
-    point(point(contact, -0.55, u), 0.8, n)
+  const t = angle * Math.PI / 180;
+  const e = [Math.cos(t), Math.sin(t)];
+  const n = [-Math.sin(t), Math.cos(t)];
+  const center = [4, 3.1];
+  const point = (along, normal = 0) => [
+    center[0] + along * e[0] + normal * n[0],
+    center[1] + along * e[1] + normal * n[1]
   ];
+  const planeStart = point(-2.7);
+  const planeEnd = point(2.7);
+  const block = [point(-0.9), point(0.9), point(0.9, 0.9), point(-0.9, 0.9)];
+  const forceStart = point(0, 0.45);
+  const forceEnd = (dx, dy) => [forceStart[0] + dx, forceStart[1] + dy];
+  const angleVertex = planeStart;
 
   return (
-    <Diagram width={8} height={7.5}>
-      <Segment from={base} to={[base[0] + 5.5 * u[0], base[1] + 5.5 * u[1]]} label="incline" group="surface" />
-      <Shape pts={block} closed label="block" group="block" />
-      <Vector from={center} to={[center[0], center[1] - 1.6]} label="$mg$" group="gravity" />
-      <Vector from={center} to:={[center[0] + 1.4 * n[0], center[1] + 1.4 * n[1]]} label="$N$" group="normal" />
-      <Vector from={center} to={[center[0] - 1.2 * u[0], center[1] - 1.2 * u[1]]} label="$f$" group="friction" />
-      <Angle at={base} from={[base[0] + 1, base[1]]} to={[base[0] + u[0], base[1] + u[1]]} label={`${angle}°`} />
-    </Diagram>
+    <Column gap="sm" align="center">
+      <Diagram id="incline" width={8} height={6.2}>
+        <Segment from={planeStart} to={planeEnd} label="rough surface" />
+        {Array.from({ length: 11 }, (_, i) => {
+          const p = point(-2.4 + i * 0.48);
+          return <Segment id={`rough-${i}`} from={p} to={[p[0] + 0.12 * n[0], p[1] + 0.12 * n[1]]} />;
+        })}
+        <Shape id="block" pts={block} closed label="block" />
+        <Vector id="weight" from={forceStart} to={forceEnd(0, -1.7)} label="$mg$" />
+        <Vector id="normal" from={forceStart} to={forceEnd(1.5 * n[0], 1.5 * n[1])} label="$N$" />
+        <Vector id="friction" from={forceStart} to={forceEnd(1.35 * e[0], 1.35 * e[1])} label="$f_s$" />
+        <Angle
+          id="angle"
+          at={angleVertex}
+          from={[angleVertex[0] + 0.8, angleVertex[1]]}
+          to={[angleVertex[0] + 0.8 * e[0], angleVertex[1] + 0.8 * e[1]]}
+          label={`$${angle}°$`}
+        />
+      </Diagram>
+      <Text>Friction points up the incline, assuming the block tends to slide down.</Text>
+    </Column>
   );
 }
 ```

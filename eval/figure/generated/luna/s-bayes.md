@@ -1,17 +1,38 @@
-Imagine testing 10,000 people. With 1% prevalence, 100 have the disease and 9,900 do not.
+A positive test is only strong evidence when the disease is common enough that true positives outnumber false alarms. Here, most people do not have the disease, so even a 10% false-positive rate creates many false alarms.
 
-| Group | Test positive | Test negative |
-|---|---:|---:|
-| Have disease (100) | 95 | 5 |
-| Don’t have disease (9,900) | 990 | 8,910 |
-
-Sensitivity means 95% of people with the disease test positive. Specificity means 90% of people without it test negative, so 10% of them test positive by mistake.
-
-That gives 1,085 positive results, but only 95 are true positives. So about **91% of positive tests are false alarms**:
+The **positive predictive value** is the share of positive results that come from people who have the disease:
 
 $$
-\frac{990}{95 + 990} \approx 91.2\%
+P(\text{disease}\mid +)=\frac{\text{true positives}}{\text{all positive results}}
 $$
 
-The key is that the disease is rare: the much larger group without the disease produces more false positives, even though each person in that group has only a 10% chance of one.
+Imagine testing 10,000 people. About 100 have the disease; with 95% sensitivity, 95 test positive. The other 9,900 are healthy; with 90% specificity, 10% of them, or 990, test positive by mistake. So 990 of the 1,085 positive results are false alarms:
+
+$$
+\frac{990}{1{,}085}\approx 91.2\%
+$$
+
+That means a positive result is about **9% likely to indicate disease** and **91% likely to be a false alarm**.
+
+```figure
+const population = 10000;
+const diseased = population * 0.01;
+const healthy = population - diseased;
+const truePositives = diseased * 0.95;
+const falseNegatives = diseased - truePositives;
+const falsePositives = healthy * (1 - 0.90);
+const trueNegatives = healthy - falsePositives;
+
+export default function () {
+  return <Table
+    title="Results among 10,000 people"
+    columns={["", "Test positive", "Test negative"]}
+    rows={[
+      ["Disease", truePositives, falseNegatives],
+      ["No disease", falsePositives, trueNegatives],
+      ["Total", truePositives + falsePositives, falseNegatives + trueNegatives],
+    ]}
+  />;
+}
+```
 

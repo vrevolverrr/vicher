@@ -1,84 +1,57 @@
-A level curve joins the points where $f$ has one fixed value, like a contour line on a map. The gradient points in the direction $f$ grows fastest, and it is perpendicular to the level curve through that point.
-
-For a value $c$, the level curve is
-
-$$\{(x,y) : f(x,y) = c\}$$
-
-and the gradient is the vector of partial derivatives:
-
-$$\nabla f = \left(\frac{\partial f}{\partial x},\ \frac{\partial f}{\partial y}\right)$$
-
-For $f(x,y) = x^2 - y^2$, the gradient is $\nabla f = (2x,\ -2y)$. The level curves satisfy $x^2 - y^2 = c$:
-
-- $c = 0$: the lines $y = x$ and $y = -x$ cross at the origin.
-- $c > 0$: hyperbolas that open left and right.
-- $c < 0$: hyperbolas that open up and down.
+Each level curve is the set of points where $f$ has one fixed value $c$. For $f(x, y) = x^2 - y^2$, the curves $x^2 - y^2 = c$ are hyperbolas, and the arrows show the gradient at four points.
 
 ```figure
-const L = 3;   // the box runs from -3 to 3 on both axes
-const N = 60;  // samples per curve
-
-// The level curve x^2 - y^2 = c, as one or two polylines.
-function branches(c) {
-  if (c === 0) return [[[-L, -L], [L, L]], [[-L, L], [L, -L]]];
-  if (c > 0) {
-    const ymax = Math.sqrt(L * L - c);
-    const right = [], left = [];
-    for (let i = 0; i <= N; i++) {
-      const y = -ymax + (2 * ymax * i) / N;
-      const x = Math.sqrt(c + y * y);
-      right.push([x, y]);
-      left.push([-x, y]);
-    }
-    return [right, left];
-  }
-  const k = -c;
-  const xmax = Math.sqrt(L * L - k);
-  const top = [], bottom = [];
-  for (let i = 0; i <= N; i++) {
-    const x = -xmax + (2 * xmax * i) / N;
-    const y = Math.sqrt(x * x + k);
-    top.push([x, y]);
-    bottom.push([x, -y]);
-  }
-  return [top, bottom];
-}
-
-const signGroup = c => (c > 0 ? 'f > 0' : c < 0 ? 'f < 0' : 'f = 0');
-
 export default function () {
-  const levels = [-4, -2, -1, 0, 1, 2, 4];
-  const points = [[1, 0], [2, 1], [0, 2], [-2, -1]];
-  const s = 0.25;   // arrows drawn at one quarter of true length
+  const B = 3;                                    // plot box is [-B, B] on both axes
+  const grad = (x, y) => [2 * x, -2 * y];         // gradient of f = x^2 - y^2
+  const inBox = ([x, y]) => Math.abs(x) <= B && Math.abs(y) <= B;
+  const trace = fn => Array.from({ length: 241 }, (_, i) => fn(-4 + i * 8 / 240)).filter(inBox);
+  const group = c => (c > 0 ? 'c > 0' : c < 0 ? 'c < 0' : 'c = 0');
+
+  // Each level c is a set of branches. Each branch is a parametric curve clipped to the box.
+  const levels = [-4, -2, -1, 0, 1, 2, 4].map(c => {
+    if (c === 0) return { c, branches: [trace(t => [t, t]), trace(t => [t, -t])] };
+    if (c > 0) {
+      const a = Math.sqrt(c);
+      return { c, branches: [trace(t => [a * Math.cosh(t), a * Math.sinh(t)]), trace(t => [-a * Math.cosh(t), a * Math.sinh(t)])] };
+    }
+    const s = Math.sqrt(-c);
+    return { c, branches: [trace(t => [s * Math.sinh(t), s * Math.cosh(t)]), trace(t => [s * Math.sinh(t), -s * Math.cosh(t)])] };
+  });
+
+  const P = [[1, 0], [2, 1], [0, 2], [-1, 1]];    // points where the gradient is drawn
+  const k = 0.2;                                  // arrow length per unit of gradient
 
   return (
-    <Plot x={[-L, L]} y={[-L, L]} xLabel="$x$" yLabel="$y$" equal>
-      {levels.flatMap(c => branches(c).map((pts, j) => (
-        <Shape pts={pts} group={signGroup(c)} label={j === 0 ? String.raw`$f=${c}$` : undefined} />
-      )))}
-      {points.map(([x, y]) => {
-        const gx = 2 * x, gy = -2 * y;   // grad f = (2x, -2y)
-        return (
+    <Figure title="Level curves of x^2 - y^2 with gradient arrows (arrows scaled by 0.2)" steps={[0]} render={() => (
+      <Plot id="plot" x={[-B, B]} y={[-B, B]} xLabel="x" yLabel="y" equal>
+        {levels.flatMap(({ c, branches }, i) => branches.map((b, j) => (
           <>
-            <Points pts={[[x, y]]} label={String.raw`$(${x},${y})$`} />
-            <Vector from={[x, y]} to={[x + s * gx, y + s * gy]} group="gradient"
-              label={String.raw`$\nabla f=(${gx},${gy})$`} />
+            <Shape key={`${i}-${j}`} id={`lvl${i}-${j}`} pts={b} group={group(c)} label={j === 0 ? `$c=${c}$` : undefined} />
+            {j === 0 && <Label at={b[b.length - 1]} text={`$c=${c}$`} />}
           </>
-        );
-      })}
-    </Plot>
+        )))}
+        {P.map((p, i) => {
+          const [gx, gy] = grad(p[0], p[1]);
+          return (
+            <>
+              <Points id={`pt${i}`} pts={[p]} label={`(${p[0]}, ${p[1]})`} />
+              <Vector id={`g${i}`} from={p} to={[p[0] + k * gx, p[1] + k * gy]} label={i === 0 ? String.raw`$\nabla f$` : undefined} group="gradient" />
+            </>
+          );
+        })}
+      </Plot>
+    )} />
   );
 }
 ```
 
-The curves are coloured by the sign of $c$. The four arrows show $\nabla f$ at $(1,0)$, $(2,1)$, $(0,2)$ and $(-2,-1)$.
+The gradient is
 
-**Worked example at $(2,1)$**
+$$\nabla f = \left(\frac{\partial f}{\partial x}, \frac{\partial f}{\partial y}\right) = (2x,\ -2y)$$
 
-The height there is $f(2,1) = 2^2 - 1^2 = 3$, so the level curve through the point is $x^2 - y^2 = 3$. The gradient is
+It points uphill, and it is perpendicular to the level curve through its point.
 
-$$\nabla f(2,1) = (2\cdot 2,\ -2\cdot 1) = (4,\ -2)$$
+**Worked example at (2, 1).** $f = 4 - 1 = 3$, so the point lies on the $c = 3$ hyperbola. $\nabla f = (4, -2)$. Differentiate $x^2 - y^2 = 3$ implicitly: $2x - 2y\,y' = 0$, so $y' = x/y = 2$ and a tangent vector is $(1, 2)$. The dot product is $(4)(1) + (-2)(2) = 0$, so the gradient is perpendicular to the curve.
 
-To check it is perpendicular to the curve, differentiate $x^2 - y^2 = 3$ implicitly: $2x\,dx - 2y\,dy = 0$. The tangent direction is therefore $(y, x) = (1, 2)$. The dot product is $(4,-2)\cdot(1,2) = 4 - 4 = 0$.
-
-The gradient fails to give a direction at the origin, where $\nabla f = (0,0)$. There the curves cross, and the origin is a saddle point.
+The curves with $c > 0$ open left and right. The curves with $c < 0$ open up and down. The $c = 0$ level is the two lines $y = \pm x$, which cross at the origin, where $\nabla f = (0, 0)$.

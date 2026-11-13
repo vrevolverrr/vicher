@@ -28,6 +28,8 @@ export interface FigureData {
   colors: ReadonlyMap<string, Color>;
   /** The groups the key lists, as first seen. */
   key: readonly string[];
+  /** The groups drawn only as lines, which the key marks with a line and not a box. */
+  strokes: ReadonlySet<string>;
   /** The states in use, which the key explains. */
   states: ReadonlySet<State>;
   params: readonly Param[];

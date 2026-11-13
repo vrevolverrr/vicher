@@ -89,7 +89,8 @@ export function layoutDiagram(diagram: Diagram, extent: Extent, available: numbe
       }
       case 'Vector':
       case 'Segment':
-        polyline([layer.from, layer.to], marked, layer.type === 'Vector' ? { arrow: true, className: 'is-vector' } : {});
+        // A vector of no length has no direction, so it draws no head; its label still says "0 m/s".
+        if (layer.type === 'Segment' || layer.from[0] !== layer.to[0] || layer.from[1] !== layer.to[1]) polyline([layer.from, layer.to], marked, layer.type === 'Vector' ? { arrow: true, className: 'is-vector' } : {});
         label([(layer.from[0] + layer.to[0]) / 2, (layer.from[1] + layer.to[1]) / 2], layer);
         break;
       case 'Points':

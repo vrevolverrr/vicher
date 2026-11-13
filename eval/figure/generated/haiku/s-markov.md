@@ -1,4 +1,6 @@
-Start at Sunny: $\pi_0 = (1, 0, 0)$. Each day, multiply the row vector by $P$: $\pi_{n+1} = \pi_n P$.
+A **Markov chain** is a sequence of states where tomorrow's state depends only on today's state. Here the states are Sunny, Cloudy and Rainy, and the chances stay the same every day.
+
+The chances go in a **transition matrix** $P$. Each row is today's weather, each column is tomorrow's, and each row sums to 1.
 
 ```mermaid
 stateDiagram-v2
@@ -14,21 +16,25 @@ stateDiagram-v2
     Rainy --> Rainy: 0.4
 ```
 
-Day 2 from day 1 (Sunny row of $P$ weighted by day 1):
+Let $\pi_n$ be the row vector of probabilities (Sunny, Cloudy, Rainy) on day $n$. The next day's probabilities follow this rule:
 
-$$\pi_2 = (0.6,\ 0.3,\ 0.1)\begin{pmatrix}0.6&0.3&0.1\\0.3&0.4&0.3\\0.2&0.4&0.4\end{pmatrix}$$
+$$\pi_{n+1} = \pi_n P$$
 
-Sunny: $0.6(0.6) + 0.3(0.3) + 0.1(0.2) = 0.47$. Cloudy and Rainy use the same column sums: $0.34$ and $0.19$.
+Start sunny, so $\pi_0 = (1, 0, 0)$. Day 1 is the Sunny row of $P$: $\pi_1 = (0.6, 0.3, 0.1)$.
+
+For day 2, the Sunny entry adds each day-1 probability times its chance of moving to Sunny:
+
+$$P(\text{Sunny on day 2}) = 0.6(0.6) + 0.3(0.3) + 0.1(0.2) = 0.47$$
+
+Repeat this for each state and each day:
 
 | Day | Sunny | Cloudy | Rainy |
-|----:|------:|-------:|------:|
-| 0 | 1.0000 | 0.0000 | 0.0000 |
-| 1 | 0.6000 | 0.3000 | 0.1000 |
-| 2 | 0.4700 | 0.3400 | 0.1900 |
-| 3 | 0.4220 | 0.3530 | 0.2250 |
-| 4 | 0.4041 | 0.3578 | 0.2381 |
-| 5 | 0.3974 | 0.3596 | 0.2430 |
+|---|---|---|---|
+| 0 | 1.000 | 0.000 | 0.000 |
+| 1 | 0.600 | 0.300 | 0.100 |
+| 2 | 0.470 | 0.340 | 0.190 |
+| 3 | 0.422 | 0.353 | 0.225 |
+| 4 | 0.404 | 0.358 | 0.238 |
+| 5 | 0.397 | 0.360 | 0.243 |
 
-Each row sums to 1. The chain is regular (every entry is positive), so the distribution converges to the stationary solution of $\pi = \pi P$, about $(0.393, 0.361, 0.246)$, or $(24, 22, 15)/61$.
-
-Skipped: a chart, since the table already gives the series. Not checked: a numerical solver; the arithmetic was done by hand and each row was checked to sum to 1.
+Sunny falls and Rainy rises, and each day's change is smaller than the one before. The model holds only while the same chances apply every day.

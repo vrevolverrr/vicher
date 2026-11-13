@@ -1,58 +1,31 @@
-I’ll lay out the earliest-start schedule from day 0, then mark the longest dependency chain as critical.
+The project takes **14 days**. Its critical path is **A → C → E → F → G → H**.
 
-The **critical path** is the longest chain of dependent activities. It sets the project’s shortest possible completion time: any delay on that chain delays the finish.
+| Activity | Duration | Depends on | Earliest start | Earliest finish |
+|---|---:|---|---:|---:|
+| A | 3d | — | 0 | 3 |
+| B | 2d | A | 3 | 5 |
+| C | 4d | A | 3 | 7 |
+| D | 2d | B | 5 | 7 |
+| E | 3d | C | 7 | 10 |
+| F | 1d | D, E | 10 | 11 |
+| G | 2d | F | 11 | 13 |
+| H | 1d | G | 13 | 14 |
 
-Using day 0 as the start, the earliest schedule is:
+The numbers use day 0 as the project start. B and D each have **3 days of slack**; delaying a critical-path activity delays the whole project.
 
-| Activity | Duration | Earliest start | Earliest finish | Float |
-|---|---:|---:|---:|---:|
-| A | 3d | 0 | 3 | 0d |
-| B | 2d | 3 | 5 | 3d |
-| C | 4d | 3 | 7 | 0d |
-| D | 2d | 5 | 7 | 3d |
-| E | 3d | 7 | 10 | 0d |
-| F | 1d | 10 | 11 | 0d |
-| G | 2d | 11 | 13 | 0d |
-| H | 1d | 13 | 14 | 0d |
+```mermaid
+flowchart LR
+    A["A · 3d<br/>0–3"] --> B["B · 2d<br/>3–5"]
+    A --> C["C · 4d<br/>3–7"]
+    B --> D["D · 2d<br/>5–7"]
+    C --> E["E · 3d<br/>7–10"]
+    D --> F["F · 1d<br/>10–11"]
+    E --> F
+    F --> G["G · 2d<br/>11–13"]
+    G --> H["H · 1d<br/>13–14"]
 
-```figure
-export default function () {
-  return (
-    <Figure steps={[{}]} render={() => (
-      <Graph
-        nodes={[
-          { id: 'A', label: 'A · 3d' },
-          { id: 'B', label: 'B · 2d' },
-          { id: 'C', label: 'C · 4d' },
-          { id: 'D', label: 'D · 2d' },
-          { id: 'E', label: 'E · 3d' },
-          { id: 'F', label: 'F · 1d' },
-          { id: 'G', label: 'G · 2d' },
-          { id: 'H', label: 'H · 1d' },
-        ]}
-        edges={[
-          { id: 'AB', from: 'A', to: 'B', directed: true },
-          { id: 'AC', from: 'A', to: 'C', directed: true },
-          { id: 'BD', from: 'B', to: 'D', directed: true },
-          { id: 'CE', from: 'C', to: 'E', directed: true },
-          { id: 'DF', from: 'D', to: 'F', directed: true },
-          { id: 'EF', from: 'E', to: 'F', directed: true },
-          { id: 'FG', from: 'F', to: 'G', directed: true },
-          { id: 'GH', from: 'G', to: 'H', directed: true },
-        ]}
-        groups={{
-          A: 'Critical path', AC: 'Critical path', C: 'Critical path',
-          CE: 'Critical path', E: 'Critical path', EF: 'Critical path',
-          F: 'Critical path', FG: 'Critical path', G: 'Critical path',
-          GH: 'Critical path', H: 'Critical path',
-          B: 'Other activities', AB: 'Other activities',
-          BD: 'Other activities', D: 'Other activities', DF: 'Other activities',
-        }}
-      />
-    )} />
-  );
-}
+    classDef critical stroke-width:4px;
+    class A,C,E,F,G,H critical;
+    linkStyle 1,3,5,6,7 stroke-width:4px;
 ```
-
-The critical path is **A → C → E → F → G → H**, totaling **14 days**. B and D each have **3 days of float** before they would delay F.
 

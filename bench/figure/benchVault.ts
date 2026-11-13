@@ -59,5 +59,8 @@ export async function setup(): Promise<string> {
   // `plugins:restrict off` reloads the window and loses an enable sent during the reload; these two calls do not reload.
   await evalIn(NAME, `(async () => { await app.plugins.setEnable(true); await app.plugins.enablePluginAndSave('vicher'); return 'ok'; })()`);
   await until('Vicher to load', () => evalJson<boolean>(NAME, '!!app.plugins.plugins.vicher'));
+  // Obsidian asks whether to trust a new vault that holds a plugin. The bench has enabled the plugin itself, and the prompt
+  // and its backdrop would cover every shot. Its buttons are not pressed: "Restricted Mode" may switch the plugin off.
+  await evalIn(NAME, `document.querySelectorAll('.modal-container').forEach((modal) => modal.remove()), 'ok'`);
   return NAME;
 }

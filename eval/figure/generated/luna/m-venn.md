@@ -1,26 +1,30 @@
 ```figure
-const a = [2.5, 2];
-const b = [4, 2];
-const r = 1.4;
-const angle = Math.acos((b[0] - a[0]) / (2 * r));
-const points = [];
-
-for (let i = 0; i <= 40; i++) {
-  const t = angle + (2 * Math.PI - 2 * angle) * i / 40;
-  points.push([a[0] + r * Math.cos(t), a[1] + r * Math.sin(t)]);
-}
-for (let i = 0; i <= 40; i++) {
-  const t = Math.PI - angle - (Math.PI - 2 * angle) * i / 40;
-  points.push([b[0] + r * Math.cos(t), b[1] + r * Math.sin(t)]);
+function arc(cx, cy, r, start, end, count) {
+  return Array.from({ length: count + 1 }, (_, i) => {
+    const angle = (start + (end - start) * i / count) * Math.PI / 180;
+    return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
+  });
 }
 
 export default function () {
+  const r = 1.25;
+  const d = 0.65;
+  const y = Math.sqrt(r * r - d * d);
+  const top = Math.atan2(y, d) * 180 / Math.PI;
+  const bottom = 360 - top;
+  const leftOnly = [
+    ...arc(-d, 0, r, top, bottom, 48),
+    ...arc(d, 0, r, 360 - top, 360 - bottom, 24)
+  ];
+
   return (
-    <Diagram width={7} height={4}>
-      <Shape pts={points} closed label="A ∩ Bᶜ" group="A only" />
-      <Circle at={a} r={r} label="A" />
-      <Circle at={b} r={r} label="B" />
-      <Label at={[0.5, 3.45]} text="A ∩ Bᶜ" />
+    <Diagram width={4.2} height={3.2}>
+      <Shape pts={leftOnly} closed />
+      <Circle at={[-d, 0]} r={r} />
+      <Circle at={[d, 0]} r={r} />
+      <Label at={[-1.35, 0.15]} text="A" />
+      <Label at={[1.15, 0.15]} text="B" />
+      <Label at={[-0.72, -0.48]} text="$A \\cap B^c$" />
     </Diagram>
   );
 }

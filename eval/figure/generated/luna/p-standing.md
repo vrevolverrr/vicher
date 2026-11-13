@@ -1,29 +1,31 @@
-A string fixed at both ends must have zero displacement at each end. Its **harmonics** are the standing-wave patterns that fit between those fixed points: the first harmonic has one loop, the second has two, and so on.
-
-For a string of length $L$, the $n$th harmonic’s shape at maximum displacement is
+A **standing wave** on a string fixed at both ends has zero displacement at the ends. Each harmonic fits an integer number of half-wavelengths along the string:
 
 $$
-y_n(x)=A\sin\left(\frac{n\pi x}{L}\right)
+L = \frac{n\lambda_n}{2}
 $$
 
-Here $x$ is position along the string, $A$ is the amplitude, and $n=1,2,3,\ldots$ counts the harmonic. The harmonic frequencies are whole-number multiples of the first harmonic:
-
-$$
-f_n=n f_1
-$$
+Here $L$ is the string length, $n=1,2,3,\ldots$ is the harmonic number, and $\lambda_n$ is its wavelength. The first harmonic has one half-wave; the second has two; the third has three. The dots show nodes, points that stay still.
 
 ```figure
 export default function () {
+  const steps = [1, 2, 3, 4].map(n => ({
+    n,
+    nodes: Array.from({ length: n + 1 }, (_, k) => [k / n, 0]),
+    antinodes: Array.from({ length: n }, (_, k) => [(k + 0.5) / n, (k % 2 === 0 ? 1 : -1)]),
+    text: `Harmonic **${n}**: ${n} half-wave${n === 1 ? '' : 's'} fit between the fixed ends.`
+  }));
+
   return (
-    <Plot id="harmonics" x={[0, 1]} y={[-1.1, 1.1]} xLabel="Position along string, $x/L$" yLabel="Displacement">
-      <Fn id="h1" f={x => Math.sin(Math.PI * x)} label="1st: $n=1$" />
-      <Fn id="h2" f={x => Math.sin(2 * Math.PI * x)} label="2nd: $n=2$" />
-      <Fn id="h3" f={x => Math.sin(3 * Math.PI * x)} label="3rd: $n=3$" />
-      <Points pts={[[0, 0], [1, 0]]} label="Fixed ends" />
-    </Plot>
+    <Figure steps={steps} caption={step => step.text} render={step => (
+      <Plot x={[0, 1]} y={[-1.2, 1.2]} xLabel="Position along string" yLabel="Displacement">
+        <Fn id="wave" f={x => Math.sin(step.n * Math.PI * x)} from={0} to={1} />
+        <Points id="nodes" pts={step.nodes} label="Nodes" />
+        <Points id="antinodes" pts={step.antinodes} label="Antinodes" />
+      </Plot>
+    )} />
   );
 }
 ```
 
-Each curve shows a snapshot of one harmonic. The ends stay at zero; the interior points that also stay at zero are called **nodes**.
+For example, the third harmonic has three half-waves and four nodes, including the two fixed ends.
 

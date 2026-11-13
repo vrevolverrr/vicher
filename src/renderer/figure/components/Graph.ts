@@ -3,7 +3,7 @@ import { LIMITS } from '@/renderer/figure/FigureData';
 
 export const Graph = component({
   name: 'Graph',
-  summary: 'nodes and links placed by the host, a single rooted tree as a tree.',
+  summary: 'nodes and links placed by the host: a single rooted tree as a tree, and edges that are all `directed` with no cycle (a precedence network, a dependency graph) in rows from top to bottom.',
   guidance: [
     'Keep the same node ids in every step; change labels, groups and states. A binary tree node with one child gets a dimmed `nil` node for the other, so left and right stay apart.',
     'Put a small Graph and its Table side by side in a `Row`; beside a Graph of more than about six nodes, give per-node values as a wide Table, one column per node and one row per quantity, under it in a `Column`.',

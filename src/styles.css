@@ -684,7 +684,6 @@ body {
   stroke-width: 2;
 }
 
-/* Markdown tables share one presentation in prose and OpenUI text. */
 .vicher-reply.markdown-rendered .table-wrapper {
   width: 100%;
   min-width: 0;
@@ -1516,6 +1515,12 @@ body {
   align-items: stretch;
 }
 
+/* Cards a Row wrapped under its drawing run as a row from the drawing's left edge (`FigureView.placeCards`). */
+.vicher-figure .vicher-figure-column.is-under:not(:has(> :not(.vicher-figure-node))) {
+  flex-flow: row wrap;
+  flex-basis: 100%;
+}
+
 .vicher-figure .is-gap-sm { gap: 6px; }
 .vicher-figure .is-gap-md { gap: 14px; }
 .vicher-figure .is-gap-lg { gap: 28px; }
@@ -1795,8 +1800,10 @@ body {
   font-weight: var(--font-semibold);
 }
 
+/* A label drawn before MathJax has loaded comes from the Markdown renderer, in a paragraph. */
 .vicher-figure-pointer p,
-.vicher-figure-link-label p {
+.vicher-figure-link-label p,
+.vicher-plot-key p {
   display: inline;
 }
 
@@ -1917,6 +1924,14 @@ body {
 }
 .vicher-figure-pointer[data-color] {
   --vicher-figure-pointer-ink: var(--vicher-figure-mark-ink);
+}
+/* A group drawn only as lines is keyed by a line; after the box rule above, which it replaces. */
+.vicher-figure-key-mark.is-line[data-color] {
+  height: 0;
+  border: 0;
+  border-top: 3px solid var(--vicher-figure-mark-ink);
+  border-radius: 0;
+  background: none;
 }
 
 :is(.vicher-network-edge, .vicher-figure-link)[data-state='active'] {
