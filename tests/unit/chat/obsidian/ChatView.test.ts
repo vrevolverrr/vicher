@@ -118,7 +118,7 @@ const views: ChatView[] = [];
 function setup() {
   const sessions: FakeSession[] = [];
   const agent: AgentAdapter = {
-    id: 'claude', skillSyntax: { prefix: '/', atStart: true }, fileMention: (path) => `@"${path}"`, toolsOnResume: true,
+    id: 'claude', skillSyntax: { prefix: '/', atStart: true }, fileMention: (path) => `@"${path}"`,
     authState: async () => 'logged-in', models: async () => [],
     openSession: vi.fn(async (options) => {
       const session = fakeSession(`session-${sessions.length}`, options);

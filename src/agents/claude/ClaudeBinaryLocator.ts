@@ -8,7 +8,7 @@ import { getEnhancedPath } from '@/agents/process/env';
 /** Where npm puts the native binary inside its package, from Claude Code 2.1.113 on. */
 const PACKAGE_BINARY = ['node_modules', '@anthropic-ai', 'claude-code', 'bin', 'claude.exe'];
 
-/** The native `claude` executable; Claude Code before 2.1.113, whose npm package ran `cli.js` through Node, is not supported. */
+/** The native `claude` executable. Before 2.1.113 the npm package ran `cli.js` through Node and has none; the supported floor is 2.1.267 (`ClaudeAgent`). */
 export function findClaudeBinaryPath(): string | null {
   const home = os.homedir();
   const isWindows = process.platform === 'win32';

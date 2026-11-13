@@ -39,7 +39,6 @@ const RETIRED_TURN_LIMIT = 16;
 export class CodexAgent implements AgentAdapter {
   readonly id = 'codex';
   readonly skillSyntax = { prefix: '$', atStart: false };
-  readonly toolsOnResume = false;
 
   constructor(private readonly userEnv: () => Record<string, string> = () => ({})) {}
 
