@@ -8,8 +8,8 @@ const selectors = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{/
 const SURFACES = ['vicher-figure-node', 'vicher-network-node', 'vicher-figure-cell', 'vicher-figure-seq-cell', 'vicher-network-edge', 'vicher-network-edge-label', 'vicher-figure-link', 'vicher-figure-pointer', 'vicher-figure-key-mark'];
 
 describe('figure mark styles', () => {
-  // A `done` edge label takes nothing of its own: the edge beside it is dashed.
-  it.each(['[data-color]', ...STATES.map((state) => `[data-state='${state}']`)].flatMap((mark) => SURFACES.map((surface) => [mark, surface] as const)).filter(([mark, surface]) => !(mark.includes('done') && surface === 'vicher-network-edge-label')))('styles %s on %s', (mark, surface) => {
+  // A `done` edge label takes nothing of its own: the edge beside it is dashed. The key lists groups only, never states.
+  it.each(['[data-color]', ...STATES.map((state) => `[data-state='${state}']`)].flatMap((mark) => SURFACES.map((surface) => [mark, surface] as const)).filter(([mark, surface]) => !(mark.includes('done') && surface === 'vicher-network-edge-label') && !(mark.includes('state') && surface === 'vicher-figure-key-mark')))('styles %s on %s', (mark, surface) => {
     const surfaceAt = new RegExp(`\\.${surface}(?![\\w-])`);
     expect(selectors.some((selector) => selector.includes(mark) && surfaceAt.test(selector))).toBe(true);
   });

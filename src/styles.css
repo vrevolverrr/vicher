@@ -1880,7 +1880,7 @@ body {
   --vicher-figure-mark-ink: var(--vicher-figure-color-pink);
   --vicher-figure-mark-fill: var(--vicher-figure-fill-pink);
 }
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark, .vicher-figure-pointer)[data-state='active'] {
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-pointer)[data-state='active'] {
   outline: 2px solid var(--vicher-figure-state-active);
   outline-offset: -2px;
   font-weight: var(--font-semibold);
@@ -1898,13 +1898,13 @@ body {
   font-weight: var(--font-semibold);
 }
 
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark, .vicher-figure-pointer)[data-state='done'],
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-pointer)[data-state='done'],
 .vicher-figure-table tr[data-state='done'] > td.vicher-figure-cell,
 .vicher-figure-table td.vicher-figure-cell[data-state='done'] {
   outline: 1.5px dashed var(--vicher-figure-state-done);
   outline-offset: -2px;
 }
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark)[data-state='done'],
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell)[data-state='done'],
 .vicher-figure-table tr[data-state='done'] > td.vicher-figure-cell:not([data-color]),
 .vicher-figure-table td.vicher-figure-cell[data-state='done'] {
   background: var(--background-secondary);
@@ -1957,7 +1957,7 @@ body {
   stroke-dasharray: none;
 }
 
-:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-key-mark, .vicher-figure-pointer)[data-state='dim'],
+:is(.vicher-figure-node, .vicher-network-node, .vicher-figure-panel, .vicher-figure-cell, .vicher-figure-seq-cell, .vicher-figure-pointer)[data-state='dim'],
 .vicher-figure-table tr[data-state='dim'] > td.vicher-figure-cell,
 .vicher-figure-table td.vicher-figure-cell[data-state='dim'],
 .vicher-network-edge-label[data-state='dim'] {

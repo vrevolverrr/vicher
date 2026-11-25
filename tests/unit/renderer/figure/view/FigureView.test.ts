@@ -125,30 +125,21 @@ describe('FigureView', () => {
     expect(steps.map((step) => step.classList.contains('is-current'))).toEqual([false, true]);
   });
 
-  it('lists every caption as a step, and keys its groups and states', async () => {
+  it('lists every caption as a step, and keys its groups', async () => {
     const markdown = host();
     const view = new FigureView(document.body, markdown, sandbox(() => linked));
     void view.run('src');
     await flush();
     expect([...view.el.querySelectorAll('.vicher-step .vicher-step-text')].map((caption) => caption.textContent)).toEqual(['**First**', '**Second**']);
-    expect([...view.el.querySelectorAll('.vicher-figure-key-mark')].map((mark) => (mark as HTMLElement).dataset.color ?? (mark as HTMLElement).dataset.state)).toEqual(['blue', 'active', 'done']);
+    expect([...view.el.querySelectorAll('.vicher-figure-key-mark')].map((mark) => (mark as HTMLElement).dataset.color)).toEqual(['blue']);
   });
 
   const dimmed = (caption: string) => ({ caption, root: el('Row', {}, el('Node', { id: 'a', label: 'A' }), el('Node', { id: 'b', label: 'B' }), el('Arrow', { from: 'a', to: 'b', state: 'dim' })) });
-  const keyed = (view: FigureView): (string | undefined)[] => [...view.el.querySelectorAll<HTMLElement>('.vicher-figure-key-mark')].map((mark) => mark.dataset.state);
-
-  it('keys `dim` when only a link is dimmed', async () => {
+  it('keys no state, whose meaning the step captions carry', async () => {
     const view = new FigureView(document.body, host(), sandbox(() => payload([dimmed('a'), dimmed('b')])));
     void view.run('src');
     await flush();
-    expect(keyed(view)).toEqual(['dim']);
-  });
-
-  it('keys no state in a figure of one step, which has no progress to explain', async () => {
-    const view = new FigureView(document.body, host(), sandbox(() => payload([dimmed('a')])));
-    void view.run('src');
-    await flush();
-    expect(keyed(view)).toEqual([]);
+    expect(view.el.querySelector('.vicher-figure-key')).toBeNull();
   });
 
   it('keys a group drawn only as lines with a line, and one that fills a box with a box', async () => {

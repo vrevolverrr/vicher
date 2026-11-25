@@ -6,7 +6,7 @@ import { type DrawnType, VIEWS } from '@/renderer/figure/view/components/registr
 import { drawLinks, type Link } from '@/renderer/figure/view/drawLinks';
 import type { FigureData, FigureNode, Param } from '@/renderer/figure/FigureData';
 import { figureSandbox, type FigureSandbox } from '@/renderer/figure/view/FigureSandbox';
-import { type Color, type ColorOf, type State, STATES } from '@/renderer/figure/marks';
+import type { Color, ColorOf } from '@/renderer/figure/marks';
 import { drawTex, drawTexIn, mapMath, type Rgb, type TexColour, TYPESET_MATH } from '@/renderer/figure/figureTex';
 import { figureText, isPlain } from '@/renderer/figure/figureText';
 import { formatFigure } from '@/renderer/figure/formatFigure';
@@ -36,8 +36,6 @@ const SETTLE_MS = 150;
 /** The most steps listed beside a figure; more show one caption at a time. */
 const MAX_LISTED = 6;
 
-/** What the key says of each state. */
-const MEANING: Record<State, string> = { active: 'being worked on', done: 'finished', dim: 'out of play' };
 const FALLBACK_WIDTH = 480;
 const RENDERED_LIMIT = 500;
 /** Plain text and `$…$` maths only, which MathJax draws at once with no Markdown render to wait for; else undefined. */
@@ -440,9 +438,7 @@ export class FigureView {
         };
       }
     }
-    // A state says where an element stands in the steps, so a figure of one step has no progress for the key to explain.
-    const states = figure.steps.length > 1 ? STATES.filter((state) => figure.states.has(state)) : [];
-    if (figure.key.length || states.length) {
+    if (figure.key.length) {
       const key = scroll.appendChild(div('vicher-figure-key'));
       const entry = (marks: Marks, meaning: string, line = false): void => {
         const item = key.appendChild(div('vicher-figure-key-item'));
@@ -453,7 +449,6 @@ export class FigureView {
         drawing.markdown(item.appendChild(createSpan()), meaning);
       };
       for (const name of figure.key) entry({ color: drawing.colorOf(name) }, name, figure.strokes.has(name));
-      for (const state of states) entry({ state }, `${state}: ${MEANING[state]}`);
     }
     if (figure.steps.length > 1) {
       playback = mount(Playback, { target: side, props: { change: (index) => this.show(index) } });

@@ -5,7 +5,7 @@ import { type AnyDefinition, DEFINITIONS } from '@/renderer/figure/components/re
 import { type FigureData, type FigureNode, ID, LIMITS, type Param, type Step } from '@/renderer/figure/FigureData';
 import { texAnchors, texIn, texProblems } from '@/renderer/figure/figureTex';
 import { formatFigure } from '@/renderer/figure/formatFigure';
-import { type Color, COLORS, isColor, type State } from '@/renderer/figure/marks';
+import { type Color, COLORS, isColor } from '@/renderer/figure/marks';
 import { count as n, isObject, over, own, type Plain } from '@/renderer/figure/plain';
 
 class Invalid extends Error {}
@@ -130,14 +130,13 @@ function readFigure(raw: unknown, earlier: ReadonlyMap<string, Color>): FigureDa
   if (!Array.isArray(frames) || frames.length === 0) fail('Figure', 'no steps');
   if (frames.length > LIMITS.steps) fail('Figure', over(frames.length, 'steps', LIMITS.steps));
   const title = own(raw, 'title');
-  const figure: FigureScope = { elements: 0, groups: new Set(), states: new Set() };
+  const figure: FigureScope = { elements: 0, groups: new Set() };
   const steps = frames.map((frame, i) => readStep(frame, i, frames.length, figure));
   return {
     ...(title === undefined || title === null || title === '' ? {} : { title: plainString(title, 'Figure', 'title') }),
     colors: colorsOf(readLegend(own(raw, 'legend')), figure.groups, earlier),
     key: keyedGroups(figure.groups, steps),
     strokes: strokeGroups(steps),
-    states: figure.states,
     params: readParams(own(raw, 'params')),
     steps,
   };
@@ -246,7 +245,6 @@ interface StepScope {
 interface FigureScope {
   elements: number;
   groups: Set<string>;
-  states: Set<State>;
 }
 
 function readStep(frame: unknown, index: number, count: number, figure: FigureScope): Step {
@@ -407,16 +405,8 @@ function walk(field: Field, value: unknown, key: string, path: string, context: 
         }
       }
       return;
-    case 'state':
-      scope.figure.states.add(value as State);
-      return;
     case 'states':
-      if (value instanceof Map) {
-        for (const [id, state] of value as ReadonlyMap<string, State>) {
-          scope.targets.push({ path, id, what: 'states' });
-          scope.figure.states.add(state);
-        }
-      }
+      if (value instanceof Map) for (const id of value.keys() as Iterable<string>) scope.targets.push({ path, id, what: 'states' });
       return;
     case 'point': {
       const size = context.dimension === 3 ? 3 : 2;
